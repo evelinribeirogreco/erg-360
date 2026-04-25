@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dossiê — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Dossiê Clínico</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Inteligência</p>
+      </div>
+
+      <div class="sidebar-nav">
+        <p class="nav-section-label">Acessar</p>
+        <a class="nav-item" id="btn-checkins-dos" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Check-ins
+        </a>
+        <a class="nav-item" id="btn-relatorio-dos" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Relatório de Consulta
+        </a>
+
+        <p class="nav-section-label" style="margin-top:20px;">Ações</p>
+        <a class="nav-item" id="btn-imprimir-dos" href="javascript:void(0)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Exportar PDF
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="dos-nome-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div id="dos-mount">
+        <div class="page-header fade-up">
+          <p class="page-greeting">Carregando inteligência clínica...</p>
+          <h1 class="page-title">Dossiê do Paciente</h1>
+          <p class="page-date">Analisando check-ins, anamnese, evolução corporal e fases</p>
+        </div>
+      </div>
+
+      <div class="admin-back-bottom">
+        <a href="admin.html" class="back-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao painel
+        </a>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       ESTILOS DO DOSSIÊ PREMIUM — 15 SEÇÕES
+       ══════════════════════════════════════════════════════════ -->
+  <style>
+
+    /* ══════════════════════════════════════════════════════
+       WRAPPER PRINCIPAL
+       ══════════════════════════════════════════════════════ */
+    .dos-documento {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      max-width: 900px;
+    }
+
+    /* ── Quebra de página (impressão) ── */
+    .dos-page-break-after {
+      page-break-after: always;
+      break-after: page;
+    }
+
+    /* ── Estado vazio ── */
+    .dos-empty {
+      font-size: 0.78rem;
+      color: var(--subtitle);
+      font-style: italic;
+      margin: 0;
+      padding: 12px 0;
+    }
+
+    /* ── Alerta info ── */
+    .dos-alert-info {
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      border-left: 3px solid var(--subtitle);
+      padding: 12px 16px;
+      font-size: 0.76rem;
+      color: var(--sub);
+      line-height: 1.55;
+      border-radius: 2px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CABEÇALHO DE SEÇÃO — secNum()
+       ══════════════════════════════════════════════════════ */
+    .dos-sec-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-sec-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.4rem;
+      color: var(--detail);
+      font-weight: 400;
+      line-height: 1;
+      flex-shrink: 0;
+      letter-spacing: -0.02em;
+      min-width: 52px;
+    }
+    .dos-sec-titulo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0 0 4px;
+      line-height: 1.2;
+    }
+    .dos-sec-sub {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      color: var(--subtitle);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CONTAINER DE SEÇÃO
+       ══════════════════════════════════════════════════════ */
+    .dos-secao {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-secao:last-child {
+      border-bottom: none;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LAYOUTS DE COLUNA
+       ══════════════════════════════════════════════════════ */
+    .dos-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    .dos-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 860px) {
+      .dos-2col { grid-template-columns: 1fr; gap: 20px; }
+      .dos-3col { grid-template-columns: 1fr; gap: 16px; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       LABEL DE CARTÃO (rótulo de sub-seção)
+       ══════════════════════════════════════════════════════ */
+    .dos-card-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+      margin: 0 0 10px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       KEY-VALUE — kv()
+       ══════════════════════════════════════════════════════ */
+    .dos-kv {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-kv:last-child { border-bottom: none; }
+    .dos-kv-label {
+      font-size: 0.72rem;
+      color: var(--subtitle);
+      white-space: nowrap;
+    }
+    .dos-kv-valor {
+      font-size: 0.76rem;
+      color: var(--text);
+      font-weight: 500;
+      text-align: right;
+    }
+    .dos-kv-destaque {
+      background: var(--bg2);
+      padding: 6px 10px;
+      border-bottom: none;
+      margin-bottom: 4px;
+    }
+    .dos-kv-destaque .dos-kv-valor {
+      font-weight: 700;
+    }
+
+    /* ── Badge inline ── */
+    .dos-badge {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 3px 9px;
+      border-radius: 2px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 1 — CAPA
+       ══════════════════════════════════════════════════════ */
+    .dos-capa {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 48px 0 40px;
+      min-height: 280px;
+      border-bottom: 2px solid var(--detail);
+    }
+    .dos-capa-marca {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+      margin-bottom: 36px;
+    }
+    .dos-capa-centro {
+      flex: 1;
+    }
+    .dos-capa-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+      margin: 0 0 12px;
+    }
+    .dos-capa-nome {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0 0 20px;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+    }
+    .dos-capa-linha {
+      width: 60px;
+      height: 2px;
+      background: var(--text);
+      margin-bottom: 24px;
+    }
+    .dos-capa-meta {
+      max-width: 380px;
+    }
+    .dos-capa-rodape {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--detail);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .dos-capa-rod-perfis {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .dos-rod-perfil {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.72rem;
+      color: var(--text);
+      padding: 6px 12px;
+      border: 1px solid var(--detail);
+      background: var(--bg2);
+    }
+    .dos-rod-perfil strong {
+      font-weight: 700;
+    }
+    .dos-capa-rod-data {
+      font-size: 0.65rem;
+      color: var(--subtitle);
+      margin: 0;
+      font-style: italic;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 2 — OBJETIVO ESTRATÉGICO
+       ══════════════════════════════════════════════════════ */
+    .dos-obj-principal {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.45;
+      margin: 0 0 4px;
+    }
+    .dos-subobj-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dos-subobj-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+    }
+    .dos-subobj-icone {
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .dos-subobj-texto {
+      font-size: 0.76rem;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .dos-prazo-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3.5rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0;
+      line-height: 1;
+    }
+    .dos-prazo-num span {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      color: var(--subtitle);
+      margin-left: 6px;
+    }
+    .dos-metricas-sucesso {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .dos-ms-item {
+      /* inherits .dos-kv chain from kv() inside */
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 3 — PERFIL DO PACIENTE
+       ══════════════════════════════════════════════════════ */
+    .dos-perfil-bloco {
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .dos-perfil-titulo-bloco {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      line-height: 1.3;
+    }
+    .dos-perfil-subtitulo {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.7rem;
+      color: var(--subtitle);
+      margin: 0 0 14px;
+      font-style: italic;
+    }
+    .dos-perfil-desc {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.74rem;
+      color: var(--sub);
+      line-height: 1.65;
+      margin: 0 0 14px;
+    }
+    .dos-perfil-lista {
+      font-size: 0.72rem;
+      color: var(--sub);
+      padding-left: 18px;
+      margin: 0;
+      line-height: 1.8;
+    }
+    .dos-perfil-estrategia {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--detail);
+      font-size: 0.74rem;
+      color: var(--sub);
+      line-height: 1.6;
+    }
+    .dos-perfil-estrategia p {
+      margin: 0;
+      color: var(--text);
+    }
+
+    /* ── Grade fisiológica ── */
+    .dos-fisio-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--detail);
+      border: 1px solid var(--detail);
+      margin-top: 10px;
+    }
+    .dos-fisio-item {
+      background: var(--bg-primary);
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .dos-fisio-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+      margin: 0 0 2px;
+      line-height: 1;
+    }
+    .dos-fisio-label {
+      font-size: 0.62rem;
+      color: var(--subtitle);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 3px;
+    }
+    .dos-fisio-status {
+      font-size: 0.65rem;
+      color: var(--sub);
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 4 — DIAGNÓSTICO INTEGRADO
+       ══════════════════════════════════════════════════════ */
+    .dos-dx-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .dos-dx-item {
+      padding: 14px 16px;
+      border: 1px solid var(--detail);
+      border-left: 4px solid var(--detail);
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dos-dx-critico {
+      border-left-color: #B33030;
+      background: rgba(179,48,48,0.03);
+    }
+    .dos-dx-atencao {
+      border-left-color: #B8860B;
+      background: rgba(184,134,11,0.03);
+    }
+    .dos-dx-nivel-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+    }
+    .dos-dx-critico .dos-dx-nivel-badge { color: #B33030; }
+    .dos-dx-atencao .dos-dx-nivel-badge { color: #B8860B; }
+    .dos-dx-texto {
+      font-size: 0.76rem;
+      color: var(--text);
+      line-height: 1.5;
+      margin: 0;
+      font-weight: 500;
+    }
+    .dos-dx-origem {
+      font-size: 0.64rem;
+      color: var(--subtitle);
+      font-style: italic;
+    }
+
+    /* ── Lista de gargalos ── */
+    .dos-gargalos-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--detail);
+    }
+    .dos-gargalo-linha {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-gargalo-linha:last-child { border-bottom: none; }
+    .dos-gargalo-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: var(--detail);
+      font-weight: 400;
+      flex-shrink: 0;
+      min-width: 34px;
+      line-height: 1;
+    }
+    .dos-gargalo-titulo {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 4px;
+    }
+    .dos-gargalo-mec {
+      font-size: 0.73rem;
+      color: var(--sub);
+      margin: 0 0 4px;
+      line-height: 1.5;
+    }
+    .dos-gargalo-ev {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      margin: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 5 — SCORE INTELIGENTE
+       ══════════════════════════════════════════════════════ */
+    .dos-score-layout {
+      display: flex;
+      align-items: flex-start;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .dos-score-gauge-box {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .dos-score-gauge-box svg {
+      display: block;
+    }
+    .dos-score-gauge-val {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+    .dos-score-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      margin: 0;
+      line-height: 1;
+    }
+    .dos-score-label {
+      font-size: 0.65rem;
+      color: var(--subtitle);
+      margin: 2px 0 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .dos-score-tend {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin: 6px 0 0;
+      text-align: center;
+    }
+    .dos-score-areas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 220px;
+    }
+    .dos-score-area-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dos-score-area-icone {
+      font-size: 1rem;
+      width: 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .dos-score-area-label {
+      font-size: 0.72rem;
+      color: var(--sub);
+      width: 82px;
+      flex-shrink: 0;
+    }
+    .dos-score-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: var(--detail);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .dos-score-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+    .dos-score-area-val {
+      font-size: 0.72rem;
+      font-weight: 700;
+      min-width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 6 — LINHA DO TEMPO
+       ══════════════════════════════════════════════════════ */
+    .dos-timeline-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 700px) {
+      .dos-timeline-grid { grid-template-columns: 1fr; }
+    }
+    .dos-timeline-chart-box {
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      padding: 16px;
+    }
+    .dos-timeline-kpis {
+      display: flex;
+      gap: 1px;
+      background: var(--detail);
+      border: 1px solid var(--detail);
+    }
+    .dos-tl-kpi {
+      background: var(--bg-primary);
+      flex: 1;
+      padding: 16px;
+      text-align: center;
+    }
+    .dos-tl-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0 0 4px;
+      line-height: 1;
+    }
+    .dos-tl-label {
+      font-size: 0.62rem;
+      color: var(--subtitle);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 7 — GARGALOS E RISCOS
+       ══════════════════════════════════════════════════════ */
+    .dos-risco-card {
+      padding: 14px 16px;
+      border: 1px solid var(--detail);
+      border-left: 3px solid var(--detail);
+      margin-bottom: 10px;
+      background: var(--bg2);
+    }
+    .dos-risco-titulo {
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      line-height: 1.3;
+    }
+    .dos-risco-desc {
+      font-size: 0.73rem;
+      color: var(--sub);
+      margin: 0 0 6px;
+      line-height: 1.5;
+    }
+    .dos-risco-ev {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      margin: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 8 — ESTRATÉGIA POR FASES
+       ══════════════════════════════════════════════════════ */
+    .dos-fases-doc {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--detail);
+    }
+    .dos-fase-doc {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-fase-doc:last-child { border-bottom: none; }
+    .dos-fase-doc-ativa {
+      background: var(--bg2);
+    }
+    .dos-fase-doc-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--detail);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: var(--sub);
+    }
+    .dos-fase-doc-corpo {
+      flex: 1;
+    }
+    .dos-fase-doc-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .dos-fase-doc-nome {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+    .dos-fase-doc-status {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 2px;
+    }
+    .dos-fase-doc-dur {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      padding: 2px 8px;
+    }
+    .dos-fase-doc-obj {
+      font-size: 0.75rem;
+      color: var(--text);
+      margin: 0 0 5px;
+      line-height: 1.45;
+    }
+    .dos-fase-doc-desc {
+      font-size: 0.73rem;
+      color: var(--sub);
+      margin: 0 0 5px;
+      line-height: 1.55;
+    }
+    .dos-fase-doc-meta {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      margin: 4px 0 0;
+      font-style: italic;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 9 — PLANO ALIMENTAR / MACROS
+       ══════════════════════════════════════════════════════ */
+    .dos-kcal-destaque {
+      text-align: center;
+      padding: 20px;
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      margin-bottom: 20px;
+    }
+    .dos-kcal-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.8rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0 0 4px;
+      line-height: 1;
+    }
+    .dos-kcal-num span {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      color: var(--subtitle);
+      margin-left: 6px;
+    }
+    .dos-kcal-label {
+      font-size: 0.65rem;
+      color: var(--subtitle);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+    .dos-macro-row {
+      margin-bottom: 16px;
+    }
+    .dos-macro-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .dos-macro-nome {
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+    .dos-macro-pct {
+      font-size: 0.73rem;
+      font-weight: 600;
+    }
+    .dos-macro-bar-bg {
+      height: 8px;
+      background: var(--detail);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .dos-macro-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+    .dos-justif-item {
+      padding: 12px 14px;
+      border-left: 2px solid var(--detail);
+      margin-bottom: 12px;
+      background: var(--bg2);
+    }
+    .dos-justif-macro {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0 0 5px;
+    }
+    .dos-justif-texto {
+      font-size: 0.74rem;
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 10 — ESTRATÉGIA DE AJUSTES
+       ══════════════════════════════════════════════════════ */
+    .dos-ajustes-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--detail);
+    }
+    .dos-ajuste-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--detail);
+    }
+    .dos-ajuste-card:last-child { border-bottom: none; }
+    .dos-ajuste-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      color: var(--detail);
+      font-weight: 400;
+      flex-shrink: 0;
+      min-width: 34px;
+      line-height: 1;
+    }
+    .dos-ajuste-corpo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .dos-ajuste-gatilho {
+      font-size: 0.76rem;
+      color: var(--text);
+      margin: 0;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .dos-ajuste-acao {
+      font-size: 0.75rem;
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.45;
+    }
+    .dos-ajuste-justif {
+      font-size: 0.7rem;
+      color: var(--subtitle);
+      margin: 2px 0 0;
+      font-style: italic;
+      line-height: 1.45;
+    }
+    .dos-ajuste-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 2px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 11 — PLANO DE ACOMPANHAMENTO
+       ══════════════════════════════════════════════════════ */
+    .dos-acomp-bloco {
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .dos-acomp-item {
+      font-size: 0.74rem;
+      color: var(--sub);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--detail);
+      line-height: 1.5;
+    }
+    .dos-acomp-item:last-child { border-bottom: none; }
+    .dos-acomp-item strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .dos-acomp-alerta {
+      color: #B33030;
+      padding-left: 12px;
+      border-left: 2px solid #B33030;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 12 — RECOMENDAÇÕES
+       ══════════════════════════════════════════════════════ */
+    .dos-recs-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--detail);
+    }
+    .dos-rec-item {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--detail);
+      border-left: 3px solid var(--detail);
+      background: var(--bg-primary);
+    }
+    .dos-rec-item:last-child { border-bottom: none; }
+    .dos-rec-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .dos-rec-icone {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .dos-rec-categoria {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+      margin: 0 0 3px;
+    }
+    .dos-rec-recomendacao {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.3;
+    }
+    .dos-rec-prio {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 2px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-left: auto;
+    }
+    .dos-rec-detalhe {
+      font-size: 0.73rem;
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 13 — PROJEÇÃO DE RESULTADO
+       ══════════════════════════════════════════════════════ */
+    .dos-cenarios-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 720px) {
+      .dos-cenarios-grid { grid-template-columns: 1fr; }
+    }
+    .dos-cenario-card {
+      padding: 20px;
+      background: var(--bg2);
+      border: 1px solid var(--detail);
+      border-top: 3px solid var(--detail);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dos-cenario-nome {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .dos-cenario-desc {
+      font-size: 0.72rem;
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.5;
+      flex: 1;
+    }
+    .dos-cenario-kg {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0;
+      line-height: 1;
+    }
+    .dos-cenario-kg span {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.7rem;
+      color: var(--subtitle);
+      margin-left: 4px;
+    }
+    .dos-cenario-data {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      margin: 0;
+      font-style: italic;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 14 — INDICADORES DE SUCESSO
+       ══════════════════════════════════════════════════════ */
+    .dos-indicadores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--detail);
+      border: 1px solid var(--detail);
+    }
+    .dos-ind-card {
+      background: var(--bg-primary);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .dos-ind-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      color: var(--detail);
+      font-weight: 400;
+      margin: 0;
+      line-height: 1;
+    }
+    .dos-ind-area {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--subtitle);
+      margin: 0;
+    }
+    .dos-ind-meta {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 4px 0 0;
+      line-height: 1.35;
+    }
+    .dos-ind-metrica {
+      font-size: 0.68rem;
+      color: var(--subtitle);
+      margin: 0;
+      font-style: italic;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SEÇÃO 15 — CONCLUSÃO ESTRATÉGICA
+       ══════════════════════════════════════════════════════ */
+    .dos-conclusao-texto {
+      font-size: 0.8rem;
+      color: var(--sub);
+      line-height: 1.7;
+      margin: 0;
+    }
+    .dos-proximos-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--detail);
+      margin-bottom: 28px;
+    }
+    .dos-proximo-item {
+      font-size: 0.75rem;
+      color: var(--text);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--detail);
+      line-height: 1.45;
+    }
+    .dos-proximo-item:last-child { border-bottom: none; }
+    .dos-proximo-urgente {
+      color: #B33030;
+      background: rgba(179,48,48,0.04);
+      font-weight: 600;
+    }
+    .dos-proximo-op {
+      color: #2E8B6A;
+      background: rgba(46,139,106,0.04);
+      font-weight: 600;
+    }
+    .dos-assinatura {
+      margin-top: auto;
+      padding-top: 24px;
+    }
+    .dos-assinatura-linha {
+      width: 120px;
+      height: 1px;
+      background: var(--text);
+      margin-bottom: 10px;
+    }
+    .dos-assinatura-nome {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0 0 3px;
+    }
+    .dos-assinatura-titulo {
+      font-size: 0.65rem;
+      color: var(--subtitle);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PRINT — IMPRESSÃO / PDF
+       ══════════════════════════════════════════════════════ */
+    @media print {
+      /* UI oculta */
+      #sidebar,
+      .mobile-header,
+      .sidebar-overlay,
+      .admin-back-bottom { display: none !important; }
+
+      /* Layout plano */
+      body { background: #fff !important; }
+      .dashboard-layout { display: block !important; }
+      .main-content { padding: 0 !important; }
+
+      /* Documento */
+      .dos-documento { max-width: 100% !important; }
+      .dos-secao { padding: 24px 0 !important; }
+      .fade-up { opacity: 1 !important; transform: none !important; }
+
+      /* Capa em página inteira */
+      .dos-capa { min-height: 80vh !important; padding-top: 32px !important; }
+      .dos-capa-nome { font-size: 2.4rem !important; }
+
+      /* Colunas forçadas para impressão */
+      .dos-2col        { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+      .dos-3col        { grid-template-columns: 1fr 1fr 1fr !important; gap: 14px !important; }
+      .dos-cenarios-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+      .dos-indicadores-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .dos-timeline-grid { grid-template-columns: 1fr 1fr !important; }
+      .dos-fisio-grid  { grid-template-columns: 1fr 1fr !important; }
+      .dos-dx-grid     { grid-template-columns: 1fr 1fr !important; }
+
+      /* Tipografia print */
+      .dos-sec-num { color: #ccc !important; }
+      .dos-documento * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       MOBILE
+       ══════════════════════════════════════════════════════ */
+    @media (max-width: 600px) {
+      .dos-capa-nome { font-size: 2rem; }
+      .dos-sec-num   { font-size: 1.8rem; }
+      .dos-score-layout { flex-direction: column; gap: 20px; }
+      .dos-score-gauge-box svg { width: 160px; height: 90px; }
+      .dos-cenarios-grid { grid-template-columns: 1fr; }
+      .dos-indicadores-grid { grid-template-columns: 1fr 1fr; }
+      .dos-timeline-kpis { flex-wrap: wrap; }
+      .dos-tl-kpi { flex: 0 0 50%; min-width: 0; }
+    }
+
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn     = document.getElementById('hamburger-btn');
+      const overlay = document.getElementById('sidebar-overlay');
+      const sidebar = document.getElementById('sidebar');
+      if (btn && overlay && sidebar) {
+        btn.addEventListener('click', () => {
+          sidebar.classList.toggle('open');
+          overlay.classList.toggle('active');
+        });
+        overlay.addEventListener('click', () => {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+        });
+      }
+    });
+  </script>
+
+  <script type="module" src="js/inteligencia-paciente.js"></script>
+</body>
+</html>

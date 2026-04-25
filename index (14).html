@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evelin Ribeiro Greco — Acesso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F8F4EF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ERG 360">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #F8F4EF;
+      --bg2:      #EDD8C3;
+      --detail:   #B8936A;
+      --sub:      #7A5E42;
+      --text:     #2C2218;
+      --textl:    #5C4A38;
+      --accent:   #4A3020;
+      --error:    #7A2E2E;
+      --success:  #3D6B4F;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      display: grid;
+      grid-template-columns: 40% 60%;
+      min-height: 100vh;
+    }
+
+    /* ── Coluna esquerda — branding leve ── */
+    .col-brand {
+      background: var(--bg2);
+      border-right: 1px solid var(--detail);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* textura sutil */
+    .col-brand::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent, transparent 40px,
+        rgba(184,147,106,0.05) 40px, rgba(184,147,106,0.05) 41px
+      );
+    }
+
+    .brand-inner {
+      position: relative;
+      text-align: center;
+    }
+
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+
+    .brand-tag {
+      font-size: 0.58rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--sub);
+      font-weight: 400;
+      margin-bottom: 16px;
+    }
+
+    .brand-frase {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 1rem;
+      color: var(--textl);
+      line-height: 1.6;
+      opacity: 0.8;
+    }
+
+    .brand-linha {
+      width: 24px;
+      height: 1px;
+      background: var(--detail);
+      margin: 18px auto;
+    }
+
+    .brand-nome {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--sub);
+      font-weight: 400;
+    }
+
+    /* ── Coluna direita — login ── */
+    .col-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 64px;
+      background: var(--bg);
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* Identidade no topo */
+    .login-id {
+      margin-bottom: 40px;
+    }
+
+    .login-id-nome {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 1.3rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    .login-id-spec {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sub);
+      margin-top: 5px;
+      font-weight: 400;
+    }
+
+    /* Título principal */
+    .login-titulo {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 2rem;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .login-subtexto {
+      font-size: 0.82rem;
+      color: var(--textl);
+      font-weight: 300;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    /* Campos */
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sub);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-input {
+      width: 100%;
+      border: none;
+      border-bottom: 1.5px solid rgba(184,147,106,0.4);
+      background: transparent;
+      padding: 11px 36px 11px 0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field-input::placeholder {
+      color: rgba(92,74,56,0.4);
+      font-weight: 300;
+    }
+
+    .field-input:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    /* Botão mostrar senha */
+    .btn-olho {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--sub);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+    .btn-olho:hover { color: var(--text); }
+
+    /* Link esqueci senha */
+    .link-esqueci {
+      display: block;
+      text-align: right;
+      font-size: 0.72rem;
+      color: var(--sub);
+      text-decoration: none;
+      margin-top: 8px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .link-esqueci:hover { color: var(--text); }
+
+    /* Botão principal */
+    .btn-entrar {
+      width: 100%;
+      height: 52px;
+      background: var(--accent);
+      color: #F8F4EF;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 0.78rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 28px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-entrar:hover   { background: var(--text); }
+    .btn-entrar:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Mensagem de erro/sucesso */
+    .login-msg {
+      font-size: 0.78rem;
+      line-height: 1.5;
+      padding: 10px 14px;
+      display: none;
+      border-left: 2px solid;
+    }
+    .login-msg.erro    { display: block; color: var(--error);   background: rgba(122,46,46,0.06);   border-color: var(--error); }
+    .login-msg.sucesso { display: block; color: var(--success); background: rgba(61,107,79,0.06);    border-color: var(--success); }
+
+    /* Confiança */
+    .login-trust {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--sub);
+      opacity: 0.75;
+      margin-top: 8px;
+    }
+
+    /* Suporte */
+    .login-suporte {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(184,147,106,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .suporte-link {
+      font-size: 0.75rem;
+      color: var(--textl);
+      cursor: pointer;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: color 0.15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .suporte-link:hover { color: var(--text); }
+    .suporte-link svg { flex-shrink: 0; opacity: 0.55; }
+
+    /* Modal reset senha */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(44,34,24,0.4);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.aberto { display: flex; }
+
+    .modal-box {
+      background: var(--bg);
+      border: 1px solid var(--detail);
+      padding: 36px 40px;
+      width: 100%;
+      max-width: 380px;
+      position: relative;
+    }
+
+    .modal-titulo {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 1.4rem;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .modal-sub {
+      font-size: 0.78rem;
+      color: var(--textl);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .modal-fechar {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none; border: none;
+      cursor: pointer; color: var(--sub);
+      font-size: 1.1rem; line-height: 1;
+    }
+    .modal-fechar:hover { color: var(--text); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .col-brand { display: none; }
+      .col-login { padding: 48px 24px 64px; align-items: flex-start; padding-top: 72px; }
+      .login-box { max-width: 100%; }
+    }
+
+    @media (max-width: 420px) {
+      .col-login { padding: 56px 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Coluna esquerda — branding -->
+  <aside class="col-brand">
+    <div class="brand-inner">
+      <img src="icons/logo-200.png" alt="Evelin Ribeiro Greco" class="brand-logo">
+      <p class="brand-tag">Nutrição clínica, saúde e performance</p>
+      <div class="brand-linha"></div>
+      <p class="brand-nome">Evelin Ribeiro Greco</p>
+    </div>
+  </aside>
+
+  <!-- Coluna direita — login -->
+  <main class="col-login">
+    <div class="login-box">
+
+      <!-- Identidade -->
+      <div class="login-id">
+        <p class="login-id-nome">Evelin Ribeiro Greco</p>
+        <p class="login-id-spec">Nutricionista · Performance &amp; Estilo de Vida</p>
+      </div>
+
+      <!-- Título -->
+      <h1 class="login-titulo">Acesse sua área</h1>
+      <p class="login-subtexto">Entre para visualizar seu plano, evolução e orientações.</p>
+
+      <!-- Formulário -->
+      <form id="login-form" onsubmit="handleLoginSubmit(event)" novalidate>
+
+        <div class="field-group">
+          <label class="field-label" for="email">E-mail</label>
+          <div class="field-wrap">
+            <input
+              class="field-input"
+              type="email"
+              id="email"
+              name="email"
+              autocomplete="email"
+              placeholder="Digite seu e-mail"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="senha">Senha</label>
+          <div class="field-wrap">
+            <input
+              class="field-input"
+              type="password"
+              id="senha"
+              name="senha"
+              autocomplete="current-password"
+              placeholder="Digite sua senha"
+              required
+            >
+            <button type="button" class="btn-olho" id="btn-olho" onclick="toggleSenha()" title="Mostrar senha" aria-label="Mostrar senha">
+              <svg id="olho-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <a class="link-esqueci" onclick="abrirModal()">Esqueci minha senha</a>
+        </div>
+
+        <button class="btn-entrar" type="submit" id="login-btn">
+          Entrar na minha área
+        </button>
+
+        <div class="login-msg" id="login-msg"></div>
+
+        <p class="login-trust">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Seus dados são protegidos e confidenciais
+        </p>
+
+      </form>
+
+      <!-- Suporte -->
+      <div class="login-suporte">
+        <button class="suporte-link" onclick="primeiroAcesso()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Primeiro acesso? Solicite seus dados
+        </button>
+        <a class="suporte-link" href="mailto:contato@ribeirogreco.com.br">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Fale com a Dra. Evelin
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal reset de senha -->
+  <div class="modal-overlay" id="modal-reset">
+    <div class="modal-box">
+      <button class="modal-fechar" onclick="fecharModal()">✕</button>
+      <h2 class="modal-titulo">Redefinir senha</h2>
+      <p class="modal-sub">Informe seu e-mail e enviaremos um link para criar uma nova senha.</p>
+
+      <div class="field-group">
+        <label class="field-label" for="reset-email">E-mail</label>
+        <div class="field-wrap">
+          <input class="field-input" type="email" id="reset-email" placeholder="Digite seu e-mail" autocomplete="email">
+        </div>
+      </div>
+
+      <button class="btn-entrar" id="reset-btn" onclick="enviarReset()" style="margin-top:20px;">
+        Enviar link de redefinição
+      </button>
+      <div class="login-msg" id="reset-msg"></div>
+    </div>
+  </div>
+
+  <!-- Scripts não-módulo (carregam imediatamente) -->
+  <script>
+    // ── Mostrar/ocultar senha ──
+    function toggleSenha() {
+      const input = document.getElementById('senha');
+      const icon  = document.getElementById('olho-icon');
+      const mostrar = input.type === 'password';
+      input.type = mostrar ? 'text' : 'password';
+      icon.innerHTML = mostrar
+        ? '<line x1="1" y1="1" x2="23" y2="23"/><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+
+    // ── Modal reset ──
+    function abrirModal() {
+      const m = document.getElementById('modal-reset');
+      m.classList.add('aberto');
+      // Pré-preenche com e-mail digitado
+      const emailAtual = document.getElementById('email').value.trim();
+      if (emailAtual) document.getElementById('reset-email').value = emailAtual;
+      setTimeout(() => document.getElementById('reset-email').focus(), 80);
+    }
+
+    function fecharModal() {
+      document.getElementById('modal-reset').classList.remove('aberto');
+      document.getElementById('reset-msg').className = 'login-msg';
+    }
+
+    document.getElementById('modal-reset').addEventListener('click', function(e) {
+      if (e.target === this) fecharModal();
+    });
+
+    // ── Primeiro acesso ──
+    function primeiroAcesso() {
+      const titulo = document.querySelector('.login-titulo');
+      const sub    = document.querySelector('.login-subtexto');
+      if (titulo) titulo.textContent = 'Primeiro acesso';
+      if (sub)    sub.textContent = 'Seus dados de acesso são enviados pela Dra. Evelin após a consulta. Verifique seu e-mail ou entre em contato.';
+    }
+
+    // ── Enter submete o formulário ──
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && document.getElementById('modal-reset').classList.contains('aberto')) {
+        enviarReset();
+      }
+    });
+
+    // ── Mensagens de erro ──
+    function showMsg(id, texto, tipo) {
+      const el = document.getElementById(id);
+      el.textContent = texto;
+      el.className = 'login-msg ' + tipo;
+    }
+
+    // ── Handler de login (funciona mesmo sem o módulo ES carregar) ──
+    window.handleLoginSubmit = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btn   = document.getElementById('login-btn');
+      const msg   = document.getElementById('login-msg');
+
+      if (!email || !senha) {
+        showMsg('login-msg', 'Preencha e-mail e senha.', 'erro');
+        return false;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Entrando…';
+      msg.className = 'login-msg';
+
+      const ERROS = {
+        'Invalid login credentials': 'E-mail ou senha incorretos. Verifique e tente novamente.',
+        'Email not confirmed':       'E-mail não confirmado. Verifique sua caixa de entrada.',
+        'Too many requests':         'Muitas tentativas. Aguarde alguns minutos.',
+      };
+
+      const doLogin = (sb) => {
+        sb.auth.signInWithPassword({ email, password: senha }).then(({ data, error }) => {
+          if (error) {
+            const txt = Object.entries(ERROS).find(([k]) => error.message?.includes(k))?.[1]
+                     || 'Erro ao entrar. Verifique seus dados.';
+            showMsg('login-msg', txt, 'erro');
+            btn.disabled = false;
+            btn.textContent = 'Entrar na minha área';
+          } else {
+            btn.textContent = 'Entrando…';
+            window.location.href = data.user.email === 'evelinbeatrizrb@outlook.com'
+              ? 'admin.html' : 'dashboard.html';
+          }
+        });
+      };
+
+      if (window._sb) {
+        doLogin(window._sb);
+      } else {
+        import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
+          window._sb = createClient(
+            'https://gqnlrhmriufepzpustna.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo'
+          );
+          doLogin(window._sb);
+        }).catch(() => {
+          showMsg('login-msg', 'Erro de conexão. Verifique sua internet.', 'erro');
+          btn.disabled = false;
+          btn.textContent = 'Entrar na minha área';
+        });
+      }
+
+      return false;
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+
+  <!-- Módulo ES: app.js (login + reset) -->
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const sb = createClient(
+      'https://gqnlrhmriufepzpustna.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo'
+    );
+
+    window._sb = sb;
+
+    // Reset de senha
+    window.enviarReset = async function() {
+      const email = document.getElementById('reset-email').value.trim();
+      const btn   = document.getElementById('reset-btn');
+
+      if (!email) { showMsg('reset-msg', 'Digite seu e-mail.', 'erro'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/index.html'
+      });
+
+      if (error) {
+        showMsg('reset-msg', 'Erro ao enviar. Verifique o e-mail.', 'erro');
+        btn.disabled = false;
+        btn.textContent = 'Enviar link de redefinição';
+      } else {
+        showMsg('reset-msg', 'Link enviado! Verifique seu e-mail.', 'sucesso');
+        btn.textContent = 'Enviado';
+      }
+    };
+
+    // Sessão ativa — redireciona automaticamente
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      window.location.href = session.user.email === 'evelinbeatrizrb@outlook.com'
+        ? 'admin.html' : 'dashboard.html';
+    }
+  </script>
+
+</body>
+</html>

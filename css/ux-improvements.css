@@ -1,0 +1,972 @@
+/* ============================================================
+   UX IMPROVEMENTS — ERG 360º
+   Melhorias de UX/UI: mobile-first, dark mode, interatividade
+   ============================================================ */
+
+/* ── Scrollbar global — discreta e harmoniosa com a paleta ──
+   Aplica-se a todos os elementos scrolláveis do sistema.
+   Substituí a barra pesada do sistema por uma linha fina
+   na cor de detalhe, invisível até precisar rolar.
+   ──────────────────────────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196,154,108,0.3) transparent;
+}
+
+/* WebKit: Chrome, Safari, Edge (Chromium) */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;          /* scrollbar horizontal (ex.: tabelas) */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(196,154,108,0.35);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(196,154,108,0.65);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode — scrollbar ligeiramente mais brilhante para contraste */
+[data-theme="dark"] * {
+  scrollbar-color: rgba(196,154,108,0.25) transparent;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(196,154,108,0.25);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(196,154,108,0.5);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────
+   Ativado via <html data-theme="dark">
+   ──────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* ── Fundos — três camadas de profundidade ── */
+  --bg-primary:   #16120E;   /* fundo base — mais profundo */
+  --bg-secondary: #201A14;   /* cards e seções */
+  --bg-card:      #2A221A;   /* modais, painéis */
+
+  /* ── Texto — hierarquia luminosa ── */
+  --text:         #F2EDE6;   /* levemente quente, não branco puro */
+  --text-light:   #C8A882;   /* mais visível no escuro */
+  --subtitle:     #9A7A60;   /* presente mas sem competir */
+
+  /* ── Marca — consistente com o light ── */
+  --detail:       #C49A6C;   /* mesmo ouro — âncora visual */
+  --accent:       #D4AA80;   /* mais brilhante para ter presença */
+
+  /* ── Semânticas — mais luminosas para dark ── */
+  --success:      #5A9E72;   /* verde mais claro */
+  --warning:      #D4A020;   /* âmbar vibrante */
+  --error:        #C04040;   /* vermelho presente */
+  --info:         #5080C0;   /* azul luminoso */
+}
+
+[data-theme="dark"] body {
+  background: var(--bg-primary);
+  color: var(--text);
+}
+
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #201A14 25%, #3A2C20 50%, #201A14 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* Cards e superfícies elevadas no dark */
+[data-theme="dark"] .info-card,
+[data-theme="dark"] .grafico-card,
+[data-theme="dark"] .checkin-daily-card {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .ci-screen,
+[data-theme="dark"] .ci-opt,
+[data-theme="dark"] .ci-next.skip {
+  background: var(--bg-primary);
+}
+
+/* Bordas mais suaves no dark */
+[data-theme="dark"] .info-grid,
+[data-theme="dark"] .metas-list,
+[data-theme="dark"] .obs-block,
+[data-theme="dark"] .plano-block {
+  border-color: rgba(196,154,108,0.2);
+}
+
+/* Tabela — contraste adequado */
+[data-theme="dark"] tbody tr:nth-child(even) td {
+  background: rgba(42,34,26,0.6) !important;
+}
+[data-theme="dark"] tbody tr:hover td {
+  background: rgba(196,154,108,0.08) !important;
+}
+
+/* Inputs e formulários */
+[data-theme="dark"] .form-input {
+  color: var(--text);
+  border-bottom-color: rgba(196,154,108,0.4);
+}
+[data-theme="dark"] .form-input:focus {
+  border-bottom-color: var(--detail);
+}
+
+/* Toast no dark */
+[data-theme="dark"] .toast {
+  background: var(--bg-card);
+  color: var(--text);
+  border-left-color: var(--detail);
+}
+
+/* Botão toggle dark mode */
+.dark-mode-toggle {
+  background: none;
+  border: 1px solid rgba(184,147,106,0.3);
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  border-radius: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.dark-mode-toggle:hover {
+  border-color: var(--detail);
+  color: var(--text);
+}
+
+/* ── Bottom Navigation (mobile) ────────────────────────────
+   Substitui hamburger no mobile. Mostra apenas em < 900px.
+   ──────────────────────────────────────────────────────── */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--detail);
+    z-index: 200;
+    align-items: stretch;
+  }
+
+  /* Esconde hamburger quando bottom nav está presente */
+  body:has(.bottom-nav) .hamburger,
+  body:has(.bottom-nav) .mobile-header .hamburger {
+    display: none;
+  }
+
+  /* Ajusta padding para não sobrepor conteúdo */
+  body:has(.bottom-nav) .main-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Esconde sidebar no mobile quando tem bottom nav */
+  body:has(.bottom-nav) .sidebar-overlay { display: none !important; }
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--subtitle);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.52rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+  padding: 8px 4px;
+  position: relative;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.bottom-nav-item svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+}
+
+.bottom-nav-item.active {
+  color: var(--text);
+}
+
+.bottom-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--detail);
+}
+
+/* Item central — botão de check-in */
+.bottom-nav-checkin {
+  flex: 0 0 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: -18px;
+}
+
+.bottom-nav-checkin-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--text);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(44,34,24,0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+
+.bottom-nav-checkin-btn:active {
+  transform: scale(0.93);
+  box-shadow: 0 2px 8px rgba(44,34,24,0.2);
+}
+
+.bottom-nav-checkin-btn.done {
+  background: var(--success);
+}
+
+.bottom-nav-checkin-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-top: 4px;
+}
+
+/* ── FAB — Check-in flutuante ──────────────────────────────
+   Aparece no dashboard quando check-in não foi feito
+   ──────────────────────────────────────────────────────── */
+.fab-checkin {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .fab-checkin {
+    display: flex;
+    position: fixed;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    right: 20px;
+    align-items: center;
+    gap: 10px;
+    background: var(--text);
+    color: var(--bg-primary);
+    padding: 14px 20px;
+    text-decoration: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    z-index: 150;
+    box-shadow: 0 6px 24px rgba(44,34,24,0.3);
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+    animation: fab-enter 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  .fab-checkin:active {
+    transform: scale(0.96);
+  }
+
+  .fab-checkin.done {
+    background: var(--success);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .fab-checkin.hidden {
+    transform: translateY(100px);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes fab-enter {
+  from { transform: translateY(40px) scale(0.8); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ── Sliders — check-in ─────────────────────────────────────
+   Range input estilizado para substituir botões de escala
+   ──────────────────────────────────────────────────────── */
+.ci-slider-wrap {
+  margin-bottom: 28px;
+}
+
+.ci-slider-track {
+  position: relative;
+  padding: 8px 0 24px;
+}
+
+.ci-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.ci-slider-bg {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(184,147,106,0.3);
+  transform: translateY(-50%);
+  margin-top: -8px;
+  pointer-events: none;
+}
+
+.ci-slider-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2px;
+  background: var(--detail);
+  transform: translateY(-50%);
+  margin-top: -8px;
+  pointer-events: none;
+  transition: width 0.15s;
+}
+
+/* Thumb */
+.ci-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(44,34,24,0.3);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ci-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(44,34,24,0.3);
+  cursor: pointer;
+}
+
+.ci-slider:active::-webkit-slider-thumb { transform: scale(1.2); }
+
+/* Rótulos das extremidades */
+.ci-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.ci-slider-labels span {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--text-light);
+  letter-spacing: 0.06em;
+}
+
+/* Valor atual exibido */
+.ci-slider-value {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.ci-slider-value-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.8rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1;
+  display: block;
+}
+
+.ci-slider-value-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-top: 4px;
+  display: block;
+  min-height: 1em;
+  transition: all 0.2s;
+}
+
+/* ── Fase — barra de progresso ──────────────────────────────
+   Barra visual de progresso da fase atual
+   ──────────────────────────────────────────────────────── */
+.fase-progress-wrap {
+  margin-top: 16px;
+}
+
+.fase-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.fase-progress-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+
+.fase-progress-pct {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--detail);
+}
+
+.fase-progress-bar {
+  height: 3px;
+  background: rgba(184,147,106,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.fase-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fase-semanas-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: var(--text-light);
+}
+
+/* ── Empty states ────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  border: 1px dashed rgba(184,147,106,0.3);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: var(--detail);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.2rem;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.empty-state-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* ── Toast melhorado ─────────────────────────────────────── */
+.toast {
+  position: fixed !important;
+  bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  right: 20px !important;
+  left: auto !important;
+  padding: 14px 20px !important;
+  border-left: 3px solid var(--detail) !important;
+  font-size: 0.78rem !important;
+  max-width: calc(100vw - 40px) !important;
+  box-shadow: 0 4px 20px rgba(44,34,24,0.2) !important;
+  transform: translateX(calc(100% + 40px)) !important;
+  opacity: 1 !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.toast.visible {
+  transform: translateX(0) !important;
+}
+
+.toast.toast-success { border-left-color: var(--success) !important; }
+.toast.toast-error   { border-left-color: var(--error) !important; }
+
+@media (min-width: 901px) {
+  .toast {
+    bottom: 32px !important;
+    right: 32px !important;
+    transform: translateY(80px) !important;
+    max-width: 360px !important;
+  }
+  .toast.visible {
+    transform: translateY(0) !important;
+  }
+}
+
+/* ── Admin: tooltip hover ─────────────────────────────────── */
+.patient-tooltip {
+  position: fixed;
+  z-index: 9000;
+  background: var(--text);
+  color: var(--bg-primary);
+  padding: 12px 16px;
+  pointer-events: none;
+  min-width: 200px;
+  max-width: 280px;
+  display: none;
+  box-shadow: 0 8px 24px rgba(44,34,24,0.25);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.patient-tooltip-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 300;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(248,244,239,0.15);
+}
+
+.patient-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: rgba(248,244,239,0.7);
+  margin-bottom: 4px;
+}
+
+.patient-tooltip-row strong {
+  color: rgba(248,244,239,0.95);
+  font-weight: 500;
+}
+
+/* ── Admin: search highlight ─────────────────────────────── */
+mark.search-hl {
+  background: rgba(184,147,106,0.35);
+  color: var(--text);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── Admin: filter count badge ───────────────────────────── */
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: rgba(184,147,106,0.2);
+  color: var(--subtitle);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 500;
+  padding: 0 4px;
+  margin-left: 6px;
+  border-radius: 9px;
+}
+
+/* ── Reforço positivo — frases de streak ─────────────────── */
+.streak-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(61,107,79,0.07);
+  border-left: 3px solid var(--success);
+  margin-bottom: 16px;
+  animation: fadeUp 0.5s ease both;
+}
+
+.streak-banner-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.streak-banner-text {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  color: var(--success);
+  line-height: 1.4;
+}
+
+.streak-banner-text strong {
+  font-weight: 500;
+}
+
+/* ── Animação de conclusão do check-in ───────────────────── */
+@keyframes score-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.ci-score-animated {
+  animation: score-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.2s;
+}
+
+@keyframes check-draw {
+  from { stroke-dashoffset: 50; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.ci-done-check {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: check-draw 0.5s ease forwards;
+  animation-delay: 0.1s;
+}
+
+/* ── Melhorias de tipografia e espaçamento ─────────────────
+   Aumenta legibilidade geral, especialmente mobile
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  html { font-size: 16px; }
+
+  .section-title {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.22em !important;
+  }
+
+  .meta-text {
+    font-size: 0.92rem !important;
+    line-height: 1.75 !important;
+  }
+
+  .obs-text, .plano-meta {
+    font-size: 0.88rem !important;
+    line-height: 1.8 !important;
+  }
+
+  /* Seções menos comprimidas */
+  .section { margin-bottom: 48px !important; }
+
+  /* Cards de info mais espaçosos */
+  .info-card { padding: 28px 24px !important; }
+
+  /* Headers com menos margem */
+  .page-header { margin-bottom: 36px !important; }
+}
+
+/* ── Transições globais suaves ───────────────────────────── */
+.ci-opt, .ci-scale-btn, .ci-chip, .ci-next,
+.btn-primary, .btn-secondary, .nav-item {
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Feedback tátil em botões no mobile */
+@media (max-width: 900px) {
+  .ci-opt:active     { transform: scale(0.97); }
+  .ci-scale-btn:active { transform: scale(0.94); }
+  .btn-primary:active  { opacity: 0.85; transform: scale(0.98); }
+}
+
+/* ── Keyboard shortcut hint (admin) ─────────────────────── */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: rgba(184,147,106,0.1);
+  border: 1px solid rgba(184,147,106,0.3);
+  font-family: monospace;
+  font-size: 0.65rem;
+  color: var(--subtitle);
+  letter-spacing: 0;
+  border-radius: 2px;
+}
+
+/* ── Pull-to-refresh indicator ───────────────────────────── */
+/* Só existe em telas touch/mobile — invisível por padrão em desktop */
+.ptr-indicator {
+  display: none;           /* oculto por padrão em qualquer viewport */
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--detail);
+  padding: 8px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  transition: transform 0.3s;
+  z-index: 300;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Só aparece em mobile E quando ativado via JS */
+@media (max-width: 900px) {
+  .ptr-indicator {
+    display: block;                         /* existe no layout */
+    transform: translateX(-50%) translateY(-80px); /* fora da tela */
+  }
+  .ptr-indicator.visible {
+    transform: translateX(-50%) translateY(0); /* entra na tela */
+  }
+}
+
+/* ============================================================
+   CHECKLIST DE COMPLETUDE DO PRONTUÁRIO (painel da paciente)
+   Mostra de relance o que já foi preenchido vs pendente.
+   Objetivo: não deixar nenhuma informação passar.
+   ============================================================ */
+
+.pac-checklist-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--detail);
+  padding: 18px 22px;
+}
+
+.pac-checklist-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.pac-checklist-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.pac-checklist-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.pac-checklist-pct {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.pac-checklist-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(184, 147, 106, 0.14);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.pac-checklist-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #C9A882 0%, #3D6B4F 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pac-checklist-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.pac-check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--detail);
+  background: var(--bg-primary);
+  color: var(--text-light);
+  transition: all 0.15s;
+}
+
+.pac-check-chip.ok {
+  color: #3D6B4F;
+  border-color: rgba(61, 107, 79, 0.3);
+  background: rgba(61, 107, 79, 0.06);
+}
+
+.pac-check-chip.pend {
+  color: #B8860B;
+  border-color: rgba(184, 134, 11, 0.3);
+  background: rgba(184, 134, 11, 0.05);
+}
+
+.pac-check-icon {
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.pac-check-badge {
+  background: rgba(61, 107, 79, 0.15);
+  color: #3D6B4F;
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 3px;
+}
+
+.pac-check-missing {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.pac-check-missing strong {
+  color: #B8860B;
+  font-weight: 500;
+}
+
+/* Spinner fino para estado de carregamento do checklist */
+.erg-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(184, 147, 106, 0.25);
+  border-top-color: #C9A882;
+  border-radius: 50%;
+  animation: erg-spin 0.7s linear infinite;
+}
+
+@keyframes erg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Status inline nos cards de navegação da paciente ── */
+.pac-action-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-right: 8px;
+  border-radius: 50%;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.pac-action-status.ok {
+  background: #3D6B4F;
+  color: #fff;
+}
+
+.pac-action-status.pend {
+  background: transparent;
+  border: 1.5px dashed #B8860B;
+  color: #B8860B;
+}
+
+/* Highlight sutil em cards cuja seção está pendente
+   — chama atenção sem ser agressivo */
+.pac-action-pendente {
+  border-left: 3px solid #B8860B !important;
+}
+
+.pac-action-pendente .pac-action-sub {
+  color: #B8860B !important;
+}
+
+/* Dark mode */
+body.dark-mode .pac-checklist-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+body.dark-mode .pac-check-chip {
+  background: rgba(255, 255, 255, 0.02);
+}
+body.dark-mode .pac-check-chip.ok {
+  background: rgba(61, 107, 79, 0.12);
+}
+body.dark-mode .pac-check-chip.pend {
+  background: rgba(184, 134, 11, 0.1);
+}
+
+/* Aba "Próximos passos" — visual levemente destacado,
+   empurrada pra direita para ficar separada das abas de conteúdo. */
+.pac-tab.pac-tab-next {
+  margin-left: auto;
+  color: #C9A882 !important;
+  border-color: rgba(201, 168, 130, 0.4) !important;
+  background: rgba(201, 168, 130, 0.06);
+}
+.pac-tab.pac-tab-next:hover {
+  background: rgba(201, 168, 130, 0.14);
+}

@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anamnese — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ERG 360º">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/doc-extractor.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="stylesheet" href="css/anamnese-extras.css">
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Anamnese</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Anamnese</p>
+      </div>
+
+      <!-- Steps de navegação -->
+
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Recolher menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="sidebar-nav" id="step-nav-sidebar">
+        <p class="nav-section-label">Seções</p>
+        <a class="nav-item active" onclick="goToStep(0)" id="snav-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Identificação
+        </a>
+        <a class="nav-item" onclick="goToStep(1)" id="snav-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Hábitos de Vida
+        </a>
+        <a class="nav-item" onclick="goToStep(2)" id="snav-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="23" y2="17"/><line x1="20" y1="14" x2="26" y2="14"/></svg>
+          Sono e Estresse
+        </a>
+        <a class="nav-item" onclick="goToStep(3)" id="snav-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Atividade Física
+        </a>
+        <a class="nav-item" onclick="goToStep(4)" id="snav-4">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Patologias
+        </a>
+        <a class="nav-item" onclick="goToStep(5)" id="snav-5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Avaliação Clínica
+        </a>
+        <a class="nav-item" onclick="goToStep(6)" id="snav-6">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          Hábitos Alimentares
+        </a>
+        <a class="nav-item" onclick="goToStep(7)" id="snav-7">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Metas
+        </a>
+        <a class="nav-item" onclick="goToStep(8)" id="snav-8">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Exames
+        </a>
+        <!-- Módulos dinâmicos serão inseridos aqui pelo JS -->
+        <p class="nav-section-label" id="step-nav-dynamic-label">Módulos</p>
+        <div id="step-nav-dynamic"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="patient-name-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="admin-back-top"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+
+      <!-- ═══ TOOLBAR — smart-fill, modo apresentação, atalhos ═══ -->
+      <div class="anamnese-toolbar">
+        <div class="anamnese-toolbar-left">
+          <button type="button" class="tb-btn tb-primary" id="btn-smart-fill" title="Copia dados estáveis da última anamnese desta paciente">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            Copiar da última
+          </button>
+          <div class="tb-dropdown" id="tb-templates">
+            <button type="button" class="tb-btn" onclick="document.getElementById('tb-templates').classList.toggle('open')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Iniciar como ▾
+            </button>
+            <div class="tb-dropdown-menu">
+              <button type="button" class="tb-dropdown-item" data-template="atleta">🏃 Atleta de alta performance</button>
+              <button type="button" class="tb-dropdown-item" data-template="gestante">🤰 Gestante / Lactante</button>
+              <button type="button" class="tb-dropdown-item" data-template="pos_bariatrica">⚕️ Pós-bariátrica</button>
+              <button type="button" class="tb-dropdown-item" data-template="idoso">👵 Idoso (60+)</button>
+              <button type="button" class="tb-dropdown-item" data-template="express">⚡ Anamnese express</button>
+            </div>
+          </div>
+        </div>
+        <div class="anamnese-toolbar-right">
+          <span class="autosave-badge" id="autosave-badge" title="Rascunho salvo automaticamente a cada 10s">
+            <span class="autosave-dot"></span>
+            Salvo às <span class="autosave-time">--:--</span>
+          </span>
+          <button type="button" class="tb-btn" id="btn-presentation" title="Modo apresentação — fonte maior para consulta presencial">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Modo apresentação
+          </button>
+          <button type="button" class="tb-btn" id="btn-turbo" title="Modo turbo — uma pergunta por vez">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Turbo
+          </button>
+          <button type="button" class="tb-btn" id="btn-save-exit" title="Salva rascunho e volta ao painel">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar e sair
+          </button>
+          <button type="button" class="tb-btn" id="btn-help-anamnese" title="Atalhos de teclado (?)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            ?
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══ STEPPER VISUAL ═══ -->
+      <div class="anamnese-stepper" id="anamnese-stepper" role="navigation" aria-label="Navegação entre seções"></div>
+
+      <!-- ═══ TEMPO ESTIMADO ═══ -->
+      <div class="step-time-estimate" id="step-time-estimate"></div>
+
+      <!-- Barra de progresso (mantida — fallback) -->
+      <div class="form-progress-bar">
+        <div class="form-progress-fill" id="progress-fill"></div>
+      </div>
+
+      <!-- ═══ DETECÇÃO DE RISCO EM TEMPO REAL ═══ -->
+      <div id="anamnese-risk-alerts" class="risk-alerts-panel" style="display:none;"></div>
+
+      <!-- ═══ DIFF VS ANAMNESE ANTERIOR ═══ -->
+      <div id="anamnese-diff" class="diff-panel" style="display:none;"></div>
+
+      <!-- ═══ SCORE DE RISCO COMPILADO ═══ -->
+      <div id="anamnese-risk-score"></div>
+
+      <!-- ═══ TELA DE REVISÃO (aparece no último step) ═══ -->
+      <div id="anamnese-review" class="anamnese-review" style="display:none;"></div>
+
+      <!-- ═══ SUGESTÕES DE PERGUNTA PARA CHECK-IN ═══ -->
+      <div id="anamnese-checkin-sugs" class="checkin-sugs-panel" style="display:none;"></div>
+
+      <form id="anamnese-form" novalidate>
+        <input type="hidden" id="patient-id">
+        <input type="hidden" id="user-id">
+        <input type="hidden" id="anamnese-id">
+
+        <!-- ══ STEP 0: Identificação ══ -->
+        <div class="form-step active" id="step-0">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 1 de 9</p>
+            <h1 class="page-title">Identificação</h1>
+          </header>
+
+          <section class="section fade-up">
+            <h2 class="section-title">Importar PDF da Anamnese</h2>
+            <p class="field-hint" style="margin-bottom:16px;">Faça upload do PDF de anamnese para preencher os campos automaticamente.</p>
+            <div id="doc-extractor-anamnese"></div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Dados da Consulta</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Data da avaliação</label>
+                <input class="form-input" type="date" id="data_avaliacao">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Número da consulta</label>
+                <input class="form-input" type="number" id="n_consulta" min="1" placeholder="Ex: 1">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Dados Pessoais</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Profissão</label>
+                <input class="form-input" type="text" id="profissao" placeholder="Profissão da paciente">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Telefone</label>
+                <input class="form-input" type="tel" id="telefone" placeholder="(00) 00000-0000">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Motivo da Consulta</h2>
+            <div class="form-group">
+              <label class="form-label">Caso clínico / Objetivos</label>
+              <textarea class="form-input form-textarea" id="caso_clinico" rows="4" placeholder="Descreva o motivo da consulta, objetivos e observações gerais..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Motivo principal</label>
+              <input class="form-input" type="text" id="motivo" placeholder="Ex: Emagrecimento, hipertrofia, saúde geral...">
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 1: Hábitos de Vida ══ -->
+        <div class="form-step" id="step-1">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 2 de 9</p>
+            <h1 class="page-title">Hábitos de Vida</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Alimentação e Restrições</h2>
+            <div class="form-group">
+              <label class="form-label">Restrição alimentar</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn active" data-field="restricao_alimentar" data-value="nao">Não</button>
+                <button type="button" class="toggle-btn" data-field="restricao_alimentar" data-value="vegetariano">Vegetariano</button>
+                <button type="button" class="toggle-btn" data-field="restricao_alimentar" data-value="vegano">Vegano</button>
+              </div>
+              <input type="hidden" id="restricao_alimentar" value="nao">
+            </div>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Fumante</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="fumante" data-value="true">Sim</button>
+                  <button type="button" class="toggle-btn active" data-field="fumante" data-value="false">Não</button>
+                </div>
+                <input type="hidden" id="fumante" value="false">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Refeições fora de casa</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="refeicoes_fora" data-value="true">Sim</button>
+                  <button type="button" class="toggle-btn active" data-field="refeicoes_fora" data-value="false">Não</button>
+                </div>
+                <input type="hidden" id="refeicoes_fora" value="false">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Álcool</h2>
+            <div class="form-group">
+              <label class="form-label">Ingere bebida alcoólica</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn" data-field="ingere_alcool" data-value="true" onclick="toggleAlcool(true)">Sim</button>
+                <button type="button" class="toggle-btn active" data-field="ingere_alcool" data-value="false" onclick="toggleAlcool(false)">Não</button>
+              </div>
+              <input type="hidden" id="ingere_alcool" value="false">
+            </div>
+            <div id="alcool-detalhes" style="display:none;">
+              <div class="admin-form-grid">
+                <div class="form-group">
+                  <label class="form-label">Frequência</label>
+                  <div class="btn-group">
+                    <button type="button" class="toggle-btn" data-field="alcool_frequencia" data-value="todos-dias">Todos os dias</button>
+                    <button type="button" class="toggle-btn" data-field="alcool_frequencia" data-value="fins-semana">Fins de semana</button>
+                    <button type="button" class="toggle-btn" data-field="alcool_frequencia" data-value="socialmente">Socialmente</button>
+                  </div>
+                  <input type="hidden" id="alcool_frequencia">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Qual e quanto</label>
+                  <textarea class="form-input form-textarea" id="alcool_qual" rows="2" placeholder="Ex: 1 a 2 latas de cerveja por semana"></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Hábitos de Compra</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Mora com quantas pessoas</label>
+                <input class="form-input" type="number" id="mora_pessoas" min="0" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Frequência de compras / mês</label>
+                <input class="form-input" type="number" id="freq_compras" min="0" placeholder="Ex: 4">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Litros de óleo / mês</label>
+                <input class="form-input" type="number" id="litros_oleo" step="0.1" placeholder="Ex: 0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Kg de sal / mês</label>
+                <input class="form-input" type="number" id="kg_sal" step="0.1" placeholder="Ex: 0.3">
+              </div>
+            </div>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Quem realiza as compras</label>
+                <input class="form-input" type="text" id="quem_compra" placeholder="Ex: A própria paciente">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Onde realiza as compras</label>
+                <input class="form-input" type="text" id="onde_compra" placeholder="Ex: Supermercado, feira...">
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 2: Sono e Estresse ══ -->
+        <div class="form-step" id="step-2">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 3 de 9</p>
+            <h1 class="page-title">Sono e Estresse</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Sono</h2>
+            <div class="form-group">
+              <label class="form-label">Qualidade do sono</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn" data-field="qualidade_sono" data-value="bem">Dorme bem</button>
+                <button type="button" class="toggle-btn" data-field="qualidade_sono" data-value="mal">Dorme mal</button>
+              </div>
+              <input type="hidden" id="qualidade_sono">
+            </div>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Horas de sono</label>
+                <input class="form-input" type="number" id="horas_sono" step="0.5" min="0" max="24" placeholder="Ex: 7.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Horas sentado por dia</label>
+                <input class="form-input" type="number" id="horas_sentado" step="0.5" min="0" max="24" placeholder="Ex: 8">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações do sono</label>
+              <textarea class="form-input form-textarea" id="obs_sono" rows="2" placeholder="Observações relevantes sobre o sono..."></textarea>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Estresse</h2>
+            <div class="form-group">
+              <label class="form-label">Escala de estresse <span>(0 = sem estresse, 10 = estresse máximo)</span></label>
+              <div class="scale-selector">
+                <div class="scale-btns" id="escala-estresse-btns">
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 0)">0</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 1)">1</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 2)">2</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 3)">3</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 4)">4</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 5)">5</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 6)">6</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 7)">7</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 8)">8</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 9)">9</button>
+                  <button type="button" class="scale-btn" onclick="setScale('escala_estresse', 10)">10</button>
+                </div>
+                <input type="hidden" id="escala_estresse">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fontes de estresse</label>
+              <textarea class="form-input form-textarea" id="fontes_estresse" rows="2" placeholder="Ex: Trabalho, família, financeiro..."></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 3: Atividade Física ══ -->
+        <div class="form-step" id="step-3">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 4 de 9</p>
+            <h1 class="page-title">Atividade Física</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Exercícios</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Tipo de atividade</label>
+                <input class="form-input" type="text" id="tipo_af" placeholder="Ex: Musculação, corrida, natação...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Frequência semanal</label>
+                <input class="form-input" type="text" id="freq_af" placeholder="Ex: 3x por semana">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duração por sessão</label>
+                <input class="form-input" type="text" id="duracao_af" placeholder="Ex: 60 minutos">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Intensidade</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="intensidade_af" data-value="leve">Leve</button>
+                  <button type="button" class="toggle-btn" data-field="intensidade_af" data-value="moderada">Moderada</button>
+                  <button type="button" class="toggle-btn" data-field="intensidade_af" data-value="intensa">Intensa</button>
+                </div>
+                <input type="hidden" id="intensidade_af">
+              </div>
+            </div>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Nível de atividade física</label>
+                <select class="form-input" id="nivel_af">
+                  <option value="">Selecione...</option>
+                  <option value="sedentario">Sedentário</option>
+                  <option value="levemente-ativo">Levemente ativo</option>
+                  <option value="moderadamente-ativo">Moderadamente ativo</option>
+                  <option value="muito-ativo">Muito ativo</option>
+                  <option value="extremamente-ativo">Extremamente ativo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea class="form-input form-textarea" id="obs_af" rows="2" placeholder="Observações sobre a rotina de exercícios..."></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 4: Patologias ══ -->
+        <div class="form-step" id="step-4">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 5 de 9</p>
+            <h1 class="page-title">Patologias e Medicamentos</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Patologias</h2>
+
+            <!-- Alertas clínicos gerados automaticamente -->
+            <div id="alertas-clinicos" style="display:none;margin-bottom:20px;"></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Metabólico</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Diabetes" onclick="triggerAlertasClinicos()">Diabetes / DM2</button>
+                  <button type="button" class="patologia-btn" data-value="Resistência insulínica" onclick="triggerAlertasClinicos()">Resistência insulínica</button>
+                  <button type="button" class="patologia-btn" data-value="Obesidade" onclick="triggerAlertasClinicos()">Obesidade</button>
+                  <button type="button" class="patologia-btn" data-value="Dislipidemia" onclick="triggerAlertasClinicos()">Dislipidemia</button>
+                  <button type="button" class="patologia-btn" data-value="Hipoglicemia" onclick="triggerAlertasClinicos()">Hipoglicemia</button>
+                  <button type="button" class="patologia-btn" data-value="Síndrome metabólica" onclick="triggerAlertasClinicos()">Síndrome metabólica</button>
+                </div>
+              </div>
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Hormonal / Endócrino</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Hipotireoidismo" onclick="triggerAlertasClinicos()">Hipotireoidismo</button>
+                  <button type="button" class="patologia-btn" data-value="Hipertireoidismo" onclick="triggerAlertasClinicos()">Hipertireoidismo</button>
+                  <button type="button" class="patologia-btn" data-value="SOP" onclick="triggerAlertasClinicos()">SOP</button>
+                  <button type="button" class="patologia-btn" data-value="Endócrino" onclick="triggerAlertasClinicos()">Outro endócrino</button>
+                  <button type="button" class="patologia-btn" data-value="Menopausa" onclick="triggerAlertasClinicos()">Menopausa</button>
+                  <button type="button" class="patologia-btn" data-value="Amenorreia" onclick="triggerAlertasClinicos()">Amenorreia</button>
+                </div>
+              </div>
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Cardiovascular</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Hipertensão" onclick="triggerAlertasClinicos()">Hipertensão</button>
+                  <button type="button" class="patologia-btn" data-value="Cardíaco" onclick="triggerAlertasClinicos()">Cardíaco</button>
+                  <button type="button" class="patologia-btn" data-value="Circulatório" onclick="triggerAlertasClinicos()">Circulatório</button>
+                  <button type="button" class="patologia-btn" data-value="Trombose" onclick="triggerAlertasClinicos()">Trombose</button>
+                </div>
+              </div>
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Gastrointestinal</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Gastrite" onclick="triggerAlertasClinicos()">Gastrite</button>
+                  <button type="button" class="patologia-btn" data-value="RGE/Refluxo" onclick="triggerAlertasClinicos()">RGE / Refluxo</button>
+                  <button type="button" class="patologia-btn" data-value="Colite" onclick="triggerAlertasClinicos()">Colite</button>
+                  <button type="button" class="patologia-btn" data-value="Hepatite" onclick="triggerAlertasClinicos()">Hepatite</button>
+                  <button type="button" class="patologia-btn" data-value="SII" onclick="triggerAlertasClinicos()">SII</button>
+                  <button type="button" class="patologia-btn" data-value="Renal" onclick="triggerAlertasClinicos()">Renal</button>
+                </div>
+              </div>
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Saúde Mental</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Ansiedade" onclick="triggerAlertasClinicos()">Ansiedade</button>
+                  <button type="button" class="patologia-btn" data-value="Depressão" onclick="triggerAlertasClinicos()">Depressão</button>
+                  <button type="button" class="patologia-btn" data-value="Transtorno alimentar" onclick="triggerAlertasClinicos()">Transtorno alimentar</button>
+                  <button type="button" class="patologia-btn" data-value="Compulsão alimentar" onclick="triggerAlertasClinicos()">Compulsão alimentar</button>
+                </div>
+              </div>
+
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;font-weight:500;">Outros</p>
+                <div class="patologias-grid" style="grid-template-columns:repeat(2,1fr);">
+                  <button type="button" class="patologia-btn" data-value="Osteoporose" onclick="triggerAlertasClinicos()">Osteoporose</button>
+                  <button type="button" class="patologia-btn" data-value="Rinite/Sinusite" onclick="triggerAlertasClinicos()">Rinite / Sinusite</button>
+                  <button type="button" class="patologia-btn" data-value="Enxaqueca" onclick="triggerAlertasClinicos()">Enxaqueca</button>
+                  <button type="button" class="patologia-btn" data-value="Câncer" onclick="triggerAlertasClinicos()">Câncer</button>
+                  <button type="button" class="patologia-btn" data-value="Anemia" onclick="triggerAlertasClinicos()">Anemia</button>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="form-group" style="margin-top:20px;">
+              <label class="form-label">Outras patologias</label>
+              <textarea class="form-input form-textarea" id="outras_patologias" rows="2" placeholder="Outras condições não listadas acima..."></textarea>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Medicamentos e Suplementos</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Medicamentos em uso</label>
+                <textarea class="form-input form-textarea" id="medicamentos" rows="3" placeholder="Liste os medicamentos e dosagens..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Suplementos</label>
+                <textarea class="form-input form-textarea" id="suplementos" rows="3" placeholder="Ex: Whey protein 30g, Creatina 5g..."></textarea>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Histórico familiar</label>
+              <textarea class="form-input form-textarea" id="historico_familiar" rows="2" placeholder="Doenças relevantes na família..."></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 5: Avaliação Clínica ══ -->
+        <div class="form-step" id="step-5">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 6 de 9</p>
+            <h1 class="page-title">Avaliação Clínica</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Apetite e Digestão</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Apetite</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="apetite" data-value="normal">Normal</button>
+                  <button type="button" class="toggle-btn" data-field="apetite" data-value="aumentado">Aumentado</button>
+                  <button type="button" class="toggle-btn" data-field="apetite" data-value="diminuido">Diminuído</button>
+                </div>
+                <input type="hidden" id="apetite">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mastigação</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="mastigacao" data-value="normal">Normal</button>
+                  <button type="button" class="toggle-btn" data-field="mastigacao" data-value="rapida">Rápida</button>
+                  <button type="button" class="toggle-btn" data-field="mastigacao" data-value="lenta">Lenta</button>
+                </div>
+                <input type="hidden" id="mastigacao">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Hábito Intestinal</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Hábito intestinal</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="habito_intestinal" data-value="normal">Normal</button>
+                  <button type="button" class="toggle-btn" data-field="habito_intestinal" data-value="constipante">Constipante</button>
+                  <button type="button" class="toggle-btn" data-field="habito_intestinal" data-value="diarreico">Diarreico</button>
+                  <button type="button" class="toggle-btn" data-field="habito_intestinal" data-value="variado">Variado</button>
+                </div>
+                <input type="hidden" id="habito_intestinal">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Frequência de evacuação</label>
+                <div style="display:flex;gap:12px;align-items:center;">
+                  <input class="form-input" type="number" id="freq_evacuacao" min="0" placeholder="Ex: 1" style="max-width:100px;">
+                  <div class="btn-group">
+                    <button type="button" class="toggle-btn" data-field="freq_evacuacao_periodo" data-value="dia">Por dia</button>
+                    <button type="button" class="toggle-btn" data-field="freq_evacuacao_periodo" data-value="semana">Por semana</button>
+                  </div>
+                  <input type="hidden" id="freq_evacuacao_periodo">
+                </div>
+              </div>
+            </div>
+            <!-- Escala Bristol visual -->
+            <div class="form-group">
+              <label class="form-label">Formato das fezes — Escala Bristol</label>
+              <input type="hidden" id="formato_fezes">
+              <div class="bristol-grid">
+                <button type="button" class="bristol-card" data-value="tipo1" onclick="selectBristol('tipo1', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><circle cx="20" cy="20" r="8" fill="#8B6914"/><circle cx="38" cy="25" r="7" fill="#8B6914"/><circle cx="15" cy="38" r="9" fill="#8B6914"/><circle cx="40" cy="42" r="7" fill="#8B6914"/></svg>
+                  <p class="bristol-tipo">Tipo 1</p>
+                  <p class="bristol-desc">Caroços duros e separados</p>
+                  <p class="bristol-class bristol-constipado">Constipação severa</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo2" onclick="selectBristol('tipo2', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><ellipse cx="30" cy="30" rx="12" ry="22" fill="#8B6914" rx="12"/><circle cx="24" cy="14" r="5" fill="#7a5c12"/><circle cx="36" cy="18" r="4" fill="#7a5c12"/><circle cx="28" cy="44" r="5" fill="#7a5c12"/></svg>
+                  <p class="bristol-tipo">Tipo 2</p>
+                  <p class="bristol-desc">Salsicha grumosa</p>
+                  <p class="bristol-class bristol-constipado">Constipação leve</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo3" onclick="selectBristol('tipo3', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><ellipse cx="30" cy="30" rx="11" ry="22" fill="#8B6914"/><line x1="19" y1="20" x2="25" y2="18" stroke="#f5e6c8" stroke-width="1.5"/><line x1="40" y1="28" x2="34" y2="26" stroke="#f5e6c8" stroke-width="1.5"/><line x1="20" y1="36" x2="26" y2="38" stroke="#f5e6c8" stroke-width="1.5"/></svg>
+                  <p class="bristol-tipo">Tipo 3</p>
+                  <p class="bristol-desc">Salsicha com rachaduras</p>
+                  <p class="bristol-class bristol-normal">Normal</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo4" onclick="selectBristol('tipo4', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><path d="M30 8 Q42 15 42 30 Q42 45 30 52 Q18 45 18 30 Q18 15 30 8Z" fill="#8B6914"/></svg>
+                  <p class="bristol-tipo">Tipo 4</p>
+                  <p class="bristol-desc">Salsicha suave e macia</p>
+                  <p class="bristol-class bristol-normal bristol-ideal">Ideal</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo5" onclick="selectBristol('tipo5', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><ellipse cx="22" cy="28" rx="9" ry="6" fill="#8B6914"/><ellipse cx="38" cy="22" rx="8" ry="5" fill="#8B6914"/><ellipse cx="30" cy="40" rx="10" ry="6" fill="#8B6914"/></svg>
+                  <p class="bristol-tipo">Tipo 5</p>
+                  <p class="bristol-desc">Pedaços macios e nítidos</p>
+                  <p class="bristol-class bristol-atencao">Atenção</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo6" onclick="selectBristol('tipo6', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><path d="M15 35 Q20 20 30 18 Q40 20 45 35 Q40 50 30 50 Q20 50 15 35Z" fill="#8B6914" opacity="0.7"/><path d="M18 30 Q25 15 30 14" stroke="#8B6914" stroke-width="3" fill="none" opacity="0.5"/></svg>
+                  <p class="bristol-tipo">Tipo 6</p>
+                  <p class="bristol-desc">Pedaços fofos, irregulares</p>
+                  <p class="bristol-class bristol-atencao">Diarreia leve</p>
+                </button>
+                <button type="button" class="bristol-card" data-value="tipo7" onclick="selectBristol('tipo7', this)">
+                  <svg viewBox="0 0 60 60" class="bristol-svg"><ellipse cx="30" cy="38" rx="20" ry="10" fill="#8B6914" opacity="0.5"/><ellipse cx="30" cy="35" rx="16" ry="7" fill="#8B6914" opacity="0.4"/></svg>
+                  <p class="bristol-tipo">Tipo 7</p>
+                  <p class="bristol-desc">Aquoso, sem partes sólidas</p>
+                  <p class="bristol-class bristol-alerta">Diarreia severa</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- Cor da urina visual -->
+            <div class="form-group" style="margin-top:8px;">
+              <label class="form-label">Cor da urina — Hidratação urinária</label>
+              <input type="hidden" id="hidratacao_urinaria">
+              <div class="urina-grid">
+                <button type="button" class="urina-card" data-value="1-bem" onclick="selectUrina('1-bem', this)">
+                  <div class="urina-cor" style="background:#FFF9E6;"></div>
+                  <p class="urina-num">1</p>
+                  <p class="urina-desc">Bem hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="2-bem" onclick="selectUrina('2-bem', this)">
+                  <div class="urina-cor" style="background:#FFF3C4;"></div>
+                  <p class="urina-num">2</p>
+                  <p class="urina-desc">Bem hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="3-bem" onclick="selectUrina('3-bem', this)">
+                  <div class="urina-cor" style="background:#FFE680;"></div>
+                  <p class="urina-num">3</p>
+                  <p class="urina-desc">Bem hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="4-mal" onclick="selectUrina('4-mal', this)">
+                  <div class="urina-cor" style="background:#FFD700;"></div>
+                  <p class="urina-num">4</p>
+                  <p class="urina-desc">Mal hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="5-mal" onclick="selectUrina('5-mal', this)">
+                  <div class="urina-cor" style="background:#FFC200;"></div>
+                  <p class="urina-num">5</p>
+                  <p class="urina-desc">Mal hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="6-mal" onclick="selectUrina('6-mal', this)">
+                  <div class="urina-cor" style="background:#E8A000;"></div>
+                  <p class="urina-num">6</p>
+                  <p class="urina-desc">Mal hidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="7-desidratado" onclick="selectUrina('7-desidratado', this)">
+                  <div class="urina-cor" style="background:#C47800;"></div>
+                  <p class="urina-num">7</p>
+                  <p class="urina-desc">Desidratado</p>
+                </button>
+                <button type="button" class="urina-card" data-value="8-desidratado" onclick="selectUrina('8-desidratado', this)">
+                  <div class="urina-cor" style="background:#8B4513;"></div>
+                  <p class="urina-num">8</p>
+                  <p class="urina-desc">Desidratado</p>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Usa laxante</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn" data-field="usa_laxante" data-value="true">Sim</button>
+                <button type="button" class="toggle-btn active" data-field="usa_laxante" data-value="false">Não</button>
+              </div>
+              <input type="hidden" id="usa_laxante" value="false">
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Hidratação</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Ingestão hídrica (litros/dia)</label>
+                <input class="form-input" type="number" id="ingestao_hidrica" step="0.1" min="0" placeholder="Ex: 2.0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Hábito urinário</label>
+                <input class="form-input" type="text" id="habito_urinario" placeholder="Descreva...">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea class="form-input form-textarea" id="obs_habito" rows="2"></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 6: Hábitos Alimentares ══ -->
+        <div class="form-step" id="step-6">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 7 de 9</p>
+            <h1 class="page-title">Hábitos Alimentares</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Preferências e Restrições</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Preferências alimentares</label>
+                <textarea class="form-input form-textarea" id="preferencias" rows="2" placeholder="Alimentos que gosta..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Aversões alimentares</label>
+                <textarea class="form-input form-textarea" id="aversoes" rows="2" placeholder="Alimentos que não gosta..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alergias alimentares</label>
+                <textarea class="form-input form-textarea" id="alergias" rows="2" placeholder="Alergias confirmadas..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Intolerâncias alimentares</label>
+                <textarea class="form-input form-textarea" id="intolerancias" rows="2" placeholder="Ex: Lactose, glúten..."></textarea>
+              </div>
+            </div>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Onde come</label>
+                <input class="form-input" type="text" id="onde_come" placeholder="Em casa, restaurante, trabalho...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quem prepara as refeições</label>
+                <input class="form-input" type="text" id="quem_prepara" placeholder="A própria paciente, familiar...">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Horários das Refeições</h2>
+            <div class="refeicoes-grid">
+              <div class="refeicao-item">
+                <label class="form-label">Café da manhã</label>
+                <input class="form-input" type="time" id="h_cafe">
+              </div>
+              <div class="refeicao-item">
+                <label class="form-label">Lanche da manhã</label>
+                <input class="form-input" type="time" id="h_lanche_manha">
+              </div>
+              <div class="refeicao-item">
+                <label class="form-label">Almoço</label>
+                <input class="form-input" type="time" id="h_almoco">
+              </div>
+              <div class="refeicao-item">
+                <label class="form-label">Lanche da tarde</label>
+                <input class="form-input" type="time" id="h_lanche_tarde">
+              </div>
+              <div class="refeicao-item">
+                <label class="form-label">Jantar</label>
+                <input class="form-input" type="time" id="h_jantar">
+              </div>
+              <div class="refeicao-item">
+                <label class="form-label">Ceia</label>
+                <input class="form-input" type="time" id="h_ceia">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <!-- Escalas de fome -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
+              <div class="form-group">
+                <label class="form-label">Fome ao acordar (0–10)</label>
+                <input class="form-input" type="number" id="fome_acordar" min="0" max="10" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fome antes de dormir (0–10)</label>
+                <input class="form-input" type="number" id="fome_dormir" min="0" max="10" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Qualidade alimentar percebida (0–10)</label>
+                <input class="form-input" type="number" id="qualidade_alimentar" min="0" max="10" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Belisca entre refeições?</label>
+                <select class="form-input" id="belisca">
+                  <option value="">Selecione</option>
+                  <option value="nao">Não</option>
+                  <option value="raramente">Raramente</option>
+                  <option value="frequentemente">Frequentemente</option>
+                  <option value="sempre">Sempre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Come assistindo TV / tela?</label>
+                <select class="form-input" id="come_tela">
+                  <option value="">Selecione</option>
+                  <option value="nao">Não</option>
+                  <option value="as_vezes">Às vezes</option>
+                  <option value="sempre">Sempre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Velocidade ao comer</label>
+                <select class="form-input" id="velocidade_comer">
+                  <option value="">Selecione</option>
+                  <option value="lento">Lento (>20 min)</option>
+                  <option value="normal">Normal (15–20 min)</option>
+                  <option value="rapido">Rápido (10–15 min)</option>
+                  <option value="muito_rapido">Muito rápido (<10 min)</option>
+                </select>
+              </div>
+            </div>
+
+            <h2 class="section-title">Recordatório Alimentar</h2>
+            <div class="recordatorio-list">
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Café da manhã</span>
+                <textarea class="form-input form-textarea" id="ref_cafe" rows="2" placeholder="O que costuma comer no café da manhã..."></textarea>
+              </div>
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Lanche da manhã</span>
+                <textarea class="form-input form-textarea" id="ref_lanche_manha" rows="2" placeholder="Lanche da manhã..."></textarea>
+              </div>
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Almoço</span>
+                <textarea class="form-input form-textarea" id="ref_almoco" rows="2" placeholder="Composição do almoço habitual..."></textarea>
+              </div>
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Lanche da tarde</span>
+                <textarea class="form-input form-textarea" id="ref_lanche_tarde" rows="2" placeholder="Lanche da tarde..."></textarea>
+              </div>
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Jantar</span>
+                <textarea class="form-input form-textarea" id="ref_jantar" rows="2" placeholder="Composição do jantar habitual..."></textarea>
+              </div>
+              <div class="recordatorio-item">
+                <span class="recordatorio-label">Ceia</span>
+                <textarea class="form-input form-textarea" id="ref_ceia" rows="2" placeholder="Ceia (se houver)..."></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 7: Metas ══ -->
+        <div class="form-step" id="step-7">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 8 de 9</p>
+            <h1 class="page-title">Metas e Comportamento</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Metas</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Peso meta (kg)</label>
+                <input class="form-input" type="number" id="peso_meta" step="0.1" placeholder="Ex: 65.0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prazo</label>
+                <input class="form-input" type="text" id="prazo_meta" placeholder="Ex: 3 meses">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Meta semanal</label>
+                <input class="form-input" type="text" id="meta_semana" placeholder="Ex: Perder 0.5kg por semana">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tentativas anteriores de emagrecimento</label>
+              <textarea class="form-input form-textarea" id="tentativas_anteriores" rows="2" placeholder="Descreva tentativas anteriores..."></textarea>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Comportamento Alimentar</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Compulsão alimentar</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="compulsao" data-value="sim">Sim</button>
+                  <button type="button" class="toggle-btn" data-field="compulsao" data-value="nao">Não</button>
+                  <button type="button" class="toggle-btn" data-field="compulsao" data-value="as-vezes">Às vezes</button>
+                </div>
+                <input type="hidden" id="compulsao">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fome emocional</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="fome_emocional" data-value="sim">Sim</button>
+                  <button type="button" class="toggle-btn" data-field="fome_emocional" data-value="nao">Não</button>
+                  <button type="button" class="toggle-btn" data-field="fome_emocional" data-value="as-vezes">Às vezes</button>
+                </div>
+                <input type="hidden" id="fome_emocional">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fome noturna</label>
+                <div class="btn-group">
+                  <button type="button" class="toggle-btn" data-field="fome_noturna" data-value="sim">Sim</button>
+                  <button type="button" class="toggle-btn" data-field="fome_noturna" data-value="nao">Não</button>
+                  <button type="button" class="toggle-btn" data-field="fome_noturna" data-value="as-vezes">Às vezes</button>
+                </div>
+                <input type="hidden" id="fome_noturna">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Observações Gerais</h2>
+            <div class="form-group">
+              <textarea class="form-input form-textarea" id="obs_gerais" rows="4" placeholder="Observações adicionais relevantes..."></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 8: Exames Laboratoriais ══ -->
+        <div class="form-step" id="step-8">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 9 de 9</p>
+            <h1 class="page-title">Exames Laboratoriais</h1>
+          </header>
+
+          <section class="section fade-up">
+            <h2 class="section-title">Importar PDF de Exames</h2>
+            <p class="field-hint" style="margin-bottom:16px;">Faça upload do PDF de exames laboratoriais para preencher os valores automaticamente.</p>
+            <div id="doc-extractor-exames-lab"></div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Resultados</h2>
+            <!-- Alertas automáticos de exames -->
+            <div id="alertas-exames" style="display:none;"></div>
+            <div class="exames-table-wrapper">
+              <table class="exames-table">
+                <thead>
+                  <tr>
+                    <th>Exame</th>
+                    <th>Resultado</th>
+                    <th>Referência</th>
+                    <th>Classificação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="exame-nome">Glicemia em jejum <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="glicemia" oninput="classificarExame('glicemia');gerarAlertasExames()" step="0.1" placeholder="—" oninput="classificarExame('glicemia')"></td>
+                    <td class="exame-ref">70 – 99</td>
+                    <td><span class="exame-badge" id="class-glicemia">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">HbA1c <span>(%)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="hba1c" oninput="classificarExame('hba1c');gerarAlertasExames()" step="0.01" placeholder="—" oninput="classificarExame('hba1c')"></td>
+                    <td class="exame-ref">&lt; 5,7</td>
+                    <td><span class="exame-badge" id="class-hba1c">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Insulina <span>(µUI/mL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="insulina" step="0.1" placeholder="—" oninput="classificarExame('insulina')"></td>
+                    <td class="exame-ref">2 – 25</td>
+                    <td><span class="exame-badge" id="class-insulina">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">TSH <span>(mUI/L)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="tsh" oninput="classificarExame('tsh');gerarAlertasExames()" step="0.001" placeholder="—" oninput="classificarExame('tsh')"></td>
+                    <td class="exame-ref">0,4 – 4,0</td>
+                    <td><span class="exame-badge" id="class-tsh">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Colesterol Total <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="col_total" step="0.1" placeholder="—" oninput="classificarExame('col_total')"></td>
+                    <td class="exame-ref">&lt; 190</td>
+                    <td><span class="exame-badge" id="class-col_total">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">HDL <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="hdl" oninput="classificarExame('hdl');gerarAlertasExames()" step="0.1" placeholder="—" oninput="classificarExame('hdl')"></td>
+                    <td class="exame-ref">&gt; 50 (F) / &gt; 40 (M)</td>
+                    <td><span class="exame-badge" id="class-hdl">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">LDL <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="ldl" step="0.1" placeholder="—" oninput="classificarExame('ldl')"></td>
+                    <td class="exame-ref">&lt; 130</td>
+                    <td><span class="exame-badge" id="class-ldl">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Triglicerídeos <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="tg" oninput="classificarExame('tg');gerarAlertasExames()" step="0.1" placeholder="—" oninput="classificarExame('tg')"></td>
+                    <td class="exame-ref">&lt; 150</td>
+                    <td><span class="exame-badge" id="class-tg">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Vitamina D <span>(ng/mL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="vitamina_d" oninput="classificarExame('vitamina_d');gerarAlertasExames()" step="0.1" placeholder="—" oninput="classificarExame('vitamina_d')"></td>
+                    <td class="exame-ref">30 – 100</td>
+                    <td><span class="exame-badge" id="class-vitamina_d">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Vitamina B12 <span>(pg/mL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="vitamina_b12" oninput="classificarExame('vitamina_b12');gerarAlertasExames()" step="0.1" placeholder="—" oninput="classificarExame('vitamina_b12')"></td>
+                    <td class="exame-ref">200 – 900</td>
+                    <td><span class="exame-badge" id="class-vitamina_b12">—</span></td>
+                  </tr>
+                  <tr>
+                    <td class="exame-nome">Cálcio <span>(mg/dL)</span></td>
+                    <td><input class="form-input exame-input" type="number" id="calcio" step="0.1" placeholder="—" oninput="classificarExame('calcio')"></td>
+                    <td class="exame-ref">8,5 – 10,5</td>
+                    <td><span class="exame-badge" id="class-calcio">—</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group" style="margin-top:24px;">
+              <label class="form-label">Observações sobre exames</label>
+              <textarea class="form-input form-textarea" id="exames_obs" rows="3" placeholder="Observações clínicas sobre os resultados..."></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ MÓDULOS DINÂMICOS (injetados pelo anamnese-engine.js) ══ -->
+        <!-- Inseridos automaticamente após step-4, antes de step-5   -->
+        <div id="dynamic-modules-mount"></div>
+
+        <!-- ── Navegação entre steps ── -->
+        <div class="step-navigation">
+          <button type="button" class="btn-secondary" id="btn-prev" onclick="prevStep()" style="display:none;">Anterior</button>
+          <button type="button" class="btn-primary" id="btn-next" onclick="nextStep()" style="width:auto;padding:16px 48px;">Próximo</button>
+          <button type="submit" class="btn-primary" id="btn-save" style="display:none;width:auto;padding:16px 48px;">Salvar Anamnese</button>
+        </div>
+
+        <!-- ══ INSIGHTS CLÍNICOS (renderizados na tela final) ══ -->
+        <div id="insights-panel-container" style="display:none;margin-top:32px;"></div>
+
+        <div class="form-message" id="form-message"></div>
+      </form>
+
+      <div class="admin-back-bottom"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ── Estilos dos Módulos Dinâmicos ── -->
+  <style>
+    /* ── Badge de módulo ──────────────────────────────── */
+    .module-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #f0eeff;
+      color: #6D5ACF;
+      border: 1px solid rgba(109,90,207,0.25);
+      border-radius: 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* ── Tela de introdução dos módulos ─────────────── */
+    .modules-intro-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .module-intro-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 2px;
+    }
+    .module-intro-icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .module-intro-text { flex: 1; }
+    .module-intro-nome {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text);
+      margin: 0 0 3px;
+    }
+    .module-intro-desc {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.76rem;
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* ── Navegação lateral dinâmica ──────────────────── */
+    .snav-module {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      color: var(--sub);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all .2s;
+      text-decoration: none;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .snav-module:hover { background: var(--bg2); color: var(--text); }
+    .snav-module.active { background: var(--bg2); color: var(--text); font-weight: 600; }
+    .snav-module.done { color: var(--ok, #2E8B6A); }
+    .snav-module-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #step-nav-dynamic-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--subtitle, #B9A89A);
+      padding: 10px 14px 4px;
+      display: none;
+    }
+    #step-nav-dynamic-label.visible { display: block; }
+
+    /* ── Campo condicional oculto ─────────────────────── */
+    .field-conditional { transition: opacity .2s; }
+    .field-conditional.hidden { display: none; }
+
+    /* ── Insights panel ──────────────────────────────── */
+    .insights-panel {
+      border: 1px solid var(--detail);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .insights-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--detail);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+    .insights-section {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(76,184,160,0.15);
+    }
+    .insights-section:first-of-type { border-top: none; }
+    .insights-prioridade { background: #edf7f3; }
+    .insights-critico    { background: #fdf0f0; }
+    .insights-atencao    { background: #fdf7e8; }
+    .insights-conduta    { background: #edf4f0; }
+    .insights-info       { background: var(--bg2); }
+    .insights-section-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+    .insight-item {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: var(--text);
+      margin: 0 0 5px;
+    }
+    .insight-item:last-child { margin-bottom: 0; }
+  </style>
+
+  <!-- ═══ MODAL DE RECUPERAÇÃO DE RASCUNHO ═══ -->
+  <div id="anamnese-recovery-modal" class="anamnese-modal-overlay" role="dialog" aria-modal="true">
+    <div class="anamnese-modal">
+      <div class="anamnese-modal-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-9-9c2.39 0 4.68.94 6.36 2.64L21 8"/><polyline points="21 3 21 8 16 8"/></svg>
+      </div>
+      <h3>Rascunho recuperado</h3>
+      <p>Você tem uma anamnese não finalizada de <strong id="recovery-when">—</strong> com <strong id="recovery-fill-count">—</strong> campos preenchidos. Continuar de onde parou?</p>
+      <div class="anamnese-modal-actions">
+        <button type="button" class="tb-btn tb-primary" id="btn-recovery-yes">Continuar rascunho</button>
+        <button type="button" class="tb-btn" id="btn-recovery-no">Começar anamnese nova</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL DE ATALHOS ═══ -->
+  <div id="anamnese-help" class="anamnese-modal-overlay" role="dialog" aria-modal="true">
+    <div class="anamnese-help-modal">
+      <h3>Atalhos de teclado</h3>
+      <div class="help-row"><span>Próxima seção</span><kbd>→</kbd></div>
+      <div class="help-row"><span>Seção anterior</span><kbd>←</kbd></div>
+      <div class="help-row"><span>Salvar rascunho</span><kbd>Ctrl</kbd>+<kbd>S</kbd></div>
+      <div class="help-row"><span>Mostrar atalhos</span><kbd>?</kbd></div>
+      <div class="help-row"><span>Sair do modo apresentação</span><kbd>Esc</kbd></div>
+      <div style="margin-top:18px;text-align:right;">
+        <button type="button" class="tb-btn" id="btn-help-close">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/anamnese.js"></script>
+  <script type="module" src="js/anamnese-extras.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  
+  // ── Sidebar colapsável ──────────────────────────────────
+  const sidebarEl    = document.getElementById('sidebar');
+  const collapseBtn  = document.getElementById('sidebar-collapse-btn');
+  if (collapseBtn && sidebarEl) {
+    const KEY = 'erg-sidebar-collapsed';
+    // Restaura estado
+    if (localStorage.getItem(KEY) === '1') sidebarEl.classList.add('collapsed');
+    collapseBtn.addEventListener('click', () => {
+      sidebarEl.classList.toggle('collapsed');
+      localStorage.setItem(KEY, sidebarEl.classList.contains('collapsed') ? '1' : '0');
+    });
+  }
+
+</script>
+</body>
+</html>

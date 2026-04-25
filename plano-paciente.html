@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Plano Alimentar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:     #F7F6F2;
+      --bg2:    #F0EDE6;
+      --detail: #4CB8A0;
+      --sub:    #6B6659;
+      --text:   #1A1A16;
+      --white:  #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Jost', sans-serif; font-weight: 300; }
+
+    /* HEADER */
+    .page-header {
+      background: var(--white); border-bottom: 1px solid var(--detail);
+      padding: 28px 32px 24px; text-align: center;
+    }
+    .page-header-name {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--sub); margin-bottom: 8px;
+    }
+    .page-header-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 2rem; letter-spacing: 0.06em; margin-bottom: 6px;
+    }
+    .page-header-meta {
+      font-size: 0.72rem; color: var(--sub); letter-spacing: 0.08em;
+    }
+
+    /* TABS */
+    .tabs-wrap {
+      background: var(--white); border-bottom: 1px solid var(--detail);
+      display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .tab {
+      flex: 0 0 auto; padding: 14px 24px; font-family: 'Jost', sans-serif;
+      font-weight: 400; font-size: 0.65rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--sub); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--detail); }
+
+    /* CONTEÚDO */
+    .page-content { max-width: 780px; margin: 0 auto; padding: 36px 24px; }
+
+    /* Cards de macro no topo */
+    .macro-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1px; background: var(--detail); border: 1px solid var(--detail);
+      margin-bottom: 36px;
+    }
+    .macro-card {
+      background: var(--white); padding: 18px 16px; text-align: center;
+    }
+    .macro-card-label {
+      font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--sub); margin-bottom: 6px;
+    }
+    .macro-card-val {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.6rem; line-height: 1;
+    }
+    .macro-card-unit { font-size: 0.7rem; color: var(--sub); }
+
+    /* Refeição */
+    .refeicao-block {
+      display: none; animation: fadeIn 0.25s ease;
+    }
+    .refeicao-block.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+    .ref-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding-bottom: 12px; border-bottom: 1px solid var(--detail);
+      margin-bottom: 24px;
+    }
+    .ref-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.5rem; letter-spacing: 0.04em;
+    }
+    .ref-kcal { font-size: 0.72rem; color: var(--sub); }
+
+    /* Itens da refeição */
+    .alimento-row {
+      display: grid; grid-template-columns: 1fr repeat(4, 68px);
+      gap: 8px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--bg2);
+    }
+    .alimento-nome { font-size: 0.88rem; }
+    .alimento-medida { font-size: 0.72rem; color: var(--sub); margin-top: 3px; }
+    .alimento-macro { text-align: right; font-size: 0.78rem; }
+    .alimento-macro-label { font-size: 0.62rem; color: var(--sub); }
+    .alimento-header {
+      display: grid; grid-template-columns: 1fr repeat(4, 68px);
+      gap: 8px; padding: 8px 0;
+      font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--sub); border-bottom: 1px solid var(--bg2); margin-bottom: 4px;
+    }
+    .alimento-header span { text-align: right; }
+    .alimento-header span:first-child { text-align: left; }
+
+    /* Totais da refeição */
+    .ref-totais {
+      display: flex; gap: 24px; padding: 14px 0;
+      border-top: 1px solid var(--detail); margin-top: 8px;
+      font-size: 0.78rem;
+    }
+    .ref-tot-item { color: var(--sub); }
+    .ref-tot-item strong { color: var(--text); font-weight: 400; }
+
+    /* Obs da refeição */
+    .ref-obs {
+      margin-top: 16px; padding: 14px 16px; background: var(--bg2);
+      font-size: 0.78rem; line-height: 1.7; font-style: italic; color: var(--sub);
+    }
+
+    .empty-state {
+      text-align: center; padding: 48px 0;
+      font-size: 0.82rem; color: var(--detail); font-style: italic;
+    }
+
+    /* Resumo do dia */
+    .resumo-section { margin-top: 0; }
+    .resumo-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.3rem; margin-bottom: 20px;
+    }
+    .resumo-line {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--bg2); font-size: 0.82rem;
+    }
+    .resumo-line-label { color: var(--sub); }
+
+    /* Back */
+    .back-link {
+      display: inline-block; margin-bottom: 28px;
+      font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--sub); text-decoration: none; border-bottom: 1px solid var(--bg2);
+      padding-bottom: 2px; transition: border-color 0.2s;
+    }
+    .back-link:hover { border-color: var(--detail); color: var(--text); }
+
+    @media (max-width: 600px) {
+      .macro-grid { grid-template-columns: repeat(2, 1fr); }
+      .alimento-row { grid-template-columns: 1fr repeat(2, 60px); }
+      .alimento-row > :nth-child(4),
+      .alimento-row > :nth-child(5) { display: none; }
+      .alimento-header span:nth-child(4),
+      .alimento-header span:nth-child(5) { display: none; }
+      .page-content { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-header-name" id="paciente-nome">—</div>
+  <div class="page-header-title" id="plano-titulo">Plano Alimentar</div>
+  <div class="page-header-meta" id="plano-meta">—</div>
+</div>
+
+<div class="tabs-wrap" id="tabs-wrap">
+  <div class="tab active" data-ref="resumo" onclick="mudarTab('resumo', this)">Resumo</div>
+</div>
+
+<div class="page-content">
+  <a href="dashboard.html" class="back-link">← Meu painel</a>
+
+  <!-- Macros totais -->
+  <div class="macro-grid" id="macro-grid" style="display:none">
+    <div class="macro-card">
+      <div class="macro-card-label">Calorias</div>
+      <div class="macro-card-val" id="m-kcal">—</div>
+      <div class="macro-card-unit">kcal</div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Proteínas</div>
+      <div class="macro-card-val" id="m-ptn">—</div>
+      <div class="macro-card-unit">gramas</div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Carboidratos</div>
+      <div class="macro-card-val" id="m-cho">—</div>
+      <div class="macro-card-unit">gramas</div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Lipídios</div>
+      <div class="macro-card-val" id="m-lip">—</div>
+      <div class="macro-card-unit">gramas</div>
+    </div>
+  </div>
+
+  <!-- Resumo do dia -->
+  <div class="refeicao-block active" id="block-resumo">
+    <div class="empty-state">Carregando plano...</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gqnlrhmriufepzpustna.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNjM2NTMsImV4cCI6MjA1OTYzOTY1M30.kh7JBIAUzaMsqmKUOXeWCjTIqkj3OoUz5S4z0Yke3fo';
+
+const REF_LABELS = {
+  cafe: 'Café da manhã', lanche_manha: 'Lanche da manhã',
+  almoco: 'Almoço', lanche_tarde: 'Lanche da tarde',
+  jantar: 'Jantar', ceia: 'Ceia'
+};
+
+async function sb(path, params = '') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${params}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  return r.json();
+}
+
+async function getUser() {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${localStorage.getItem('sb-token')}` }
+  });
+  return r.json();
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const token = localStorage.getItem('sb-token') || localStorage.getItem('supabase.auth.token');
+  if (!token) { window.location.href = 'index.html'; return; }
+
+  try {
+    const user = await getUser();
+    if (!user?.id) { window.location.href = 'index.html'; return; }
+
+    // Buscar paciente
+    const patients = await sb('patients', `?user_id=eq.${user.id}&select=id,nome`);
+    if (!patients[0]) { document.getElementById('block-resumo').innerHTML = '<div class="empty-state">Perfil não encontrado.</div>'; return; }
+    const patient = patients[0];
+    document.getElementById('paciente-nome').textContent = patient.nome;
+
+    // Buscar plano mais recente com itens
+    const planos = await sb('planos_alimentares', `?patient_id=eq.${patient.id}&order=data_elaboracao.desc&limit=1`);
+    if (!planos[0]) { document.getElementById('block-resumo').innerHTML = '<div class="empty-state">Nenhum plano alimentar disponível ainda.</div>'; return; }
+    const plano = planos[0];
+
+    document.getElementById('plano-titulo').textContent = plano.descricao || 'Plano Alimentar';
+    document.getElementById('plano-meta').textContent =
+      (plano.data_elaboracao ? 'Elaborado em ' + formatDate(plano.data_elaboracao) : '') +
+      (plano.validade_meses ? ' · Válido por ' + plano.validade_meses + ' meses' : '') +
+      (plano.elaborador ? ' · ' + plano.elaborador : '');
+
+    // Buscar itens do plano
+    const itens = await sb('plano_itens', `?plano_id=eq.${plano.id}&select=refeicao,nome_livre,quantidade_g,medida_descricao,kcal,proteina_g,cho_g,lipidio_g,fibra_g,ordem,alimentos(nome)&order=refeicao,ordem`);
+
+    // Agrupar por refeição
+    const grupos = {};
+    itens.forEach(it => {
+      if (!grupos[it.refeicao]) grupos[it.refeicao] = [];
+      grupos[it.refeicao].push(it);
+    });
+
+    // Usar refeicoes JSONB como fallback se não tiver plano_itens
+    const usarJsonb = itens.length === 0 && plano.refeicoes;
+    const refeicoes = usarJsonb ? plano.refeicoes : null;
+
+    // Macros totais
+    let totKcal = plano.kcal_alvo || 0, totPtn = plano.proteina_g || 0,
+        totCho = plano.carboidrato_g || 0, totLip = plano.lipidio_g || 0;
+
+    if (itens.length > 0) {
+      totKcal = itens.reduce((s, it) => s + (it.kcal || 0), 0).toFixed(0);
+      totPtn  = itens.reduce((s, it) => s + (it.proteina_g || 0), 0).toFixed(1);
+      totCho  = itens.reduce((s, it) => s + (it.cho_g || 0), 0).toFixed(1);
+      totLip  = itens.reduce((s, it) => s + (it.lipidio_g || 0), 0).toFixed(1);
+    }
+
+    document.getElementById('m-kcal').textContent = totKcal;
+    document.getElementById('m-ptn').textContent  = totPtn;
+    document.getElementById('m-cho').textContent  = totCho;
+    document.getElementById('m-lip').textContent  = totLip;
+    document.getElementById('macro-grid').style.display = 'grid';
+
+    // Construir tabs e blocos
+    const tabs = document.getElementById('tabs-wrap');
+    const content = document.querySelector('.page-content');
+    const refsPresentes = usarJsonb
+      ? (refeicoes || []).filter(r => r.itens?.length > 0)
+      : Object.keys(grupos);
+
+    if (refsPresentes.length === 0) {
+      document.getElementById('block-resumo').innerHTML = '<div class="empty-state">Plano ainda sem refeições detalhadas.</div>';
+      return;
+    }
+
+    // Tabs das refeições
+    (usarJsonb ? refsPresentes.map(r => r.nome) : refsPresentes).forEach((ref, i) => {
+      const key = usarJsonb ? slugify(refsPresentes[i].nome) : ref;
+      const label = usarJsonb ? refsPresentes[i].nome : (REF_LABELS[ref] || ref);
+      tabs.innerHTML += `<div class="tab" data-ref="${key}" onclick="mudarTab('${key}', this)">${label}</div>`;
+    });
+
+    // Resumo
+    let resumoHtml = `<div class="resumo-section">
+      <div class="resumo-title">Visão geral do dia</div>`;
+
+    if (usarJsonb) {
+      refsPresentes.forEach(ref => {
+        resumoHtml += `<div class="resumo-line">
+          <span class="resumo-line-label">${ref.nome}</span>
+          <span>${ref.kcal || '—'} kcal · ${ref.proteina || '—'}g ptn</span>
+        </div>`;
+      });
+    } else {
+      Object.entries(grupos).forEach(([refKey, its]) => {
+        const totRef = its.reduce((s, it) => ({ k: s.k + (it.kcal||0), p: s.p + (it.proteina_g||0) }), {k:0,p:0});
+        resumoHtml += `<div class="resumo-line">
+          <span class="resumo-line-label">${REF_LABELS[refKey] || refKey}</span>
+          <span>${totRef.k.toFixed(0)} kcal · ${totRef.p.toFixed(1)}g ptn</span>
+        </div>`;
+      });
+    }
+    resumoHtml += `</div>`;
+    document.getElementById('block-resumo').innerHTML = resumoHtml;
+
+    // Blocos por refeição
+    if (usarJsonb) {
+      refsPresentes.forEach(ref => {
+        const key = slugify(ref.nome);
+        const div = document.createElement('div');
+        div.className = 'refeicao-block';
+        div.id = 'block-' + key;
+        div.innerHTML = buildBlockJsonb(ref);
+        content.appendChild(div);
+      });
+    } else {
+      Object.entries(grupos).forEach(([refKey, its]) => {
+        const div = document.createElement('div');
+        div.className = 'refeicao-block';
+        div.id = 'block-' + refKey;
+        div.innerHTML = buildBlockItens(refKey, its);
+        content.appendChild(div);
+      });
+    }
+
+  } catch(e) {
+    document.getElementById('block-resumo').innerHTML = '<div class="empty-state">Erro ao carregar plano.</div>';
+  }
+});
+
+function buildBlockItens(refKey, itens) {
+  const label = REF_LABELS[refKey] || refKey;
+  const tot = itens.reduce((s, it) => ({
+    k: s.k+(it.kcal||0), p: s.p+(it.proteina_g||0),
+    c: s.c+(it.cho_g||0), l: s.l+(it.lipidio_g||0)
+  }), {k:0,p:0,c:0,l:0});
+
+  return `<div class="ref-header">
+    <span class="ref-title">${label}</span>
+    <span class="ref-kcal">${tot.k.toFixed(0)} kcal</span>
+  </div>
+  <div class="alimento-header">
+    <span>Alimento</span><span>Kcal</span><span>Ptn</span><span>CHO</span><span>Lip</span>
+  </div>
+  ${itens.map(it => `
+    <div class="alimento-row">
+      <div>
+        <div class="alimento-nome">${it.alimentos?.nome || it.nome_livre || '—'}</div>
+        <div class="alimento-medida">${it.medida_descricao || it.quantidade_g + 'g'}</div>
+      </div>
+      <div class="alimento-macro">${(it.kcal||0).toFixed(0)}<div class="alimento-macro-label">kcal</div></div>
+      <div class="alimento-macro">${(it.proteina_g||0).toFixed(1)}<div class="alimento-macro-label">g</div></div>
+      <div class="alimento-macro">${(it.cho_g||0).toFixed(1)}<div class="alimento-macro-label">g</div></div>
+      <div class="alimento-macro">${(it.lipidio_g||0).toFixed(1)}<div class="alimento-macro-label">g</div></div>
+    </div>`).join('')}
+  <div class="ref-totais">
+    <span class="ref-tot-item">Total: <strong>${tot.k.toFixed(0)} kcal</strong></span>
+    <span class="ref-tot-item">Ptn: <strong>${tot.p.toFixed(1)}g</strong></span>
+    <span class="ref-tot-item">CHO: <strong>${tot.c.toFixed(1)}g</strong></span>
+    <span class="ref-tot-item">Lip: <strong>${tot.l.toFixed(1)}g</strong></span>
+  </div>`;
+}
+
+function buildBlockJsonb(ref) {
+  return `<div class="ref-header">
+    <span class="ref-title">${ref.nome}</span>
+    <span class="ref-kcal">${ref.kcal || '—'} kcal${ref.horario ? ' · ' + ref.horario : ''}</span>
+  </div>
+  <div class="alimento-header">
+    <span>Alimento</span><span>Qtde</span><span>Obs</span>
+  </div>
+  ${(ref.itens||[]).map(it => `
+    <div class="alimento-row" style="grid-template-columns:1fr 120px 1fr">
+      <div>
+        <div class="alimento-nome">${it.alimento || it.nome || '—'}</div>
+        <div class="alimento-medida">${it.medida || it.qtde || ''}</div>
+      </div>
+      <div class="alimento-macro">${it.qtde || '—'}</div>
+      <div class="alimento-macro" style="font-size:0.72rem;color:var(--sub);text-align:left">${it.obs || ''}</div>
+    </div>`).join('')}
+  ${ref.alerta ? `<div class="ref-obs">${ref.alerta}</div>` : ''}
+  <div class="ref-totais">
+    <span class="ref-tot-item">Total: <strong>${ref.kcal||'—'} kcal</strong></span>
+    ${ref.proteina ? `<span class="ref-tot-item">Ptn: <strong>${ref.proteina}g</strong></span>` : ''}
+    ${ref.cho ? `<span class="ref-tot-item">CHO: <strong>${ref.cho}g</strong></span>` : ''}
+  </div>`;
+}
+
+function mudarTab(key, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.refeicao-block').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const block = document.getElementById('block-' + key);
+  if (block) block.classList.add('active');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function slugify(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+}
+</script>
+</body>
+</html>

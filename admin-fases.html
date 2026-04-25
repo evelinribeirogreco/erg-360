@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Fases — Admin ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/doc-extractor.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Plano de Fases</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Fases</p>
+      </div>
+      <div class="sidebar-nav">
+        <p class="nav-section-label">Ações</p>
+        <a class="nav-item active" href="javascript:void(0)" onclick="showView('lista')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Fases do Plano
+        </a>
+        <a class="nav-item" href="javascript:void(0)" onclick="mostrarGeradorPlano()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Gerar Plano Automático
+        </a>
+        <a class="nav-item" href="javascript:void(0)" onclick="showView('nova')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Nova Fase Manual
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="patient-nome-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="admin-back-top">
+        <a href="admin.html" class="back-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao painel
+        </a>
+      </div>
+
+      <!-- ── Extração de documentos com IA ── -->
+      <div class="section fade-up" style="margin-bottom:0;">
+        <h2 class="section-title">Anexar Documento</h2>
+        <div id="doc-extractor-fases"></div>
+      </div>
+
+
+      <!-- ══ LISTA DE FASES ══ -->
+      <div id="view-lista">
+        <header class="page-header fade-up">
+          <p class="page-greeting">Plano de tratamento de</p>
+          <h1 class="page-title" id="patient-nome-title">—</h1>
+        </header>
+
+        <!-- KPIs das fases (preenchido pelo JS) -->
+        <div id="progresso-geral" style="display:none;" class="fade-up">
+          <div id="kpis-fases"
+            style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+              border:1px solid var(--detail);background:var(--detail);margin-bottom:24px;">
+          </div>
+        </div>
+
+        <!-- Ação principal: gerar plano automático -->
+        <section class="section fade-up fade-up-delay-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+            <h2 class="section-title" style="margin-bottom:0;">Fases cadastradas</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="mostrarGeradorPlano()"
+                style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                  background:var(--text);border:none;cursor:pointer;
+                  font-family:'DM Sans',sans-serif;font-size:0.68rem;font-weight:500;
+                  letter-spacing:0.1em;text-transform:uppercase;color:var(--bg-primary);
+                  transition:opacity 0.15s;"
+                onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Gerar plano automático
+              </button>
+              <button onclick="showView('nova')"
+                style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+                  background:none;border:1px solid var(--detail);cursor:pointer;
+                  font-family:'DM Sans',sans-serif;font-size:0.68rem;
+                  letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);
+                  transition:all 0.15s;"
+                onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--subtitle)'"
+                onmouseout="this.style.color='var(--text-light)';this.style.borderColor='var(--detail)'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova fase manual
+              </button>
+            </div>
+          </div>
+
+          <div id="fases-lista-wrapper">
+            <div class="admin-table-skeleton">
+              <div class="skeleton skeleton-line" style="height:48px;margin-bottom:1px;"></div>
+              <div class="skeleton skeleton-line" style="height:48px;opacity:.7"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+
+      <!-- ══ NOVA / EDITAR FASE ══ -->
+      <div id="view-nova" style="display:none;">
+        <header class="page-header fade-up">
+          <p class="page-greeting" id="fase-form-label">Nova fase para</p>
+          <h1 class="page-title" id="fase-form-title">—</h1>
+        </header>
+
+        <!-- Templates rápidos -->
+        <section class="section fade-up">
+          <h2 class="section-title">Templates rápidos</h2>
+          <p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);
+            margin-bottom:16px;line-height:1.5;">
+            Selecione um template para preencher automaticamente os campos abaixo. Ajuste conforme necessário.
+          </p>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <button type="button" onclick="aplicarTemplate('adaptacao')"
+              style="padding:12px 16px;border:1px solid var(--detail);background:var(--bg-secondary);
+                cursor:pointer;text-align:left;transition:all 0.15s;"
+              onmouseover="this.style.borderColor='var(--subtitle)'" onmouseout="this.style.borderColor='var(--detail)'">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;color:var(--text);margin-bottom:2px;">Adaptação Inicial</p>
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--text-light);">4 semanas · sem restrições severas</p>
+            </button>
+            <button type="button" onclick="aplicarTemplate('emagrecimento')"
+              style="padding:12px 16px;border:1px solid var(--detail);background:var(--bg-secondary);
+                cursor:pointer;text-align:left;transition:all 0.15s;"
+              onmouseover="this.style.borderColor='var(--subtitle)'" onmouseout="this.style.borderColor='var(--detail)'">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;color:var(--text);margin-bottom:2px;">Emagrecimento</p>
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--text-light);">8 semanas · déficit moderado</p>
+            </button>
+            <button type="button" onclick="aplicarTemplate('recomposicao')"
+              style="padding:12px 16px;border:1px solid var(--detail);background:var(--bg-secondary);
+                cursor:pointer;text-align:left;transition:all 0.15s;"
+              onmouseover="this.style.borderColor='var(--subtitle)'" onmouseout="this.style.borderColor='var(--detail)'">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;color:var(--text);margin-bottom:2px;">Recomposição Corporal</p>
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--text-light);">12 semanas · manutenção calórica + alto proteico</p>
+            </button>
+            <button type="button" onclick="aplicarTemplate('manutencao')"
+              style="padding:12px 16px;border:1px solid var(--detail);background:var(--bg-secondary);
+                cursor:pointer;text-align:left;transition:all 0.15s;"
+              onmouseover="this.style.borderColor='var(--subtitle)'" onmouseout="this.style.borderColor='var(--detail)'">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;color:var(--text);margin-bottom:2px;">Manutenção</p>
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--text-light);">12 semanas · consolidação dos resultados</p>
+            </button>
+          </div>
+        </section>
+
+        <form id="fase-form" novalidate>
+          <input type="hidden" id="fase-id">
+          <!-- Campos ocultos usados pela lógica de templates e macros -->
+          <input type="hidden" id="f-tipo" value="">
+          <input type="hidden" id="f-foco" value="">
+          <input type="hidden" id="f-ritmo" value="">
+          <input type="hidden" id="f-meta-adesao" value="">
+          <input type="hidden" id="f-meta-treinos" value="">
+
+          <!-- ── Identificação ── -->
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Identificação</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Ordem</label>
+                <input class="form-input" type="number" id="f-ordem" min="1" placeholder="Ex: 1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nome da fase</label>
+                <input class="form-input" type="text" id="f-nome" placeholder="Ex: Fase 1 — Adaptação" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-input" id="f-status">
+                  <option value="pendente">Em breve</option>
+                  <option value="ativa">Em andamento</option>
+                  <option value="concluida">Concluída</option>
+                  <option value="pausada">Pausada</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duração (semanas)</label>
+                <input class="form-input" type="number" id="f-duracao" min="1" placeholder="Ex: 4"
+                  oninput="calcularFimFase(); validarMetaFase();">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data início</label>
+                <input class="form-input" type="date" id="f-inicio" oninput="calcularFimFase()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data fim
+                  <span style="font-size:0.65rem;color:var(--subtitle);font-weight:300;">
+                    (calculada automaticamente)
+                  </span>
+                </label>
+                <input class="form-input" type="date" id="f-fim">
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Meta de peso ── -->
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Meta da Fase</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Objetivo clínico</label>
+                <input class="form-input" type="text" id="f-objetivo-clinico"
+                  placeholder="Ex: Déficit de 500 kcal preservando massa muscular">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Meta de peso (kg, negativo = perda)</label>
+                <input class="form-input" type="number" id="f-meta-peso" step="0.1"
+                  placeholder="Ex: -2.5" oninput="validarMetaFase()">
+              </div>
+            </div>
+
+            <!-- Preview de ritmo e alertas -->
+            <div id="preview-ritmo" style="display:none;margin-top:12px;padding:14px 16px;
+              border:1px solid rgba(76,184,160,0.2);background:var(--bg-secondary);">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.14em;
+                text-transform:uppercase;color:var(--subtitle);margin-bottom:6px;">Análise de ritmo</p>
+              <p id="preview-ritmo-texto" style="font-family:'DM Sans',sans-serif;font-size:0.78rem;
+                color:var(--text);line-height:1.6;"></p>
+            </div>
+            <p id="alerta-meta-fase" style="display:none;margin-top:8px;font-family:'DM Sans',sans-serif;
+              font-size:0.73rem;color:#7A5E00;line-height:1.5;padding:10px 14px;
+              background:rgba(184,134,11,0.07);border-left:3px solid #B8860B;"></p>
+          </section>
+
+          <!-- ── Conteúdo ── -->
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Conteúdo para a Paciente</h2>
+            <div class="form-group">
+              <label class="form-label">Objetivo da fase (visível para a paciente)</label>
+              <input class="form-input" type="text" id="f-objetivo"
+                placeholder="Ex: Reduzir inflamação e regular intestino">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <textarea class="form-input form-textarea" id="f-descricao" rows="4"
+                placeholder="Explique o porquê desta fase, o que esperar, o que vai mudar..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label"
+                style="display:flex;align-items:center;justify-content:space-between;">
+                Dicas da fase <span>(uma por linha)</span>
+                <span id="dicas-contador" style="font-size:0.65rem;color:var(--text-light);font-weight:300;">0 / 5 dicas</span>
+              </label>
+              <textarea class="form-input form-textarea" id="f-dicas" rows="4"
+                placeholder="Mastigue devagar&#10;Evite ultraprocessados&#10;Beba água entre as refeições"
+                oninput="contarDicas()"></textarea>
+              <p class="field-hint">Cada linha vira um item de dica para a paciente</p>
+            </div>
+          </section>
+
+          <!-- ── Metas Nutricionais ── -->
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Metas Nutricionais</h2>
+
+            <!-- Botão sugestão automática de macros -->
+            <div style="margin-bottom:16px;padding:14px 16px;border:1px solid rgba(76,184,160,0.2);
+              background:var(--bg-secondary);display:flex;align-items:center;
+              justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--text);
+                  font-weight:500;margin-bottom:2px;">Sugestão automática de macros</p>
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.68rem;color:var(--text-light);">
+                  Baseada no tipo de fase e na TMB armazenada da paciente
+                </p>
+              </div>
+              <button type="button" onclick="sugerirMacros()"
+                style="padding:9px 18px;border:1px solid var(--detail);background:none;cursor:pointer;
+                  font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.1em;
+                  text-transform:uppercase;color:var(--text-light);transition:all 0.15s;white-space:nowrap;"
+                onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--subtitle)'"
+                onmouseout="this.style.color='var(--text-light)';this.style.borderColor='var(--detail)'">
+                Sugerir macros
+              </button>
+            </div>
+
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Calorias alvo (kcal)</label>
+                <input class="form-input" type="number" id="f-calorias" placeholder="Ex: 1600"
+                  oninput="calcularProporcaoMacros()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Proteína (g)</label>
+                <input class="form-input" type="number" id="f-proteina" placeholder="Ex: 120"
+                  oninput="calcularProporcaoMacros()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Carboidratos (g)</label>
+                <input class="form-input" type="number" id="f-carboidrato" placeholder="Ex: 180"
+                  oninput="calcularProporcaoMacros()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gorduras (g)</label>
+                <input class="form-input" type="number" id="f-gordura" placeholder="Ex: 55"
+                  oninput="calcularProporcaoMacros()">
+              </div>
+            </div>
+
+            <!-- Proporção de macros em tempo real -->
+            <div id="proporcao-macros" style="display:none;margin-top:4px;padding:14px 16px;
+              border:1px solid rgba(76,184,160,0.2);background:var(--bg-secondary);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;
+                font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--text-light);">
+                <span>Proteína: <strong id="pct-ptn" style="color:#3A5E8B;">—</strong></span>
+                <span>Carboidrato: <strong id="pct-cho" style="color:#8B5E3C;">—</strong></span>
+                <span>Gordura: <strong id="pct-lip" style="color:#4a7c5f;">—</strong></span>
+              </div>
+              <div id="barras-macro"
+                style="display:flex;height:8px;border-radius:0;overflow:hidden;gap:1px;">
+              </div>
+            </div>
+            <p id="alerta-macros" style="display:none;margin-top:8px;font-family:'DM Sans',sans-serif;
+              font-size:0.72rem;color:#7A5E00;padding:10px 14px;
+              background:rgba(184,134,11,0.07);border-left:3px solid #B8860B;line-height:1.5;"></p>
+          </section>
+
+          <!-- ── Alimentos ── -->
+          <section class="section fade-up fade-up-delay-4">
+            <h2 class="section-title">Alimentos</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Alimentos a evitar <span>(separados por vírgula)</span></label>
+                <textarea class="form-input form-textarea" id="f-restricoes" rows="3"
+                  placeholder="Açúcar refinado, ultraprocessados, álcool..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alimentos liberados <span>(separados por vírgula)</span></label>
+                <textarea class="form-input form-textarea" id="f-permitidos" rows="3"
+                  placeholder="Frutas, verduras, proteínas magras..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <div class="form-actions fade-up">
+            <button type="button" class="btn-secondary" onclick="showView('lista')">Cancelar</button>
+            <button type="submit" class="btn-primary" id="fase-submit-btn"
+              style="width:auto;padding:16px 48px;">Salvar Fase</button>
+          </div>
+          <div class="form-message" id="fase-form-message"></div>
+        </form>
+      </div>
+
+      <div class="admin-back-bottom">
+        <a href="admin.html" class="back-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao painel
+        </a>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script type="module" src="js/admin-fases.js"></script>
+</body>
+</html>

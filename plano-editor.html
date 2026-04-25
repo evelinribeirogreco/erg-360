@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor de Plano — Evelin Ribeiro Greco</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #F8F4EF;
+      --bg2:     #ECDCCC;
+      --detail:  #C9A882;
+      --sub:     #9A7D5E;
+      --text:    #4A3C2E;
+      --white:   #FAF7F3;
+      --danger:  #B85C38;
+      --ok:      #5A8A6A;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Jost', sans-serif; font-weight: 300; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--white);
+      border-bottom: 1px solid var(--detail);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .back-btn {
+      font-family: 'Jost', sans-serif; font-weight: 400; font-size: 0.65rem;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--sub);
+      text-decoration: none; border: 1px solid var(--detail);
+      padding: 7px 16px; transition: background 0.2s;
+    }
+    .back-btn:hover { background: var(--bg2); }
+    .header-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.4rem; letter-spacing: 0.06em; }
+    .header-patient { font-size: 0.75rem; color: var(--sub); letter-spacing: 0.08em; }
+    .save-btn {
+      font-family: 'Jost', sans-serif; font-weight: 400; font-size: 0.65rem;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      background: var(--text); color: var(--bg); border: none;
+      padding: 10px 28px; cursor: pointer; transition: opacity 0.2s;
+    }
+    .save-btn:hover { opacity: 0.85; }
+    .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── LAYOUT ── */
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr 280px;
+      gap: 0;
+      height: calc(100vh - 61px);
+    }
+
+    /* ── PAINEL ESQUERDO — busca + modelos ── */
+    .panel-left {
+      background: var(--white);
+      border-right: 1px solid var(--detail);
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .panel-section { padding: 24px 20px; border-bottom: 1px solid var(--bg2); }
+    .panel-label {
+      font-family: 'Jost', sans-serif; font-weight: 400; font-size: 0.62rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--sub);
+      margin-bottom: 12px;
+    }
+
+    /* Busca de alimentos */
+    .search-wrap { position: relative; }
+    .search-input {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--detail);
+      background: var(--bg); color: var(--text);
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.85rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--text); }
+    .search-results {
+      background: var(--white); border: 1px solid var(--detail);
+      border-top: none; max-height: 240px; overflow-y: auto;
+      display: none;
+    }
+    .search-results.open { display: block; }
+    .search-item {
+      padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--bg2);
+      transition: background 0.15s;
+    }
+    .search-item:hover { background: var(--bg2); }
+    .search-item-name { font-size: 0.83rem; }
+    .search-item-macro { font-size: 0.71rem; color: var(--sub); margin-top: 2px; }
+
+    /* Qtd input popup */
+    .qty-popup {
+      display: none; position: fixed; z-index: 200;
+      background: var(--white); border: 1px solid var(--detail);
+      padding: 20px; width: 280px; box-shadow: 0 4px 24px rgba(74,60,46,0.1);
+    }
+    .qty-popup.open { display: block; }
+    .qty-popup-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1rem; margin-bottom: 14px; }
+    .qty-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .qty-input {
+      flex: 1; padding: 8px 10px; border: 1px solid var(--detail);
+      background: var(--bg); color: var(--text);
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.85rem; outline: none;
+    }
+    .medida-select {
+      padding: 8px 10px; border: 1px solid var(--detail);
+      background: var(--bg); color: var(--text);
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.82rem; outline: none;
+    }
+    .refeicao-select {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--detail);
+      background: var(--bg); color: var(--text);
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.82rem;
+      outline: none; margin-bottom: 10px;
+    }
+    .macro-preview {
+      font-size: 0.72rem; color: var(--sub); margin-bottom: 14px;
+      padding: 8px 10px; background: var(--bg2);
+    }
+    .popup-btns { display: flex; gap: 8px; }
+    .btn-add {
+      flex: 1; padding: 9px; background: var(--text); color: var(--bg);
+      border: none; font-family: 'Jost', sans-serif; font-weight: 400;
+      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-cancel {
+      padding: 9px 16px; background: transparent; color: var(--sub);
+      border: 1px solid var(--detail); font-family: 'Jost', sans-serif;
+      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* Modelos */
+    .modelo-item {
+      padding: 12px 14px; border: 1px solid var(--bg2); margin-bottom: 8px;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    }
+    .modelo-item:hover { border-color: var(--detail); background: var(--bg); }
+    .modelo-nome { font-size: 0.83rem; margin-bottom: 4px; }
+    .modelo-desc { font-size: 0.72rem; color: var(--sub); margin-bottom: 6px; }
+    .modelo-macro { font-size: 0.7rem; color: var(--detail); }
+    .modelo-ref-tag {
+      display: inline-block; font-size: 0.6rem; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 2px 7px; background: var(--bg2);
+      color: var(--sub); margin-bottom: 6px;
+    }
+
+    /* ── PAINEL CENTRAL — plano ── */
+    .panel-center { overflow-y: auto; padding: 28px 32px; }
+
+    .plano-header { margin-bottom: 32px; }
+    .plano-title-input {
+      width: 100%; font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.8rem; letter-spacing: 0.06em; border: none; border-bottom: 1px solid var(--detail);
+      background: transparent; color: var(--text); outline: none; padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .plano-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+    .meta-input {
+      flex: 1; min-width: 120px; padding: 7px 10px; border: 1px solid var(--bg2);
+      background: var(--bg); color: var(--text); font-family: 'Jost', sans-serif;
+      font-weight: 300; font-size: 0.8rem; outline: none;
+    }
+    .meta-input:focus { border-color: var(--detail); }
+
+    /* Refeições */
+    .refeicao-block { margin-bottom: 28px; }
+    .refeicao-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--detail); margin-bottom: 12px;
+    }
+    .refeicao-nome {
+      font-family: 'Jost', sans-serif; font-weight: 400; font-size: 0.65rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--sub);
+    }
+    .refeicao-total { font-size: 0.72rem; color: var(--detail); }
+
+    /* Itens do plano */
+    .item-row {
+      display: grid; grid-template-columns: 1fr 90px 90px auto;
+      gap: 8px; align-items: center; padding: 8px 0;
+      border-bottom: 1px solid var(--bg2); animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .item-nome { font-size: 0.83rem; }
+    .item-medida { font-size: 0.72rem; color: var(--sub); margin-top: 2px; }
+    .item-macro-val { font-size: 0.78rem; text-align: right; }
+    .item-macro-label { font-size: 0.65rem; color: var(--sub); }
+    .item-delete {
+      width: 24px; height: 24px; background: transparent; border: none;
+      color: var(--detail); cursor: pointer; font-size: 1rem; line-height: 1;
+      transition: color 0.15s;
+    }
+    .item-delete:hover { color: var(--danger); }
+    .empty-ref {
+      font-size: 0.78rem; color: var(--detail); font-style: italic;
+      padding: 12px 0;
+    }
+
+    /* ── PAINEL DIREITO — totais ── */
+    .panel-right {
+      background: var(--white); border-left: 1px solid var(--detail);
+      overflow-y: auto; padding: 24px 20px;
+    }
+    .totais-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.1rem; letter-spacing: 0.06em; margin-bottom: 20px;
+    }
+
+    .macro-card {
+      padding: 14px 0; border-bottom: 1px solid var(--bg2);
+    }
+    .macro-card:last-of-type { border-bottom: none; }
+    .macro-card-label {
+      font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--sub); margin-bottom: 6px;
+    }
+    .macro-card-val {
+      font-family: 'Cormorant Garamond', serif; font-weight: 300;
+      font-size: 1.6rem; letter-spacing: 0.04em;
+    }
+    .macro-card-unit { font-size: 0.75rem; color: var(--sub); margin-left: 4px; }
+    .macro-bar-wrap { height: 3px; background: var(--bg2); margin-top: 8px; }
+    .macro-bar { height: 3px; background: var(--detail); transition: width 0.4s ease; }
+
+    .meta-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--detail); }
+    .meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 0; border-bottom: 1px solid var(--bg2); font-size: 0.78rem;
+    }
+    .meta-row-label { color: var(--sub); }
+    .meta-row-input {
+      width: 80px; text-align: right; border: none; border-bottom: 1px solid var(--bg2);
+      background: transparent; color: var(--text); font-family: 'Jost', sans-serif;
+      font-weight: 300; font-size: 0.78rem; outline: none; padding: 2px 0;
+    }
+    .meta-row-input:focus { border-bottom-color: var(--detail); }
+
+    .status-msg {
+      margin-top: 16px; padding: 10px 12px; font-size: 0.75rem;
+      display: none; text-align: center;
+    }
+    .status-msg.ok { display: block; background: #EDF4EE; color: var(--ok); }
+    .status-msg.err { display: block; background: #FAF0EE; color: var(--danger); }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+      .editor-layout { grid-template-columns: 1fr; height: auto; }
+      .panel-left, .panel-right { border: none; border-bottom: 1px solid var(--detail); }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <a href="admin.html" class="back-btn">← Voltar</a>
+    <div>
+      <div class="header-title">Editor de Plano</div>
+      <div class="header-patient" id="header-patient">carregando...</div>
+    </div>
+  </div>
+  <button class="save-btn" id="save-btn" onclick="salvarPlano()">Salvar plano</button>
+</header>
+
+<div class="editor-layout">
+
+  <!-- PAINEL ESQUERDO -->
+  <aside class="panel-left">
+
+    <!-- Busca de alimentos -->
+    <div class="panel-section">
+      <div class="panel-label">Buscar alimento</div>
+      <div class="search-wrap">
+        <input type="text" class="search-input" id="search-input" placeholder="Digite o nome..." autocomplete="off" oninput="buscarAlimento(this.value)">
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+
+    <!-- Refeições modelo -->
+    <div class="panel-section" style="flex:1">
+      <div class="panel-label">Refeições modelo</div>
+      <div id="modelos-list">
+        <div style="font-size:0.78rem;color:var(--detail);font-style:italic;">carregando modelos...</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- PAINEL CENTRAL -->
+  <main class="panel-center">
+    <div class="plano-header">
+      <input type="text" class="plano-title-input" id="plano-titulo" placeholder="Nome do plano alimentar..." value="Plano Alimentar Personalizado">
+      <div class="plano-meta">
+        <input type="date" class="meta-input" id="plano-data">
+        <input type="number" class="meta-input" id="plano-validade" placeholder="Validade (meses)" value="3">
+        <input type="text" class="meta-input" id="plano-elaborador" placeholder="Elaborado por..." value="Evelin Ribeiro Greco">
+      </div>
+    </div>
+
+    <!-- Refeições -->
+    <div id="refeicoes-container"></div>
+  </main>
+
+  <!-- PAINEL DIREITO -->
+  <aside class="panel-right">
+    <div class="totais-title">Totais do dia</div>
+
+    <div class="macro-card">
+      <div class="macro-card-label">Calorias</div>
+      <div><span class="macro-card-val" id="total-kcal">0</span><span class="macro-card-unit">kcal</span></div>
+      <div class="macro-bar-wrap"><div class="macro-bar" id="bar-kcal" style="width:0%"></div></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Proteínas</div>
+      <div><span class="macro-card-val" id="total-ptn">0</span><span class="macro-card-unit">g</span></div>
+      <div class="macro-bar-wrap"><div class="macro-bar" id="bar-ptn" style="width:0%"></div></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Carboidratos</div>
+      <div><span class="macro-card-val" id="total-cho">0</span><span class="macro-card-unit">g</span></div>
+      <div class="macro-bar-wrap"><div class="macro-bar" id="bar-cho" style="width:0%"></div></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Lipídios</div>
+      <div><span class="macro-card-val" id="total-lip">0</span><span class="macro-card-unit">g</span></div>
+      <div class="macro-bar-wrap"><div class="macro-bar" id="bar-lip" style="width:0%"></div></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-card-label">Fibras</div>
+      <div><span class="macro-card-val" id="total-fib">0</span><span class="macro-card-unit">g</span></div>
+    </div>
+
+    <div class="meta-section">
+      <div class="panel-label" style="margin-bottom:12px">Metas do plano</div>
+      <div class="meta-row">
+        <span class="meta-row-label">Kcal alvo</span>
+        <input type="number" class="meta-row-input" id="meta-kcal" placeholder="—">
+      </div>
+      <div class="meta-row">
+        <span class="meta-row-label">Proteína (g)</span>
+        <input type="number" class="meta-row-input" id="meta-ptn" placeholder="—">
+      </div>
+      <div class="meta-row">
+        <span class="meta-row-label">CHO (g)</span>
+        <input type="number" class="meta-row-input" id="meta-cho" placeholder="—">
+      </div>
+      <div class="meta-row">
+        <span class="meta-row-label">Lipídio (g)</span>
+        <input type="number" class="meta-row-input" id="meta-lip" placeholder="—">
+      </div>
+    </div>
+
+    <div class="status-msg" id="status-msg"></div>
+  </aside>
+</div>
+
+<!-- Popup de quantidade -->
+<div class="qty-popup" id="qty-popup">
+  <div class="qty-popup-title" id="popup-food-name">—</div>
+  <select class="refeicao-select" id="popup-refeicao">
+    <option value="cafe">Café da manhã</option>
+    <option value="lanche_manha">Lanche da manhã</option>
+    <option value="almoco">Almoço</option>
+    <option value="lanche_tarde">Lanche da tarde</option>
+    <option value="jantar">Jantar</option>
+    <option value="ceia">Ceia</option>
+  </select>
+  <div class="qty-row">
+    <input type="number" class="qty-input" id="popup-qty" value="100" min="1" oninput="atualizarPreview()">
+    <select class="medida-select" id="popup-medida" onchange="aplicarMedida()">
+      <option value="">gramas (g)</option>
+    </select>
+  </div>
+  <div class="macro-preview" id="popup-preview">—</div>
+  <div class="popup-btns">
+    <button class="btn-add" onclick="confirmarAdicao()">Adicionar</button>
+    <button class="btn-cancel" onclick="fecharPopup()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gqnlrhmriufepzpustna.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNjM2NTMsImV4cCI6MjA1OTYzOTY1M30.kh7JBIAUzaMsqmKUOXeWCjTIqkj3OoUz5S4z0Yke3fo';
+
+const REFEICOES = [
+  { key: 'cafe',          label: 'Café da manhã' },
+  { key: 'lanche_manha',  label: 'Lanche da manhã' },
+  { key: 'almoco',        label: 'Almoço' },
+  { key: 'lanche_tarde',  label: 'Lanche da tarde' },
+  { key: 'jantar',        label: 'Jantar' },
+  { key: 'ceia',          label: 'Ceia' },
+];
+
+let planoItens = { cafe: [], lanche_manha: [], almoco: [], lanche_tarde: [], jantar: [], ceia: [] };
+let alimentoSelecionado = null;
+let medidas = [];
+let patientId = null;
+let patientNome = '';
+let searchTimer = null;
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(location.search);
+  patientId = params.get('patient');
+
+  document.getElementById('plano-data').value = new Date().toISOString().split('T')[0];
+
+  if (patientId) await carregarPaciente();
+  renderRefeicoes();
+  await carregarModelos();
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap')) fecharBusca();
+    if (!e.target.closest('.qty-popup') && !e.target.closest('.search-item')) fecharPopup();
+  });
+});
+
+async function sb(path, params = '') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${params}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
+  });
+  return r.json();
+}
+
+async function sbPost(path, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+async function carregarPaciente() {
+  const data = await sb('patients', `?id=eq.${patientId}&select=nome,user_id`);
+  if (data[0]) {
+    patientNome = data[0].nome;
+    document.getElementById('header-patient').textContent = patientNome;
+  }
+}
+
+// ── RENDER REFEIÇÕES ─────────────────────────────────────────
+function renderRefeicoes() {
+  const container = document.getElementById('refeicoes-container');
+  container.innerHTML = '';
+  REFEICOES.forEach(ref => {
+    const itens = planoItens[ref.key] || [];
+    const tot = calcTotaisRef(itens);
+    container.innerHTML += `
+      <div class="refeicao-block" id="block-${ref.key}">
+        <div class="refeicao-header">
+          <span class="refeicao-nome">${ref.label}</span>
+          <span class="refeicao-total">${tot.kcal > 0 ? tot.kcal + ' kcal · ' + tot.ptn + 'g ptn · ' + tot.cho + 'g cho' : '—'}</span>
+        </div>
+        <div id="itens-${ref.key}">
+          ${itens.length === 0 ? '<div class="empty-ref">Nenhum alimento adicionado</div>' :
+            itens.map((it, idx) => renderItem(it, ref.key, idx)).join('')}
+        </div>
+      </div>`;
+  });
+  atualizarTotais();
+}
+
+function renderItem(it, refKey, idx) {
+  return `<div class="item-row">
+    <div>
+      <div class="item-nome">${it.nome}</div>
+      <div class="item-medida">${it.medida || it.qtd + 'g'}</div>
+    </div>
+    <div class="item-macro-val">${it.kcal}<span class="item-macro-label"> kcal</span></div>
+    <div class="item-macro-val">${it.ptn}<span class="item-macro-label">g ptn</span></div>
+    <button class="item-delete" onclick="removerItem('${refKey}', ${idx})">×</button>
+  </div>`;
+}
+
+function removerItem(refKey, idx) {
+  planoItens[refKey].splice(idx, 1);
+  renderRefeicoes();
+}
+
+// ── BUSCA DE ALIMENTOS ───────────────────────────────────────
+function buscarAlimento(q) {
+  clearTimeout(searchTimer);
+  if (q.length < 2) { fecharBusca(); return; }
+  searchTimer = setTimeout(async () => {
+    const data = await sb('alimentos', `?nome=ilike.*${encodeURIComponent(q)}*&ativo=eq.true&select=id,nome,categoria,kcal_100g,proteina_100g,cho_100g,lipidio_100g,fibra_100g&limit=12`);
+    const el = document.getElementById('search-results');
+    if (!data.length) { el.innerHTML = '<div class="search-item" style="color:var(--sub);cursor:default">Nenhum resultado</div>'; el.classList.add('open'); return; }
+    el.innerHTML = data.map(a => `
+      <div class="search-item" onclick="abrirPopup(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+        <div class="search-item-name">${a.nome}</div>
+        <div class="search-item-macro">${a.kcal_100g} kcal · ${a.proteina_100g}g ptn · ${a.cho_100g}g cho — por 100g</div>
+      </div>`).join('');
+    el.classList.add('open');
+  }, 280);
+}
+
+function fecharBusca() {
+  document.getElementById('search-results').classList.remove('open');
+}
+
+// ── POPUP DE QUANTIDADE ──────────────────────────────────────
+async function abrirPopup(alimento) {
+  fecharBusca();
+  alimentoSelecionado = alimento;
+  document.getElementById('popup-food-name').textContent = alimento.nome;
+  document.getElementById('popup-qty').value = 100;
+  document.getElementById('search-input').value = '';
+
+  // Carregar medidas caseiras
+  medidas = await sb('medidas_caseiras', `?alimento_id=eq.${alimento.id}&select=descricao,gramas&order=gramas`);
+  const sel = document.getElementById('popup-medida');
+  sel.innerHTML = '<option value="">gramas (g)</option>' +
+    medidas.map(m => `<option value="${m.gramas}">${m.descricao} (${m.gramas}g)</option>`).join('');
+
+  atualizarPreview();
+
+  const popup = document.getElementById('qty-popup');
+  popup.style.top = '160px';
+  popup.style.left = '340px';
+  popup.classList.add('open');
+}
+
+function aplicarMedida() {
+  const sel = document.getElementById('popup-medida');
+  if (sel.value) document.getElementById('popup-qty').value = sel.value;
+  atualizarPreview();
+}
+
+function atualizarPreview() {
+  if (!alimentoSelecionado) return;
+  const qtd = parseFloat(document.getElementById('popup-qty').value) || 0;
+  const a = alimentoSelecionado;
+  const k = (a.kcal_100g * qtd / 100).toFixed(1);
+  const p = (a.proteina_100g * qtd / 100).toFixed(1);
+  const c = (a.cho_100g * qtd / 100).toFixed(1);
+  const l = (a.lipidio_100g * qtd / 100).toFixed(1);
+  document.getElementById('popup-preview').textContent =
+    `${k} kcal · ${p}g ptn · ${c}g cho · ${l}g lip`;
+}
+
+function confirmarAdicao() {
+  if (!alimentoSelecionado) return;
+  const qtd = parseFloat(document.getElementById('popup-qty').value) || 0;
+  const refKey = document.getElementById('popup-refeicao').value;
+  const medidaSel = document.getElementById('popup-medida');
+  const medidaDesc = medidaSel.options[medidaSel.selectedIndex].text !== 'gramas (g)'
+    ? medidaSel.options[medidaSel.selectedIndex].text : qtd + 'g';
+
+  const a = alimentoSelecionado;
+  planoItens[refKey].push({
+    alimento_id: a.id,
+    nome: a.nome,
+    qtd,
+    medida: medidaDesc,
+    kcal: parseFloat((a.kcal_100g * qtd / 100).toFixed(1)),
+    ptn:  parseFloat((a.proteina_100g * qtd / 100).toFixed(1)),
+    cho:  parseFloat((a.cho_100g * qtd / 100).toFixed(1)),
+    lip:  parseFloat((a.lipidio_100g * qtd / 100).toFixed(1)),
+    fib:  parseFloat((a.fibra_100g * qtd / 100).toFixed(1)),
+  });
+
+  fecharPopup();
+  renderRefeicoes();
+}
+
+function fecharPopup() {
+  document.getElementById('qty-popup').classList.remove('open');
+  alimentoSelecionado = null;
+}
+
+// ── MODELOS ──────────────────────────────────────────────────
+async function carregarModelos() {
+  const modelos = await sb('refeicoes_modelo', `?ativo=eq.true&select=id,nome,refeicao,descricao,kcal_total,proteina_total,cho_total&order=refeicao`);
+  const el = document.getElementById('modelos-list');
+  if (!modelos.length) { el.innerHTML = '<div style="font-size:0.78rem;color:var(--detail);font-style:italic">Nenhum modelo cadastrado</div>'; return; }
+
+  const refLabels = { cafe: 'Café', lanche_manha: 'Lanche manhã', almoco: 'Almoço', lanche_tarde: 'Lanche tarde', jantar: 'Jantar', ceia: 'Ceia' };
+  el.innerHTML = modelos.map(m => `
+    <div class="modelo-item" onclick="aplicarModelo('${m.id}', '${m.refeicao}')">
+      <span class="modelo-ref-tag">${refLabels[m.refeicao] || m.refeicao}</span>
+      <div class="modelo-nome">${m.nome}</div>
+      <div class="modelo-desc">${m.descricao || ''}</div>
+      <div class="modelo-macro">${m.kcal_total} kcal · ${m.proteina_total}g ptn · ${m.cho_total}g cho</div>
+    </div>`).join('');
+}
+
+async function aplicarModelo(modeloId, refKey) {
+  const itens = await sb('refeicoes_modelo_itens',
+    `?modelo_id=eq.${modeloId}&select=alimento_id,nome_livre,quantidade_g,medida_descricao,kcal,proteina_g,cho_g,lipidio_g,fibra_g,ordem,alimentos(nome)&order=ordem`);
+
+  itens.forEach(it => {
+    planoItens[refKey].push({
+      alimento_id: it.alimento_id,
+      nome: it.alimentos?.nome || it.nome_livre || '—',
+      qtd: it.quantidade_g,
+      medida: it.medida_descricao,
+      kcal: parseFloat(it.kcal || 0),
+      ptn:  parseFloat(it.proteina_g || 0),
+      cho:  parseFloat(it.cho_g || 0),
+      lip:  parseFloat(it.lipidio_g || 0),
+      fib:  parseFloat(it.fibra_g || 0),
+    });
+  });
+  renderRefeicoes();
+}
+
+// ── TOTAIS ───────────────────────────────────────────────────
+function calcTotaisRef(itens) {
+  return itens.reduce((acc, it) => ({
+    kcal: +(acc.kcal + it.kcal).toFixed(1),
+    ptn:  +(acc.ptn  + it.ptn).toFixed(1),
+    cho:  +(acc.cho  + it.cho).toFixed(1),
+    lip:  +(acc.lip  + it.lip).toFixed(1),
+    fib:  +(acc.fib  + it.fib).toFixed(1),
+  }), { kcal:0, ptn:0, cho:0, lip:0, fib:0 });
+}
+
+function atualizarTotais() {
+  const all = Object.values(planoItens).flat();
+  const tot = calcTotaisRef(all);
+  const meta = parseFloat(document.getElementById('meta-kcal').value) || 2000;
+
+  document.getElementById('total-kcal').textContent = tot.kcal;
+  document.getElementById('total-ptn').textContent  = tot.ptn;
+  document.getElementById('total-cho').textContent  = tot.cho;
+  document.getElementById('total-lip').textContent  = tot.lip;
+  document.getElementById('total-fib').textContent  = tot.fib;
+
+  document.getElementById('bar-kcal').style.width = Math.min(tot.kcal / meta * 100, 100) + '%';
+  document.getElementById('bar-ptn').style.width  = Math.min(tot.ptn / (parseFloat(document.getElementById('meta-ptn').value) || 150) * 100, 100) + '%';
+  document.getElementById('bar-cho').style.width  = Math.min(tot.cho / (parseFloat(document.getElementById('meta-cho').value) || 200) * 100, 100) + '%';
+  document.getElementById('bar-lip').style.width  = Math.min(tot.lip / (parseFloat(document.getElementById('meta-lip').value) || 80) * 100, 100) + '%';
+}
+
+// ── SALVAR ───────────────────────────────────────────────────
+async function salvarPlano() {
+  if (!patientId) { mostrarStatus('Nenhum paciente selecionado', 'err'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const all = Object.values(planoItens).flat();
+  const tot = calcTotaisRef(all);
+
+  // Montar JSONB de refeições (compatível com estrutura existente)
+  const refeicoesParsed = REFEICOES.map(ref => {
+    const itens = planoItens[ref.key];
+    const totRef = calcTotaisRef(itens);
+    return {
+      nome: ref.label,
+      horario: '',
+      kcal: totRef.kcal,
+      proteina: totRef.ptn,
+      cho: totRef.cho,
+      lip: totRef.lip,
+      fibras: totRef.fib,
+      itens: itens.map(it => ({
+        alimento: it.nome,
+        medida: it.medida,
+        qtde: it.qtd + 'g',
+        obs: ''
+      }))
+    };
+  }).filter(r => r.itens.length > 0);
+
+  try {
+    // 1. Inserir plano
+    const planoData = await sbPost('planos_alimentares', {
+      patient_id: patientId,
+      user_id: (await sb('patients', `?id=eq.${patientId}&select=user_id`))[0]?.user_id,
+      descricao: document.getElementById('plano-titulo').value,
+      data_elaboracao: document.getElementById('plano-data').value,
+      validade_meses: parseInt(document.getElementById('plano-validade').value) || 3,
+      elaborador: document.getElementById('plano-elaborador').value,
+      kcal_alvo:     parseInt(document.getElementById('meta-kcal').value) || tot.kcal,
+      proteina_g:    parseInt(document.getElementById('meta-ptn').value) || tot.ptn,
+      carboidrato_g: parseInt(document.getElementById('meta-cho').value) || tot.cho,
+      lipidio_g:     parseInt(document.getElementById('meta-lip').value) || tot.lip,
+      fibras_g:      tot.fib,
+      num_refeicoes: refeicoesParsed.length,
+      refeicoes:     refeicoesParsed,
+    });
+
+    const planoId = planoData[0]?.id;
+    if (!planoId) throw new Error('Plano não criado');
+
+    // 2. Inserir itens individuais
+    const itensPayload = [];
+    REFEICOES.forEach(ref => {
+      planoItens[ref.key].forEach((it, idx) => {
+        itensPayload.push({
+          plano_id: planoId,
+          refeicao: ref.key,
+          alimento_id: it.alimento_id || null,
+          nome_livre: it.alimento_id ? null : it.nome,
+          quantidade_g: it.qtd,
+          medida_descricao: it.medida,
+          kcal: it.kcal, proteina_g: it.ptn,
+          cho_g: it.cho, lipidio_g: it.lip, fibra_g: it.fib,
+          ordem: idx,
+        });
+      });
+    });
+
+    if (itensPayload.length > 0) {
+      await fetch(`${SUPABASE_URL}/rest/v1/plano_itens`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(itensPayload)
+      });
+    }
+
+    mostrarStatus('Plano salvo com sucesso', 'ok');
+    setTimeout(() => { window.location.href = `admin.html?patient=${patientId}`; }, 1500);
+
+  } catch(e) {
+    mostrarStatus('Erro ao salvar: ' + e.message, 'err');
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar plano';
+}
+
+function mostrarStatus(msg, tipo) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + tipo;
+  setTimeout(() => el.className = 'status-msg', 4000);
+}
+</script>
+</body>
+</html>

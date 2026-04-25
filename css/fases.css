@@ -1,0 +1,292 @@
+/* ============================================================
+   FASES.CSS — Mapa de progresso e plano de fases
+   ============================================================ */
+
+body#fases-root { background: var(--bg-primary); min-height: 100dvh; }
+
+.fases-main {
+  padding-top: 56px;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+
+/* ── Hero ── */
+.fases-hero {
+  padding: 40px 24px 32px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.fases-hero-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 10px;
+}
+
+.fases-hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.fases-hero-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* ── Mapa visual ── */
+.fases-mapa {
+  padding: 32px 24px;
+  position: relative;
+}
+
+.fases-mapa-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 28px;
+}
+
+.fases-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Linha vertical conectando as fases */
+.fases-timeline::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: var(--detail);
+}
+
+.fase-item {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 0 0 32px;
+  position: relative;
+  cursor: pointer;
+}
+
+.fase-item:last-child { padding-bottom: 0; }
+
+/* Círculo da fase */
+.fase-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--detail);
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.fase-dot-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.fase-item.ativa .fase-dot {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.fase-item.ativa .fase-dot-num { color: var(--bg-primary); }
+
+.fase-item.concluida .fase-dot {
+  background: var(--detail);
+  border-color: var(--detail);
+}
+
+.fase-item.concluida .fase-dot-num { color: var(--bg-primary); }
+
+/* Conteúdo da fase */
+.fase-content {
+  flex: 1;
+  padding-top: 8px;
+}
+
+.fase-status-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+.badge-ativa    { color: #4a7c5f; background: rgba(74,124,95,0.1); border: 1px solid rgba(74,124,95,0.3); }
+.badge-concluida{ color: var(--subtitle); background: rgba(201,168,130,0.1); border: 1px solid var(--detail); }
+.badge-pendente { color: var(--text-light); background: transparent; border: 1px solid rgba(201,168,130,0.3); }
+
+.fase-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.fase-objetivo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.fase-duracao {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--detail);
+}
+
+/* ── Detalhe da fase (expansível) ── */
+.fase-detalhe {
+  display: none;
+  margin-top: 16px;
+  border: 1px solid var(--detail);
+  padding: 20px;
+  background: var(--bg-secondary);
+  animation: fadeUp 0.3s ease;
+}
+
+.fase-detalhe.open { display: block; }
+
+.fase-detalhe-secao {
+  margin-bottom: 16px;
+}
+
+.fase-detalhe-secao:last-child { margin-bottom: 0; }
+
+.fase-detalhe-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 6px;
+}
+
+.fase-detalhe-texto {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.fase-dicas-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fase-dicas-list li {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text);
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.6;
+}
+
+.fase-dicas-list li::before {
+  content: '✦';
+  position: absolute;
+  left: 0;
+  font-size: 0.5rem;
+  color: var(--detail);
+  top: 4px;
+}
+
+/* ── Você está aqui ── */
+.voce-aqui {
+  margin: 0 24px 32px;
+  padding: 20px;
+  border: 1px solid var(--detail);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.voce-aqui-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.voce-aqui-texto {}
+
+.voce-aqui-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 4px;
+}
+
+.voce-aqui-fase {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.voce-aqui-prox {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* ── Sem fases ── */
+.fases-empty {
+  padding: 64px 32px;
+  text-align: center;
+}
+
+.fases-empty p {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.1rem;
+  color: var(--subtitle);
+  line-height: 1.7;
+}

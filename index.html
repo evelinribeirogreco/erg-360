@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evelin Ribeiro Greco — Acesso</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ERG 360º">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body class="login-page">
+
+  <!-- Painel esquerdo — identidade + checklist de metas cumprindo -->
+  <aside class="login-visual">
+    <!-- Coluna esquerda: logo + nome centralizados -->
+    <div class="login-visual-left">
+      <img src="icons/logo-200.png" alt="ERG" class="login-visual-logo">
+      <p class="login-visual-name">Evelin Ribeiro Greco</p>
+    </div>
+
+    <!-- Coluna direita: checklist animada -->
+    <div class="login-visual-right">
+      <div class="login-checklist" aria-hidden="true">
+        <p class="login-checklist-eyebrow">Sua jornada</p>
+        <ul class="checklist">
+          <li class="checklist-item item-1">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Atingir meus objetivos</span>
+          </li>
+          <li class="checklist-item item-2">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Melhora da performance</span>
+          </li>
+          <li class="checklist-item item-3">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Melhora da saúde</span>
+          </li>
+          <li class="checklist-item item-4">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Mais energia no dia a dia</span>
+          </li>
+          <li class="checklist-item item-5">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Corpo em equilíbrio</span>
+          </li>
+          <li class="checklist-item item-6">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Hábitos consistentes</span>
+          </li>
+          <li class="checklist-item item-7">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Qualidade de vida</span>
+          </li>
+          <li class="checklist-item item-8">
+            <span class="check-circle">
+              <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="check-text">Longevidade ativa</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Painel direito — formulário -->
+  <main class="login-form-panel">
+
+    <div class="login-logo">
+      <p class="login-logo-name">Evelin Ribeiro Greco</p>
+      <p class="login-logo-specialty">Nutricionista · Performance &amp; Estilo de Vida</p>
+    </div>
+
+    <h1 class="login-heading" id="form-title">Acesso restrito</h1>
+    <p class="login-subheading" id="form-subtitle">
+      Entre com suas credenciais para acessar sua área.
+    </p>
+
+    <!-- Banner de sessão expirada (preenchido via JS se ?expired=1) -->
+    <div id="session-banner" class="login-banner" style="display:none;" role="alert">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="session-banner-text">Sua sessão expirou. Entre novamente para continuar.</span>
+    </div>
+
+    <form id="login-form" novalidate>
+
+      <!-- E-mail -->
+      <div class="form-group login-field">
+        <label class="form-label" for="email">E-mail</label>
+        <div class="login-input-wrap">
+          <svg class="login-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <input
+            class="form-input login-input"
+            type="email"
+            id="email"
+            autocomplete="email"
+            autofocus
+            required
+            placeholder="seu@email.com"
+            aria-describedby="email-error"
+          >
+        </div>
+        <p id="email-error" class="login-field-error" style="display:none;">Digite um e-mail válido.</p>
+      </div>
+
+      <!-- Senha -->
+      <div class="form-group login-field">
+        <label class="form-label" for="senha">
+          Senha
+          <a href="#" id="forgot-link" class="login-forgot-link" onclick="event.preventDefault();window._appForgotPassword&&window._appForgotPassword();">Esqueci minha senha</a>
+        </label>
+        <div class="login-input-wrap">
+          <svg class="login-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input
+            class="form-input login-input login-input--pw"
+            type="password"
+            id="senha"
+            autocomplete="current-password"
+            required
+            placeholder="••••••••"
+            aria-describedby="caps-warning"
+          >
+          <button type="button" id="toggle-senha" class="login-eye-btn"
+            aria-label="Mostrar senha" title="Mostrar/ocultar senha (Alt+S)">
+            <svg id="eye-icon-show" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg id="eye-icon-hide" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none;">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+        <p id="caps-warning" class="login-field-warning" style="display:none;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Caps Lock ativado
+        </p>
+      </div>
+
+      <!-- Lembrar dispositivo -->
+      <label class="login-remember">
+        <input type="checkbox" id="lembrar-dispositivo" checked>
+        <span>Lembrar deste dispositivo por 30 dias</span>
+      </label>
+
+      <!-- Botão entrar -->
+      <button class="btn-primary login-submit" type="submit" id="login-btn">
+        <span id="login-btn-text">Entrar</span>
+        <span id="login-btn-spinner" class="login-spinner" style="display:none;" aria-hidden="true"></span>
+      </button>
+
+      <div class="form-message" id="login-message"></div>
+
+    </form>
+
+    <!-- Rodapé discreto -->
+    <footer class="login-footer">
+      <p>© 2026 Evelin Ribeiro Greco · Nutricionista</p>
+      <p><a href="sobre.html">Sobre o sistema</a></p>
+    </footer>
+
+  </main>
+
+  <!-- Script como módulo ES para importar Supabase via CDN -->
+  <script type="module" src="js/app.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+/* ============================================================
+   FORMS.CSS — estilos compartilhados entre anamnese e antropometria
+   ============================================================ */
+
+/* ── Barra de progresso do formulário ── */
+.form-progress-bar {
+  position: fixed;
+  top: 0; left: var(--sidebar-w); right: 0;
+  height: 2px;
+  background: var(--bg-secondary);
+  z-index: 50;
+  transition: left var(--transition);
+}
+
+@media (max-width: 900px) {
+  .form-progress-bar { left: 0; top: 60px; }
+}
+
+.form-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+/* ── Toggle buttons ── */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.toggle-btn {
+  padding: 8px 18px;
+  border: 1px solid var(--detail);
+  background: transparent;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  transition: all var(--transition);
+}
+
+.toggle-btn:hover {
+  border-color: var(--subtitle);
+  color: var(--text);
+}
+
+.toggle-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-primary);
+}
+
+/* ── Escala numérica ── */
+.scale-selector { margin-top: 8px; }
+
+.scale-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.scale-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--detail);
+  background: transparent;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text-light);
+  transition: all var(--transition);
+}
+
+.scale-btn:hover { border-color: var(--subtitle); color: var(--text); }
+.scale-btn.active { background: var(--text); border-color: var(--text); color: var(--bg-primary); }
+
+/* ── Patologias grid ── */
+.patologias-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.patologia-btn {
+  padding: 7px 16px;
+  border: 1px solid var(--detail);
+  background: transparent;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-light);
+  transition: all var(--transition);
+}
+
+.patologia-btn:hover { border-color: var(--subtitle); color: var(--text); }
+.patologia-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+  color: var(--text);
+}
+
+/* ── Refeições grid ── */
+.refeicoes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px 32px;
+}
+
+.refeicao-item {}
+
+/* ── Recordatório ── */
+.recordatorio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--detail);
+}
+
+.recordatorio-item {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  border-bottom: 1px solid rgba(201,168,130,0.3);
+}
+
+.recordatorio-item:last-child { border-bottom: none; }
+
+.recordatorio-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 18px;
+  border-right: 1px solid rgba(201,168,130,0.3);
+  background: var(--bg-secondary);
+}
+
+.recordatorio-item .form-textarea {
+  border: none !important;
+  border-radius: 0;
+  min-height: 64px;
+  padding: 14px 20px;
+}
+
+.recordatorio-item .form-textarea:focus {
+  background: rgba(201,168,130,0.04);
+}
+
+/* ── Exames grid ── */
+.exames-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px 32px;
+}
+
+.exame-item {}
+
+/* ── Navegação de steps ── */
+.step-navigation {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--bg-secondary);
+}
+
+/* ── Form steps ── */
+.form-step { display: none; }
+.form-step.active { display: block; }
+
+/* ── Circunferências table ── */
+.circ-table-wrapper {
+  border: 1px solid var(--detail);
+  overflow: hidden;
+}
+
+.circ-form-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.circ-form-table th {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--detail);
+}
+
+.circ-form-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+  vertical-align: middle;
+}
+
+.circ-form-table tr:last-child td { border-bottom: none; }
+
+.circ-form-table td:first-child {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text);
+  width: 220px;
+  padding-left: 16px;
+}
+
+.circ-form-table .form-input {
+  border: none;
+  border-bottom: 1px solid rgba(201,168,130,0.4);
+  padding: 6px 4px;
+  font-size: 0.85rem;
+  max-width: 100px;
+}
+
+/* ── Resultado composição corporal ── */
+.resultado-composicao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--detail);
+  border: 1px solid var(--detail);
+  margin-top: 8px;
+}
+
+.resultado-card {
+  background: var(--bg-primary);
+  padding: 24px 20px;
+}
+
+.resultado-card-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 8px;
+}
+
+.resultado-card-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.6rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.resultado-card-class {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+.class-normal   { color: #4a7c5f; }
+.class-atencao  { color: #8B6914; }
+.class-elevado  { color: #8B3A3A; }
+.class-baixo    { color: #3A5E8B; }
+
+/* ── Sidebar nav item step done ── */
+.nav-item.done {
+  color: var(--detail);
+}
+.nav-item.done::after {
+  content: '✓';
+  margin-left: auto;
+  font-size: 0.7rem;
+}
+
+/* ── Responsivo ── */
+@media (max-width: 900px) {
+  .recordatorio-item {
+    grid-template-columns: 1fr;
+  }
+  .recordatorio-label {
+    border-right: none;
+    border-bottom: 1px solid rgba(201,168,130,0.3);
+    padding: 12px 16px;
+  }
+  .step-navigation {
+    flex-direction: column;
+  }
+  .step-navigation .btn-primary,
+  .step-navigation .btn-secondary {
+    width: 100%;
+    text-align: center;
+    padding: 16px;
+  }
+  .exames-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Escala Bristol visual ── */
+.bristol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.bristol-card {
+  border: 1px solid var(--detail);
+  background: var(--bg-primary);
+  padding: 14px 10px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bristol-card:hover { border-color: var(--subtitle); background: rgba(201,168,130,0.06); }
+.bristol-card.active { border-color: var(--text); background: rgba(201,168,130,0.1); }
+
+.bristol-svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+}
+
+.bristol-tipo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.bristol-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.68rem;
+  color: var(--text-light);
+  line-height: 1.3;
+}
+
+.bristol-class {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  margin-top: 2px;
+}
+
+.bristol-constipado { color: #8B3A3A; background: rgba(139,58,58,0.08); }
+.bristol-normal      { color: #4a7c5f; background: rgba(74,124,95,0.08); }
+.bristol-ideal       { color: #4a7c5f; background: rgba(74,124,95,0.15); font-weight: 600; }
+.bristol-atencao     { color: #8B6914; background: rgba(139,105,20,0.08); }
+.bristol-alerta      { color: #8B3A3A; background: rgba(139,58,58,0.1); }
+
+/* ── Cor da urina visual ── */
+.urina-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.urina-card {
+  border: 2px solid transparent;
+  background: var(--bg-primary);
+  padding: 6px;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 4px;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 64px;
+}
+
+.urina-card:hover { border-color: var(--detail); }
+.urina-card.active { border-color: var(--text); }
+
+.urina-cor {
+  width: 36px;
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(201,168,130,0.3);
+}
+
+.urina-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.urina-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.6rem;
+  color: var(--text-light);
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* ── Tabela de exames com classificação ── */
+.exames-table-wrapper {
+  border: 1px solid var(--detail);
+  overflow-x: auto;
+}
+
+.exames-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.exames-table th {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--detail);
+}
+
+.exames-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+  vertical-align: middle;
+}
+
+.exames-table tr:last-child td { border-bottom: none; }
+.exames-table tr:hover td { background: rgba(201,168,130,0.03); }
+
+.exame-nome {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--text);
+  min-width: 180px;
+}
+
+.exame-nome span {
+  color: var(--text-light);
+  font-size: 0.75rem;
+}
+
+.exame-ref {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.exame-input {
+  border: none !important;
+  border-bottom: 1px solid rgba(201,168,130,0.4) !important;
+  padding: 6px 4px !important;
+  max-width: 110px;
+  font-size: 0.88rem;
+}
+
+.exame-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.badge-normal   { color: #4a7c5f; background: rgba(74,124,95,0.1); }
+.badge-elevado  { color: #8B3A3A; background: rgba(139,58,58,0.08); }
+.badge-baixo    { color: #3A5E8B; background: rgba(58,94,139,0.08); }
+.badge-atencao  { color: #8B6914; background: rgba(139,105,20,0.08); }
+.badge-otimo    { color: #4a7c5f; background: rgba(74,124,95,0.15); }
+
+@media (max-width: 700px) {
+  .bristol-grid { grid-template-columns: repeat(4, 1fr); }
+  .exames-table th:nth-child(3) { display: none; }
+  .exames-table td:nth-child(3) { display: none; }
+}

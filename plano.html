@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Plano Alimentar — ERG 360</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F8F4EF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icons/icon-152x152.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="css/ux-improvements.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;font-weight:300;background:#F8F4EF;color:#2C2218;min-height:100vh;-webkit-font-smoothing:antialiased;display:grid;grid-template-columns:var(--nav-w) 1fr;grid-template-rows:auto;}
+:root{
+  --bg:#F8F4EF;--bg2:#EDD8C3;--detail:#B8936A;--sub:#7A5E42;--text:#2C2218;--textl:#5C4A38;--nav-w:240px;
+  --accent:#6B4F35;
+  --verde:#3D6B4F;--verdec:rgba(61,107,79,0.08);--laranja:#8B5E3C;--larc:rgba(139,94,60,0.08);
+  --azul:#3A5E8B;--azulc:rgba(58,94,139,0.08);--verm:#7A2E2E;--vermc:rgba(122,46,46,0.08);--amar:#B8860B;--amarc:rgba(184,134,11,0.08);
+}
+nav{grid-column:1;width:var(--nav-w);background:var(--bg2);position:sticky;top:0;min-height:100vh;height:fit-content;z-index:100;display:flex;flex-direction:column;border-right:1px solid var(--detail)}
+.nav-header{padding:32px 24px 24px;border-bottom:1px solid rgba(201,168,130,0.3)}
+.nav-logo{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.nav-logo img{width:32px;height:32px;object-fit:contain;mix-blend-mode:multiply}
+.nav-header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1rem;color:var(--text);line-height:1.3;letter-spacing:0.08em}
+.nav-header p{font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--sub);margin-top:3px;letter-spacing:0.1em}
+.nav-links{padding:12px 0}
+.nav-label{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--detail);padding:16px 24px 6px;display:block}
+.nav-links a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:var(--textl);text-decoration:none;font-size:0.76rem;font-weight:400;border-left:2px solid transparent;cursor:pointer;transition:all .18s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-links a:hover{background:rgba(107,79,53,0.06);color:var(--text);}
+.nav-links a.active{background:rgba(107,79,53,0.12);color:var(--text);border-left-color:var(--accent);font-weight:500;}
+.nav-links a svg{width:14px;height:14px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.7}
+.nav-links a.active svg{opacity:1}
+.nav-footer{padding:16px 24px;border-top:1px solid rgba(201,168,130,0.3);font-family:'DM Sans',sans-serif;font-size:0.68rem;color:var(--textl);line-height:1.6}
+.nav-footer strong{display:block;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:0.9rem;color:var(--text);margin-bottom:2px;letter-spacing:0.04em}
+.nav-back{display:flex;align-items:center;gap:6px;margin-top:10px;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--sub);text-decoration:none;transition:color 0.2s}
+.nav-back:hover{color:var(--text)}
+main{grid-column:2;min-height:100vh;padding-bottom:80px;width:100%;min-width:0;}
+.page-hero{background:var(--bg2);border-bottom:1px solid var(--detail);padding:28px 40px 24px;}
+.hero-eyebrow{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+.page-hero h2{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(1.2rem,2vw,1.6rem);color:var(--text);letter-spacing:0.03em;line-height:1.1;margin-bottom:2px}
+.page-hero .sub{font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--sub);font-weight:300;margin-top:2px}
+.hero-stats{display:flex;gap:1px;margin-top:16px;background:var(--detail);border:1px solid var(--detail);flex-wrap:wrap}
+.hero-stat{background:var(--bg);padding:14px 20px;min-width:100px;flex:1}
+.hero-stat .val{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.8rem;color:var(--text);line-height:1}
+.hero-stat .lbl{font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.55rem;color:var(--sub);margin-top:4px;text-transform:uppercase;letter-spacing:0.12em}
+section{display:none;padding:28px 40px;animation:fadeIn .25s ease}
+section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.sec-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(1.3rem,2.5vw,1.8rem);color:var(--text);letter-spacing:0.02em;margin-bottom:4px}
+.sec-sub{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.82rem;color:var(--textl);margin-bottom:28px;line-height:1.6}
+.sub-title{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--sub);margin:28px 0 14px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,130,0.3)}
+.alert{padding:14px 18px;margin-bottom:20px;font-family:'DM Sans',sans-serif;font-size:0.82rem;line-height:1.7;border-left:3px solid}
+.alert strong{font-weight:500}
+.alert-verde{background:var(--verdec);border-color:var(--verde);color:var(--verde)}
+.alert-laranja{background:var(--larc);border-color:var(--laranja);color:var(--laranja)}
+.alert-azul{background:var(--azulc);border-color:var(--azul);color:var(--azul)}
+.alert-verm{background:var(--vermc);border-color:var(--verm);color:var(--verm)}
+.alert-amar{background:var(--amarc);border-color:var(--amar);color:var(--amar)}
+.card{border:1px solid var(--detail);padding:24px 28px;margin-bottom:16px;background:#fff;font-family:'DM Sans',sans-serif;font-size:0.85rem;line-height:1.8;color:var(--text)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--detail);border:1px solid var(--detail);margin-bottom:24px}
+.stat-card{background:var(--bg);padding:22px 18px}
+.sc-label{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--sub);margin-bottom:8px}
+.sc-val{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.6rem;color:var(--text);line-height:1;margin-bottom:6px}
+.sc-desc{font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--textl);line-height:1.5}
+.sc-verm{color:var(--verm)}.sc-lanj{color:var(--laranja)}.sc-verde{color:var(--verde)}
+.tag{display:inline-block;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.58rem;letter-spacing:0.1em;padding:3px 9px;text-transform:uppercase}
+.tag-verde{background:var(--verdec);color:var(--verde)}.tag-laranja{background:var(--larc);color:var(--laranja)}
+.tag-azul{background:var(--azulc);color:var(--azul)}.tag-verm{background:var(--vermc);color:var(--verm)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--detail);margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:0.8rem}
+thead tr{background:var(--bg2)}
+th{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--sub);padding:12px 14px;text-align:left;border-bottom:1px solid var(--detail)}
+td{padding:11px 14px;border-bottom:1px solid rgba(201,168,130,0.2);color:var(--text);vertical-align:top;line-height:1.6}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(201,168,130,0.03)}
+.td-b{font-weight:500}.td-v{color:var(--verde)}.td-l{color:var(--laranja)}.td-r{color:var(--verm)}
+.macro-compare{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--detail);border:1px solid var(--detail);margin-bottom:28px}
+.chart-card{background:var(--bg);padding:28px;text-align:center}
+.chart-card h3{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.1rem;letter-spacing:0.06em;color:var(--text);margin-bottom:16px}
+.chart-meta{margin-top:14px;font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--textl);line-height:1.6}
+.diff-header{display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1.5fr;padding:12px 16px;background:var(--text)}
+.diff-header span{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--bg2)}
+.diff-row{display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1.5fr;padding:12px 16px;border-bottom:1px solid rgba(201,168,130,0.2);font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text)}
+.diff-row:last-child{border-bottom:none}
+.diff-row:nth-child(even){background:#fff}
+.d-nutriente{font-weight:400}.d-antes{color:var(--textl)}.d-depois{color:var(--verde);font-weight:400}
+.d-up{color:var(--verde);font-weight:500}.d-eq{color:var(--azul);font-weight:500}.d-down{color:var(--verm);font-weight:500}
+.macro-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.mbar-row{display:grid;grid-template-columns:180px 1fr 48px;align-items:center;gap:12px}
+.mbar-label{font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--textl)}
+.mbar-track{background:var(--bg2);height:8px}
+.mbar-fill{height:100%;transition:width 1.2s ease}
+.mbar-val{font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.75rem;color:var(--text);text-align:right}
+.meal-grid{display:flex;flex-direction:column;gap:1px;background:var(--detail);border:1px solid var(--detail);margin-bottom:24px}
+.meal-card{background:var(--bg)}
+.meal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--bg2);border-bottom:1px solid rgba(201,168,130,0.3)}
+.meal-header h3{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.05rem;letter-spacing:0.06em;color:var(--text)}
+.hora{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.6rem;letter-spacing:0.16em;color:var(--sub)}
+.meal-body{padding:16px 20px}
+.meal-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(201,168,130,0.12)}
+.meal-item:last-of-type{border-bottom:none}
+.food{font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);font-weight:300}
+.food.novo{color:var(--verde);font-weight:400}
+.novo-star{display:inline-block;background:var(--detail);color:#fff;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.52rem;letter-spacing:0.08em;padding:1px 5px;margin-right:6px;text-transform:uppercase}
+.qty{font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--sub);font-weight:400;white-space:nowrap;margin-left:12px}
+.food-alert{color:var(--laranja)!important}
+.meal-macros{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(201,168,130,0.2)}
+.macro-pill{background:var(--bg2);border:1px solid var(--detail);font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.62rem;letter-spacing:0.08em;padding:4px 10px;color:var(--text)}
+.agua-timeline{display:flex;flex-direction:column;gap:0;border:1px solid var(--detail)}
+.agua-item{display:grid;grid-template-columns:150px 1fr 90px;gap:16px;padding:15px 20px;border-bottom:1px solid rgba(201,168,130,0.2);align-items:center}
+.agua-item:last-child{border-bottom:none}
+.agua-hora{font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.72rem;letter-spacing:0.06em;color:var(--text)}
+.agua-desc{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.78rem;color:var(--textl);line-height:1.5}
+.agua-qty{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1rem;color:var(--text);text-align:right}
+.agua-atencao{color:var(--laranja)!important;font-weight:500}
+.micro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--detail);border:1px solid var(--detail)}
+.micro-card{background:var(--bg);padding:24px 20px}
+.mc-name{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.1rem;letter-spacing:0.06em;color:var(--text);margin-bottom:4px}
+.mc-why{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+.mc-fonte{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.78rem;color:var(--textl);line-height:1.6;margin-bottom:8px}
+.mc-meta{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.7rem;color:var(--text);padding-top:8px;border-top:1px solid rgba(201,168,130,0.2)}
+.mc-ok{color:var(--verde)!important}
+.timing-grid{display:flex;flex-direction:column;gap:0;border:1px solid var(--detail)}
+.timing-item{padding:20px 24px;border-bottom:1px solid rgba(201,168,130,0.2)}
+.timing-item:last-child{border-bottom:none}
+.timing-cond{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1rem;letter-spacing:0.04em;color:var(--text);margin-bottom:8px}
+.timing-cond span{display:block;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--sub);margin-top:2px}
+.timing-desc{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.8rem;color:var(--textl);line-height:1.7}
+.supl-grid{display:flex;flex-direction:column;gap:0;border:1px solid var(--detail)}
+.supl-card{background:var(--bg);padding:20px 24px;border-bottom:1px solid rgba(201,168,130,0.2)}
+.supl-card:last-child{border-bottom:none}
+.supl-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.supl-name{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1rem;letter-spacing:0.04em;color:var(--text);margin-bottom:2px}
+.supl-dose{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.72rem;color:var(--textl)}
+.supl-hora{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.62rem;letter-spacing:0.08em;color:var(--sub);margin-bottom:8px}
+.supl-just{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.78rem;color:var(--textl);line-height:1.6}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--detail);border:1px solid var(--detail);margin-bottom:20px}
+.shop-cat{background:var(--bg);padding:24px 20px}
+.shop-cat-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1rem;letter-spacing:0.06em;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(201,168,130,0.3)}
+.shop-item{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.78rem;color:var(--textl);padding:7px 0;border-bottom:1px solid rgba(201,168,130,0.12);line-height:1.5}
+.shop-item:last-child{border-bottom:none}
+.shop-item.novo{color:var(--text);font-weight:400}
+.shop-item.novo::before{content:'novo · ';font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--detail);font-weight:400}
+.bul-list{display:flex;flex-direction:column;gap:0;border:1px solid var(--detail);margin-bottom:20px;list-style:none}
+.bul-list li{font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.82rem;color:var(--textl);padding:12px 20px 12px 36px;border-bottom:1px solid rgba(201,168,130,0.2);line-height:1.7;position:relative}
+.bul-list li:last-child{border-bottom:none}
+.bul-list li::before{content:'—';position:absolute;left:16px;color:var(--detail)}
+.bul-list li.bold{color:var(--text);font-weight:400}
+.mob-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--bg2);border-bottom:1px solid var(--detail);align-items:center;justify-content:space-between;padding:0 18px;z-index:200}
+.mob-logo{display:flex;align-items:center;gap:8px}
+.mob-logo img{width:28px;height:28px;object-fit:contain;mix-blend-mode:multiply}
+.mob-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:0.95rem;color:var(--text);letter-spacing:0.08em}
+.burger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px}
+.burger span{display:block;width:20px;height:1px;background:var(--text)}
+.nav-overlay{display:none;position:fixed;inset:0;background:rgba(74,60,46,0.3);z-index:150}
+.nav-overlay.open{display:block}
+.btm-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--detail);z-index:180;padding-bottom:env(safe-area-inset-bottom)}
+.btm-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.52rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--textl);transition:color 0.2s;border-top:2px solid transparent}
+.btm-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.btm-btn.active{color:var(--text);border-top-color:var(--detail)}
+.menu-overlay{display:none;position:fixed;inset:0;background:rgba(74,60,46,0.3);z-index:160}
+.menu-overlay.open{display:block}
+.menu-modal{display:none;position:fixed;bottom:calc(60px + env(safe-area-inset-bottom));left:0;right:0;background:var(--bg2);border-top:1px solid var(--detail);z-index:170}
+.menu-modal.open{display:block}
+.menu-modal a{display:block;padding:14px 24px;font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.82rem;color:var(--textl);cursor:pointer;border-bottom:1px solid rgba(201,168,130,0.15);transition:color 0.2s}
+.menu-modal a:last-child{border-bottom:none}
+.menu-modal a:hover{color:var(--text)}
+@media(max-width:900px){
+  body{display:block;}
+  nav{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%);transition:transform 0.3s ease;z-index:160}
+  nav.open{transform:translateX(0)}
+  main{grid-column:unset;margin-left:0;padding-top:56px;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+  .mob-header{display:flex}
+  .btm-bar{display:flex}
+  .page-hero{padding:20px 16px 16px}
+  .hero-stat{min-width:calc(50% - 1px)}
+  section{padding:20px 16px}
+  .macro-compare{grid-template-columns:1fr}
+  .agua-item{grid-template-columns:1fr;gap:4px}.agua-qty{text-align:left}
+  .mbar-row{grid-template-columns:110px 1fr 40px}
+  .diff-header,.diff-row{grid-template-columns:2fr 1fr 1fr}
+  .diff-header span:nth-child(2),.diff-row .d-antes{display:none}
+}
+@media(max-width:480px){.hero-stat{min-width:100%}.card-grid{grid-template-columns:1fr 1fr}}
+
+
+/* Sidebar colapsável — apenas desktop */
+@media(min-width:901px){
+  nav{position:relative}
+  .nav-collapse-btn{position:absolute;top:16px;right:-14px;width:28px;height:28px;background:var(--bg2);border:1px solid var(--detail);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:200;color:var(--sub);padding:0;transition:all .3s}
+  .nav-collapse-btn:hover{background:var(--bg);color:var(--text)}
+  nav.collapsed{width:56px}
+  nav.collapsed .nav-header h1,nav.collapsed .nav-header p,nav.collapsed .nav-label,nav.collapsed .nav-footer,nav.collapsed .nav-links a span{display:none}
+  nav.collapsed .nav-links a{justify-content:center;padding:10px 0}
+  nav.collapsed .nav-collapse-btn svg{transform:rotate(180deg)}
+  body:has(nav.collapsed){grid-template-columns:56px 1fr}
+}
+@media(max-width:900px){
+  .nav-collapse-btn{display:none}
+}
+.nav-collapse-btn svg{transition:transform .3s}
+
+/* Destaque de proteína no hero */
+.hero-stat.destaque { background: var(--accent); }
+.hero-stat.destaque .val { color: var(--bg); }
+.hero-stat.destaque .lbl { color: rgba(248,244,239,0.7); }
+
+/* Seção hoje — density */
+#s-hoje .sec-day-header {
+  background: var(--text);
+  color: var(--bg);
+  padding: 14px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0;
+}
+
+/* nav-label — mais visível */
+.nav-label { color: var(--accent) !important; font-weight: 500 !important; }
+
+/* back-bar — link de voltar ao dashboard */
+.back-bar{padding:20px 40px;border-top:1px solid rgba(201,168,130,0.3)}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--sub);text-decoration:none;transition:color 0.2s}
+.back-link:hover{color:var(--text)}
+@media(max-width:900px){.back-bar{padding:16px;display:none}}
+
+/* ══════════════════════════════════════════════
+   HOJE — item dominante (CTA principal)
+   ══════════════════════════════════════════════ */
+.nav-links a.nav-hoje{
+  background:var(--text);
+  color:var(--bg);
+  margin:0 12px 14px;
+  padding:13px 16px;
+  font-size:0.82rem;
+  font-weight:500;
+  letter-spacing:0.04em;
+  border-left:none;
+  border-radius:2px;
+  position:relative;
+  transition:background .2s,transform .2s;
+}
+.nav-links a.nav-hoje svg{
+  width:16px;height:16px;
+  opacity:1;
+  stroke-width:1.8;
+}
+.nav-links a.nav-hoje:hover{
+  background:var(--accent);
+  color:var(--bg);
+  transform:none;
+}
+.nav-links a.nav-hoje.active{
+  background:var(--text);
+  color:var(--bg);
+  border-left:none;
+  font-weight:500;
+}
+.nav-links a.nav-hoje.active::before{
+  content:'';
+  position:absolute;
+  left:-12px;top:50%;
+  width:3px;height:22px;
+  background:var(--accent);
+  transform:translateY(-50%);
+}
+nav.collapsed .nav-links a.nav-hoje{
+  margin:0 6px 10px;
+  padding:10px 0;
+  justify-content:center;
+}
+
+/* ══════════════════════════════════════════════
+   Grupos colapsáveis (Suporte, Plano avançado)
+   ══════════════════════════════════════════════ */
+.nav-group{
+  margin-top:8px;
+}
+.nav-group summary{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 16px;
+  color:var(--textl);
+  font-family:'DM Sans',sans-serif;
+  font-size:0.76rem;
+  font-weight:400;
+  cursor:pointer;
+  list-style:none;
+  border-left:2px solid transparent;
+  transition:background .18s,color .18s;
+  position:relative;
+}
+.nav-group summary::-webkit-details-marker{display:none}
+.nav-group summary::marker{display:none;content:''}
+.nav-group summary svg{
+  width:14px;height:14px;
+  flex-shrink:0;
+  fill:none;stroke:currentColor;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round;
+  opacity:0.7;
+}
+.nav-group summary::after{
+  content:'';
+  margin-left:auto;
+  width:6px;height:6px;
+  border-right:1.5px solid var(--sub);
+  border-bottom:1.5px solid var(--sub);
+  transform:rotate(-45deg);
+  transition:transform .22s ease;
+}
+.nav-group[open] summary::after{
+  transform:rotate(45deg);
+}
+.nav-group summary:hover{
+  background:rgba(107,79,53,0.06);
+  color:var(--text);
+}
+.nav-group[open] summary{
+  color:var(--text);
+  font-weight:500;
+}
+.nav-group a{
+  padding-left:40px !important;
+  font-size:0.74rem !important;
+  color:var(--textl);
+}
+.nav-group a svg{
+  width:12px !important;
+  height:12px !important;
+  opacity:0.55;
+}
+nav.collapsed .nav-group summary span,
+nav.collapsed .nav-group summary::after,
+nav.collapsed .nav-group a span{display:none}
+nav.collapsed .nav-group summary{justify-content:center;padding:10px 0}
+nav.collapsed .nav-group a{padding:10px 0 !important;justify-content:center}
+</style>
+</head>
+<body>
+
+<header class="mob-header">
+  <div class="mob-logo"><img src="icons/logo-80.png" alt="ERG"><span class="mob-title">Plano Alimentar</span></div>
+  <button class="burger" id="burger-btn"><span></span><span></span><span></span></button>
+</header>
+
+<div class="nav-overlay" id="nav-overlay"></div>
+<nav id="sidebar">
+  <button class="nav-collapse-btn" id="nav-collapse-btn" title="Recolher">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="nav-header">
+    <div class="nav-logo"><img src="icons/logo-80.png" alt="ERG"></div>
+    <h1>Plano Alimentar</h1>
+    <p id="nav-paciente">—</p>
+  </div>
+  <div class="nav-links">
+
+    <!-- ══ HOJE — DOMINANTE ══ -->
+    <a class="nav-hoje active" onclick="show('hoje',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Hoje</span>
+    </a>
+
+    <!-- ══ MEU PLANO ══ -->
+    <span class="nav-label">Meu Plano</span>
+    <a onclick="show('plano',this)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Plano completo</span></a>
+    <a onclick="show('substituicoes',this)"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>Substituições</span></a>
+
+    <!-- ══ EVOLUÇÃO ══ -->
+    <span class="nav-label">Evolução</span>
+    <a onclick="show('comparativo',this)"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg><span>O que mudou</span></a>
+    <a onclick="show('visao-geral',this)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Visão geral</span></a>
+
+    <!-- ══ REGISTROS ══ -->
+    <span class="nav-label">Registros</span>
+    <a href="diario.html"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Diário alimentar</span></a>
+
+    <!-- ══ SUPORTE — colapsado por padrão ══ -->
+    <details class="nav-group">
+      <summary><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Suporte</span></summary>
+      <a onclick="show('hidratacao',this)"><svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span>Hidratação</span></a>
+      <a onclick="show('suplementacao',this)"><svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg><span>Suplementação</span></a>
+      <a onclick="show('micronutrientes',this)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg><span>Vitaminas e minerais</span></a>
+      <a onclick="show('timing',this)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Horários das refeições</span></a>
+      <a onclick="show('compras',this)"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><span>Lista de compras</span></a>
+      <a onclick="show('orientacoes',this)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Orientações</span></a>
+    </details>
+
+    <!-- ══ PLANO AVANÇADO — colapsado ══ -->
+    <details class="nav-group">
+      <summary><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Seu plano avançado</span></summary>
+      <a href="fases.html"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Minhas fases</span></a>
+    </details>
+
+  </div>
+  <div class="nav-footer">
+    <strong id="nav-nome-completo">—</strong>
+    Plano Alimentar Personalizado
+    <a href="dashboard.html" class="nav-back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg><span>Voltar ao início</span></a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-hero">
+    <p class="hero-eyebrow">Plano Alimentar Personalizado</p>
+    <h2 id="hero-nome">—</h2>
+    <p class="sub" id="hero-sub">Elaborado pela Dra. Evelin Ribeiro Greco</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="val" id="h-kcal">—</div><div class="lbl">kcal / dia</div></div>
+      <div class="hero-stat"><div class="val" id="h-ptn">—</div><div class="lbl">Proteína (g)</div></div>
+      <div class="hero-stat"><div class="val" id="h-cho">—</div><div class="lbl">Carboidratos (g)</div></div>
+      <div class="hero-stat"><div class="val" id="h-lip">—</div><div class="lbl">Lipídios (g)</div></div>
+      <div class="hero-stat"><div class="val" id="h-ref">—</div><div class="lbl">Refeições</div></div>
+    </div>
+  </div>
+
+  <section id="hoje" class="active">
+    <h2 class="sec-title">Seu dia</h2>
+    <p class="sec-sub">O essencial para hoje — execução direta, sem complexidade.</p>
+    <div id="s-hoje"></div>
+  </section>
+
+  <section id="visao-geral"><h2 class="sec-title">Visão Geral do Plano</h2><p class="sec-sub">Resumo clínico, cálculo energético e condições que direcionam a dieta.</p><div id="s-visao"></div></section>
+  <section id="comparativo"><h2 class="sec-title">Comparativo de Macronutrientes</h2><p class="sec-sub">Dieta atual relatada na anamnese vs. plano prescrito.</p><div id="s-comp"></div></section>
+  <section id="dieta-atual"><h2 class="sec-title">Análise da Dieta Atual</h2><p class="sec-sub">O que a paciente relatou consumir na anamnese, com avaliação de cada refeição.</p><div id="s-dieta"></div></section>
+  <section id="plano"><h2 class="sec-title">Plano Alimentar Diário</h2><p class="sec-sub" id="s-plano-sub">Refeições organizadas por horário e composição.</p><div id="s-plano"></div></section>
+  <section id="substituicoes"><h2 class="sec-title">Tabela de Substituições</h2><p class="sec-sub">Opções equivalentes para variar o cardápio sem sair do padrão.</p><div id="s-subst"></div></section>
+  <section id="hidratacao"><h2 class="sec-title">Hidratação Estratégica</h2><p class="sec-sub" id="s-hidra-sub">Distribuição hídrica ao longo do dia.</p><div id="s-hidra"></div></section>
+  <section id="micronutrientes"><h2 class="sec-title">Vitaminas e Minerais</h2><p class="sec-sub">Nutrientes prioritários com fontes alimentares acessíveis.</p><div id="s-micro"></div></section>
+  <section id="timing"><h2 class="sec-title">Horários das Refeições</h2><p class="sec-sub" id="s-timing-sub">Quando comer cada refeição e por que esse intervalo faz sentido para você.</p><div id="s-timing"></div></section>
+  <section id="suplementacao"><h2 class="sec-title">Suplementação</h2><p class="sec-sub">Avaliação e recomendações com base nos exames e histórico.</p><div id="s-supl"></div></section>
+  <section id="compras"><h2 class="sec-title">Lista de Compras — Quinzenal</h2><p class="sec-sub">Alimentos organizados por categoria. Item em destaque = novo no plano.</p><div id="s-compras"></div></section>
+  <section id="orientacoes"><h2 class="sec-title">Orientações Finais e Retorno</h2><p class="sec-sub">Resumo do plano, sinais de atenção e próximos passos.</p><div id="s-orient"></div></section>
+  <div class="back-bar back-bar--bottom" style="padding:16px 48px;"><a href="dashboard.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg><span>Voltar ao dashboard</span></a></div>
+</main>
+
+<div class="btm-bar">
+  <button class="btm-btn active" onclick="show('hoje',this)" data-sec="hoje"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Hoje</button>
+  <button class="btm-btn" onclick="show('plano',this)" data-sec="plano"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Plano</button>
+  <button class="btm-btn" onclick="show('substituicoes',this)" data-sec="substituicoes"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Trocas</button>
+  <button class="btm-btn" onclick="show('compras',this)" data-sec="compras"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Compras</button>
+  <button class="btm-btn" id="mais-btn"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>Mais</button>
+</div>
+<div class="menu-overlay" id="menu-overlay"></div>
+<div class="menu-modal" id="menu-modal">
+  <a onclick="show('comparativo',this);closeMenu()">O que mudou</a>
+  <a onclick="show('visao-geral',this);closeMenu()">Visão geral</a>
+  <a href="diario.html">Diário alimentar →</a>
+  <a onclick="show('hidratacao',this);closeMenu()">Hidratação</a>
+  <a onclick="show('suplementacao',this);closeMenu()">Suplementação</a>
+  <a onclick="show('micronutrientes',this);closeMenu()">Vitaminas e minerais</a>
+  <a onclick="show('timing',this);closeMenu()">Horários das refeições</a>
+  <a onclick="show('orientacoes',this);closeMenu()">Orientações</a>
+  <a href="fases.html">Seu plano avançado →</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script type="module" src="js/plano.js"></script>
+<script>
+function show(id,link){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('.btm-btn').forEach(b=>b.classList.remove('active'));
+  const sec = document.getElementById(id);
+  if(sec) sec.classList.add('active');
+  if(link){
+    link.classList.add('active');
+    // Se o link está dentro de um <details>, mantém aberto
+    const parentDetails = link.closest('details.nav-group');
+    if(parentDetails) parentDetails.open = true;
+  }
+  document.querySelectorAll('.btm-btn[data-sec="'+id+'"]').forEach(b=>b.classList.add('active'));
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+  window.scrollTo({top:0,behavior:'smooth'});
+  return false;
+}
+function closeMenu(){
+  document.getElementById('menu-modal').classList.remove('open');
+  document.getElementById('menu-overlay').classList.remove('open');
+}
+document.getElementById('mais-btn').addEventListener('click',()=>{
+  document.getElementById('menu-modal').classList.toggle('open');
+  document.getElementById('menu-overlay').classList.toggle('open');
+});
+document.getElementById('menu-overlay').addEventListener('click',closeMenu);
+document.getElementById('burger-btn').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('nav-overlay').classList.toggle('open');
+});
+document.getElementById('nav-overlay').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+});
+const barObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.mbar-fill').forEach(bar=>{
+        const w=bar.style.width;bar.style.width='0';
+        setTimeout(()=>bar.style.width=w,100);
+      });
+    }
+  });
+},{threshold:0.3});
+setTimeout(()=>document.querySelectorAll('.macro-bars').forEach(el=>barObs.observe(el)),500);
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));
+
+  // Sidebar colapsável — plano.html
+  const navCollapse = document.getElementById('nav-collapse-btn');
+  const navSidebar  = document.getElementById('sidebar');
+  const mainEl      = document.querySelector('main');
+
+  function applyCollapse(collapsed) {
+    if (collapsed) {
+      navSidebar.classList.add('collapsed');
+      document.body.style.gridTemplateColumns = '56px 1fr';
+    } else {
+      navSidebar.classList.remove('collapsed');
+      document.body.style.gridTemplateColumns = '';
+    }
+  }
+
+  if (navCollapse && navSidebar) {
+    const KEY = 'erg-plano-sidebar';
+    // Reseta estado na primeira visita ou se estiver colapsado erroneamente
+    const savedState = localStorage.getItem(KEY);
+    applyCollapse(savedState === '1');
+
+    navCollapse.addEventListener('click', () => {
+      const nowCollapsed = !navSidebar.classList.contains('collapsed');
+      applyCollapse(nowCollapsed);
+      localStorage.setItem(KEY, nowCollapsed ? '1' : '0');
+    });
+  }
+
+</script>
+</body>
+</html>

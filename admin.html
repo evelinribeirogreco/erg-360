@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERG — Painel Administrativo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/ux-improvements.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="stylesheet" href="css/admin-extras.css">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ERG 360º">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body id="admin-root">
+  <div id="debug-bar" style="position:fixed;bottom:8px;right:8px;background:#2C2218;color:#F8F4EF;font-family:monospace;font-size:11px;padding:6px 12px;z-index:9999;border-radius:4px;opacity:0.85;">
+    JS v2.1 · <span id="debug-view">aguardando...</span>
+  </div>
+
+  <!-- ── Mobile header ── -->
+  <header class="mobile-header">
+    <span class="mobile-brand">Admin · E. R. Greco</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="dark-mode-toggle" id="dark-toggle-admin" aria-label="Alternar tema" title="Modo escuro (D)">
+        <svg id="dark-icon-admin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+
+    <!-- ── Sidebar ── -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Painel Admin</p>
+      </div>
+
+      <div class="sidebar-nav">
+        <p class="nav-section-label">Gestão</p>
+
+        <a class="nav-item active" id="nav-pacientes" href="javascript:void(0)" onclick="showView('pacientes')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Pacientes
+        </a>
+
+        <a class="nav-item" id="nav-novo" href="javascript:void(0)" onclick="showView('novo')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          Nova Paciente
+        </a>
+      </div>
+
+      <!-- Sino de notificações -->
+      <div style="padding:0 16px 12px;">
+        <button onclick="abrirNotificacoes()" id="notif-btn"
+          style="position:relative;width:100%;display:flex;align-items:center;gap:10px;
+            padding:10px 14px;background:rgba(76,184,160,0.07);border:1px solid rgba(76,184,160,0.2);
+            cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+            color:var(--text-light);letter-spacing:0.04em;transition:all 0.15s;"
+          onmouseover="this.style.background='rgba(76,184,160,0.14)'"
+          onmouseout="this.style.background='rgba(76,184,160,0.07)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Notificações
+          <span id="notif-badge"
+            style="display:none;position:absolute;top:6px;right:10px;min-width:18px;height:18px;
+              background:#7A2E2E;color:#fff;border-radius:9px;font-size:0.6rem;font-weight:600;
+              align-items:center;justify-content:center;padding:0 4px;">0</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name">Dra. Evelin Greco</p>
+          <p class="sidebar-user-label">Nutricionista</p>
+        </div>
+        <button class="logout-btn" onclick="adminLogout()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Sair
+        </button>
+      </div>
+    </nav>
+
+    <!-- ── Conteúdo principal ── -->
+    <main class="main-content">
+
+      <!-- ════════════════════════════════
+           VIEW: LISTA DE PACIENTES
+           ════════════════════════════════ -->
+      <div id="view-pacientes">
+
+        <!-- ═══ HERO — saudação dinâmica + ações principais ═══ -->
+        <section class="nh-section tight fade-up admin-hero">
+          <div class="admin-hero-row">
+            <div class="admin-hero-text">
+              <p class="nh-eyebrow" id="admin-greeting-eyebrow">Bom dia</p>
+              <h1 class="nh-title" id="admin-greeting">Dra. Evelin</h1>
+              <p class="nh-desc" id="admin-date">—</p>
+            </div>
+            <div class="admin-hero-actions">
+              <button class="btn-secondary admin-cmd-trigger" onclick="window._adminExtras&&window._adminExtras.openCmd()" title="Buscar (Ctrl+K)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Buscar
+                <kbd class="kbd">Ctrl K</kbd>
+              </button>
+              <button class="btn-primary" onclick="showView('novo')" title="Nova paciente (N)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova paciente
+                <kbd class="kbd kbd-light">N</kbd>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ ALERTAS INTELIGENTES (ação em 1 clique) ═══ -->
+        <section id="admin-smart-alerts" class="nh-section tight fade-up" style="display:none;"></section>
+
+        <!-- ═══ AGENDA DA SEMANA ═══ -->
+        <section class="nh-section tight fade-up fade-up-delay-1">
+          <p class="nh-eyebrow">Esta semana</p>
+          <h2 class="nh-title sm">Agenda</h2>
+          <div id="admin-agenda" class="admin-agenda-grid"></div>
+        </section>
+
+        <!-- ═══ PACIENTES RECENTES ═══ -->
+        <section id="admin-recents-section" class="nh-section tight fade-up fade-up-delay-2" style="display:none;">
+          <p class="nh-eyebrow">Acessadas recentemente</p>
+          <h2 class="nh-title sm">Pacientes recentes</h2>
+          <div id="admin-recents" class="admin-recents-strip"></div>
+        </section>
+
+        <!-- ═══ KPIs estratégicos (8 indicadores) ═══ -->
+        <section class="nh-section tight fade-up fade-up-delay-3">
+          <p class="nh-eyebrow">Visão geral</p>
+          <h2 class="nh-title sm">Indicadores</h2>
+          <div class="nh-grid nh-grid-4" id="admin-kpis">
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-total">—</div>
+              <div class="kpi-label">Total de pacientes</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-sem-plano">—</div>
+              <div class="kpi-label">Sem plano alimentar</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-hoje">—</div>
+              <div class="kpi-label">Consultas hoje</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-atrasadas">—</div>
+              <div class="kpi-label">Consultas atrasadas</div>
+            </div>
+            <!-- KPIs estendidos -->
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-adesao">—</div>
+              <div class="kpi-label">Adesão média 7d</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-score-medio">—</div>
+              <div class="kpi-label">Score médio clínica</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"/><polyline points="9 11 12 14 15 11"/><line x1="12" y1="14" x2="12" y2="3"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-checkins-hoje">—</div>
+              <div class="kpi-label">Check-ins hoje</div>
+            </div>
+            <div class="nh-hcard">
+              <div class="nh-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </div>
+              <div class="kpi-value" id="kpi-aniversarios">—</div>
+              <div class="kpi-label">Aniversários da semana</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ BUSCA + FILTROS + EXPORT ═══ -->
+        <section class="nh-section tight fade-up fade-up-delay-2">
+          <div class="admin-filter-header">
+            <div>
+              <p class="nh-eyebrow">Buscar</p>
+              <h2 class="nh-title sm">Encontrar paciente</h2>
+            </div>
+            <div class="admin-filter-actions">
+              <button class="admin-link-btn" id="btn-toggle-advanced" type="button" title="Mostrar/ocultar filtros avançados">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                Mais filtros
+              </button>
+              <button class="admin-link-btn" id="btn-export-csv" type="button" title="Exportar lista filtrada como CSV">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+          <div class="admin-filters">
+            <div class="admin-search-bar" style="flex:1;position:relative;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--subtitle);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="text"
+                id="search-input"
+                class="form-input admin-search-input"
+                placeholder="Buscar por nome ou e-mail... (/)"
+                oninput="filterPatients()"
+                style="padding-left:32px;"
+              >
+            </div>
+            <select class="form-input" id="filter-plano" onchange="filterPatients()" style="width:auto;min-width:140px;cursor:pointer;">
+              <option value="">Todos os planos</option>
+              <option value="com">Com plano</option>
+              <option value="sem">Sem plano</option>
+            </select>
+            <select class="form-input" id="filter-consulta" onchange="filterPatients()" style="width:auto;min-width:160px;cursor:pointer;">
+              <option value="">Todas consultas</option>
+              <option value="hoje">Hoje</option>
+              <option value="semana">Esta semana</option>
+              <option value="atrasada">Atrasadas</option>
+            </select>
+          </div>
+
+          <!-- Filtros avançados (expansíveis) -->
+          <div id="admin-advanced-filters" class="admin-advanced" style="display:none;">
+            <div class="admin-filters" style="margin-top:12px;">
+              <select class="form-input" id="filter-status" onchange="filterPatients()" style="width:auto;min-width:160px;">
+                <option value="">Qualquer status</option>
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo (3d+)</option>
+                <option value="alerta">Com alerta clínico</option>
+                <option value="sem-checkin">Nunca fez check-in</option>
+              </select>
+              <select class="form-input" id="filter-objetivo" onchange="filterPatients()" style="width:auto;min-width:170px;">
+                <option value="">Qualquer objetivo</option>
+                <option value="emagrecimento">Emagrecimento</option>
+                <option value="ganho_massa">Ganho de massa</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="reeducacao">Reeducação alimentar</option>
+                <option value="performance">Performance</option>
+              </select>
+              <select class="form-input" id="filter-favoritos" onchange="filterPatients()" style="width:auto;min-width:140px;">
+                <option value="">Todas</option>
+                <option value="fav">⭐ Favoritas</option>
+              </select>
+              <button type="button" class="admin-link-btn" id="btn-clear-filters" style="margin-left:auto;">
+                Limpar filtros
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ TABELA ═══ -->
+        <section class="nh-section tight fade-up fade-up-delay-3">
+          <p class="nh-eyebrow">Lista</p>
+          <h2 class="nh-title sm">Pacientes cadastradas</h2>
+          <div class="nh-card-wrap" id="patients-table-wrapper">
+            <div class="admin-table-skeleton">
+              <div class="skeleton skeleton-line" style="height:48px;margin-bottom:1px;"></div>
+              <div class="skeleton skeleton-line" style="height:48px;margin-bottom:1px;opacity:.8"></div>
+              <div class="skeleton skeleton-line" style="height:48px;opacity:.6"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ════════════════════════════════
+           VIEW: PÁGINA INDIVIDUAL DA PACIENTE
+           ════════════════════════════════ -->
+      <div id="view-paciente" style="display:none;">
+        <section class="nh-section tight fade-up" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <button class="back-link" onclick="showView('pacientes')" style="margin-bottom:12px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+              Voltar à lista
+            </button>
+            <p class="nh-eyebrow" id="pac-greeting">Paciente</p>
+            <h1 class="nh-title" id="pac-nome-titulo">—</h1>
+            <p class="nh-desc" id="pac-info-rapida"></p>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
+            <!-- Dossiê — ponto de entrada central de inteligência -->
+            <a id="pac-btn-dossie" href="#"
+              style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;
+                background:var(--accent);color:#fff;
+                font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:600;
+                letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;
+                border:none;cursor:pointer;transition:opacity .2s;"
+              onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Dossiê Clínico
+            </a>
+            <a id="pac-btn-relatorio" href="#"
+              style="display:inline-flex;align-items:center;gap:7px;padding:10px 18px;
+                background:var(--gold,#c9a84c);color:#fff;
+                font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:600;
+                letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;
+                border:none;cursor:pointer;transition:opacity .2s;"
+              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              Relatório de Consulta
+            </a>
+            <button class="btn-secondary" id="pac-btn-editar" onclick="" style="padding:10px 20px;font-size:0.65rem;">
+              Editar dados
+            </button>
+          </div>
+        </section>
+
+        <!-- Checklist de completude do prontuário -->
+        <div id="pac-checklist-strip" class="fade-up fade-up-delay-1" style="margin-bottom:20px;"></div>
+
+        <!-- Abas da paciente -->
+        <div class="pac-tabs fade-up fade-up-delay-1" id="pac-tabs">
+          <button class="pac-tab active" onclick="showPacTab('plano',this)">Plano Alimentar</button>
+          <button class="pac-tab" onclick="showPacTab('anamnese',this)">Anamnese</button>
+          <button class="pac-tab" onclick="showPacTab('antro',this)">Antropometria</button>
+          <button class="pac-tab" onclick="showPacTab('checkins',this)">Check-ins</button>
+          <button class="pac-tab" onclick="showPacTab('fases',this)">Fases</button>
+          <button class="pac-tab pac-tab-next" onclick="openNextSteps()" title="Ver próximos passos sugeridos">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;">
+              <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            Próximos passos
+          </button>
+        </div>
+
+        <div id="pac-tab-content" class="section fade-up fade-up-delay-2">
+          <!-- Conteúdo carregado dinamicamente -->
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           VIEW: NOVA PACIENTE / EDIÇÃO
+           ════════════════════════════════ -->
+      <div id="view-novo" style="display:none;">
+
+        <section class="nh-section tight fade-up">
+          <button class="back-link" onclick="showView('pacientes')" style="margin-bottom:12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+            Voltar à lista
+          </button>
+          <p class="nh-eyebrow" id="form-mode-label">Cadastro de</p>
+          <h1 class="nh-title" id="form-mode-title">Nova Paciente</h1>
+          <p class="nh-desc" id="form-mode-sub">Preencha os dados essenciais. As informações clínicas serão adicionadas depois.</p>
+        </section>
+
+        <form id="patient-form" novalidate>
+          <input type="hidden" id="edit-patient-id">
+          <input type="hidden" id="edit-user-id">
+          <input type="hidden" id="edit-plano-atual">
+
+          <!-- Seção única — dados essenciais -->
+          <section class="section fade-up fade-up-delay-1">
+
+            <!-- Indicador de campos obrigatórios -->
+            <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--text-light);margin-bottom:24px;">
+              Campos marcados com <span style="color:var(--error);font-weight:500;">*</span> são obrigatórios
+            </p>
+
+            <div class="admin-form-grid">
+
+              <div class="form-group">
+                <label class="form-label" for="f-nome">
+                  Nome completo <span style="color:var(--error);">*</span>
+                </label>
+                <input class="form-input" type="text" id="f-nome" required
+                  placeholder="Nome completo da paciente"
+                  autocomplete="name">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="f-email">
+                  E-mail <span style="color:var(--error);">*</span>
+                </label>
+                <input class="form-input" type="email" id="f-email" required
+                  placeholder="email@exemplo.com"
+                  autocomplete="email"
+                  oninput="verificarEmailDuplicado(this.value)">
+                <p class="field-hint" id="email-hint">Será usado para o login da paciente</p>
+                <p class="field-hint" id="email-dup-msg" style="display:none;color:var(--error);"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="f-nascimento">
+                  Data de nascimento <span style="color:var(--error);">*</span>
+                </label>
+                <input class="form-input" type="date" id="f-nascimento" required>
+                <p class="field-hint">Usada como senha inicial — formato DDMMAAAA</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="f-telefone">Telefone / WhatsApp</label>
+                <input class="form-input" type="tel" id="f-telefone"
+                  placeholder="(00) 00000-0000"
+                  autocomplete="tel">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="f-sexo">Sexo biológico</label>
+                <select class="form-input" id="f-sexo">
+                  <option value="">Selecione</option>
+                  <option value="feminino">Feminino</option>
+                  <option value="masculino">Masculino</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="f-proxima">Próxima consulta</label>
+                <input class="form-input" type="date" id="f-proxima">
+              </div>
+            </div>
+
+            <!-- ═══ PERFIL NUTRICIONAL (7 camadas do cardápio) ═══ -->
+            <div style="margin-top:32px;border-top:1px solid rgba(76,184,160,0.2);padding-top:24px;">
+              <button type="button" id="perfil-nutr-toggle"
+                onclick="togglePerfilNutr()"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;
+                       padding:14px 16px;background:var(--bg-secondary);border:1px solid var(--detail);
+                       font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.78rem;
+                       color:var(--text);letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">
+                <span>🍽️ Perfil nutricional completo</span>
+                <span id="perfil-nutr-arrow" style="transition:transform 0.2s;">▾</span>
+              </button>
+
+              <div id="perfil-nutr-body" style="display:none;padding:22px 4px 4px 4px;">
+                <p style="font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--text-light);margin-bottom:24px;line-height:1.6;">
+                  Preenchimento opcional. Tudo que marcar aqui vai aparecer como orientação no editor do plano
+                  e filtrar as sugestões de alimentos automaticamente.
+                </p>
+
+                <!-- 1. Estilo alimentar -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label" for="f-estilo">1. Estilo alimentar</label>
+                  <select class="form-input" id="f-estilo">
+                    <option value="onivoro">Onívoro (padrão)</option>
+                    <option value="vegetariano_ovolacto">Vegetariano — ovolacto</option>
+                    <option value="vegetariano_lacto">Lactovegetariano</option>
+                    <option value="vegano">Vegano</option>
+                    <option value="pescetariano">Pescetariano</option>
+                    <option value="flexitariano">Flexitariano</option>
+                    <option value="crudivoro">Crudívoro</option>
+                    <option value="paleolitico">Paleolítico</option>
+                    <option value="cetogenico">Cetogênico (estilo)</option>
+                  </select>
+                  <p class="field-hint">Escolha do paciente — define a identidade alimentar.</p>
+                </div>
+
+                <!-- 2. Condições clínicas -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label">2. Condições clínicas (marque todas que se aplicam)</label>
+                  <div id="f-condicoes-host" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 14px;padding:10px 0;"></div>
+                  <p class="field-hint">Dietoterapia — controle de doença e prevenção.</p>
+                </div>
+
+                <!-- 3. Objetivo -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label" for="f-objetivo">3. Objetivo</label>
+                  <select class="form-input" id="f-objetivo">
+                    <option value="">— Não definido —</option>
+                    <option value="emagrecimento">Emagrecimento (hipocalórico)</option>
+                    <option value="ganho_massa">Ganho de massa (hipercalórico)</option>
+                    <option value="manutencao">Manutenção</option>
+                    <option value="reeducacao">Reeducação alimentar</option>
+                    <option value="performance">Performance esportiva</option>
+                    <option value="estetica_cutting">Estética — cutting</option>
+                    <option value="estetica_bulking">Estética — bulking</option>
+                  </select>
+                  <p class="field-hint">Direciona calorias e macros do plano.</p>
+                </div>
+
+                <!-- 4. Estratégia nutricional -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label" for="f-estrategia">4. Estratégia nutricional (macros)</label>
+                  <select class="form-input" id="f-estrategia">
+                    <option value="">— Não definida —</option>
+                    <option value="moderada">Moderada / equilibrada</option>
+                    <option value="low_carb">Low carb</option>
+                    <option value="high_carb">High carb</option>
+                    <option value="high_protein">High protein</option>
+                    <option value="low_fat">Low fat</option>
+                    <option value="cetogenico">Cetogênica</option>
+                  </select>
+                  <p class="field-hint">Como distribuir os macronutrientes.</p>
+                </div>
+
+                <!-- 5. Consistência -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label" for="f-consistencia">5. Consistência / textura</label>
+                  <select class="form-input" id="f-consistencia">
+                    <option value="normal">Normal (padrão)</option>
+                    <option value="brando">Brando</option>
+                    <option value="pastoso">Pastoso</option>
+                    <option value="liquido_completo">Líquido completo</option>
+                    <option value="liquido_claro">Líquido claro</option>
+                  </select>
+                  <p class="field-hint">Usado para pós-cirúrgico, disfagia, etc.</p>
+                </div>
+
+                <!-- 6. Fase da vida -->
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label class="form-label" for="f-fase-vida">6. Fase da vida</label>
+                  <select class="form-input" id="f-fase-vida">
+                    <option value="adulto">Adulto (padrão)</option>
+                    <option value="infantil">Infantil</option>
+                    <option value="adolescente">Adolescente</option>
+                    <option value="gestante">Gestante</option>
+                    <option value="lactante">Lactante</option>
+                    <option value="idoso">Idoso</option>
+                  </select>
+                  <p class="field-hint">Ajusta demandas fisiológicas (DRIs, energia, proteína).</p>
+                </div>
+
+                <!-- 7. Restrições -->
+                <div class="form-group" style="margin-bottom:8px;">
+                  <label class="form-label">7. Restrições alimentares adicionais</label>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 14px;padding:10px 0;">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="sem_gluten"> Sem glúten
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="sem_lactose"> Sem lactose
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="sem_acucar"> Sem açúcar
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="hipossodico"> Hipossódico
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="sem_alergenicos"> Sem alergênicos
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);cursor:pointer;">
+                      <input type="checkbox" class="f-restr" value="low_carb"> Low carb (extra)
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Preview do perfil resultante -->
+                <div id="f-perfil-preview" style="margin-top:18px;padding:12px 16px;background:var(--bg-secondary);border-left:3px solid #8b5e3c;">
+                  <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--subtitle);margin:0 0 6px 0;">
+                    Perfil resultante
+                  </p>
+                  <p id="f-perfil-preview-text" style="font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--text-dark);margin:0;">
+                    Perfil padrão
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="admin-form-grid" style="margin-top:24px;">
+
+              <!-- Campo oculto para compatibilidade -->
+              <input type="hidden" id="f-ultima">
+              <input type="hidden" id="f-senha">
+              <input type="hidden" id="f-obs">
+              <input type="hidden" id="f-plano">
+              <input type="hidden" id="f-metas">
+
+            </div>
+          </section>
+
+          <!-- Ações -->
+          <section class="section fade-up fade-up-delay-2" style="border-top:1px solid rgba(76,184,160,0.2);padding-top:28px;">
+
+            <div style="display:flex;flex-direction:column;gap:10px;max-width:480px;">
+
+              <!-- CTA principal -->
+              <button type="submit" class="btn-primary" id="submit-btn"
+                style="width:100%;padding:18px 32px;font-size:0.75rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Criar paciente
+              </button>
+
+              <!-- CTA secundário — criar e já abrir avaliação -->
+              <button type="button" id="submit-e-avaliar-btn"
+                onclick="document.getElementById('f-iniciar-avaliacao').value='1'; document.getElementById('patient-form').requestSubmit();"
+                style="width:100%;padding:15px 32px;background:transparent;border:1.5px solid var(--detail);
+                       font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.72rem;
+                       letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;color:var(--text);
+                       display:flex;align-items:center;justify-content:center;gap:8px;transition:border-color 0.2s;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Criar paciente e iniciar avaliação
+              </button>
+
+              <input type="hidden" id="f-iniciar-avaliacao" value="0">
+
+              <button type="button" onclick="showView('pacientes')"
+                style="width:100%;padding:12px;background:none;border:none;
+                       font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.75rem;
+                       color:var(--text-light);cursor:pointer;letter-spacing:0.08em;">
+                Cancelar
+              </button>
+
+            </div>
+
+          </section>
+
+          <div class="form-message" id="form-message"></div>
+
+        </form>
+
+      </div>
+    </main>
+  </div>
+  <!-- Toast -->
+  <div id="toast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--accent);color:#fff;padding:14px 24px;
+    font-family:'DM Sans',sans-serif;font-size:0.8rem;letter-spacing:0.04em;
+    z-index:1000;box-shadow:0 4px 16px rgba(44,34,24,0.25);white-space:nowrap;"></div>
+
+  <!-- Modal exclusão -->
+  <div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(44,34,24,0.4);z-index:500;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-primary);border:1px solid var(--detail);padding:36px 40px;max-width:400px;width:90%;">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.4rem;color:var(--text);margin-bottom:12px;">Remover paciente</h3>
+      <p style="font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text-light);margin-bottom:28px;line-height:1.6;">Esta ação não pode ser desfeita. Todos os dados da paciente serão removidos permanentemente.</p>
+      <div style="display:flex;gap:10px;">
+        <button id="confirm-delete-btn" onclick="confirmDelete()"
+          style="flex:1;padding:14px;background:#7A2E2E;color:#fff;border:none;cursor:pointer;
+                 font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;">
+          Confirmar remoção
+        </button>
+        <button onclick="closeDeleteModal()"
+          style="flex:1;padding:14px;background:transparent;border:1px solid var(--detail);cursor:pointer;
+                 font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text);">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debug bar (remover após confirmar) -->
+  <div id="debug-bar" style="position:fixed;bottom:8px;right:8px;background:#2C2218;color:#F8F4EF;font-family:monospace;font-size:11px;padding:6px 12px;z-index:9999;border-radius:4px;opacity:0.85;">
+    JS v2.2 · <span id="debug-view">carregando...</span>
+  </div>
+
+  <!-- ════════════════════════════════
+       PAINEL DE NOTIFICAÇÕES (slide-in)
+       ════════════════════════════════ -->
+  <div id="notif-overlay" onclick="fecharNotificacoes()"
+    style="display:none;position:fixed;inset:0;background:rgba(44,34,24,0.35);z-index:900;"></div>
+
+  <div id="notif-panel"
+    style="position:fixed;top:0;right:-400px;width:360px;max-width:95vw;height:100vh;
+      background:var(--bg-primary);border-left:1px solid var(--detail);z-index:901;
+      overflow-y:auto;transition:right 0.28s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;">
+
+    <!-- Cabeçalho -->
+    <div style="padding:28px 20px 16px;border-bottom:1px solid var(--detail);flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <p style="font-family:'DM Sans',sans-serif;font-size:0.55rem;letter-spacing:0.2em;
+            text-transform:uppercase;color:var(--subtitle);margin-bottom:4px;">Central de</p>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:300;
+            color:var(--text);">Notificações</h2>
+        </div>
+        <button onclick="fecharNotificacoes()"
+          style="background:none;border:1px solid var(--detail);padding:6px 10px;
+            cursor:pointer;color:var(--text-light);font-size:0.9rem;line-height:1;
+            transition:all 0.15s;"
+          onmouseover="this.style.background='var(--bg-secondary)'"
+          onmouseout="this.style.background=''">✕</button>
+      </div>
+      <button id="notif-mark-all" onclick="marcarTodasLidas()"
+        style="display:none;font-family:'DM Sans',sans-serif;font-size:0.7rem;
+          color:var(--subtitle);background:none;border:none;cursor:pointer;
+          padding:0;text-decoration:underline;letter-spacing:0.03em;">
+        Marcar todas como lidas
+      </button>
+    </div>
+
+    <!-- Lista (preenchida por JS) -->
+    <div id="notif-lista" style="flex:1;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ════════════════════════════════
+       COMMAND PALETTE (Ctrl+K)
+       ════════════════════════════════ -->
+  <div id="cmd-overlay" class="cmd-overlay" style="display:none;" onclick="window._adminExtras&&window._adminExtras.closeCmd()">
+    <div class="cmd-modal" onclick="event.stopPropagation()">
+      <div class="cmd-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="cmd-input" placeholder="Buscar pacientes ou ações..." autocomplete="off">
+        <kbd class="kbd">esc</kbd>
+      </div>
+      <div id="cmd-results" class="cmd-results"></div>
+      <div class="cmd-footer">
+        <span><kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd> navegar</span>
+        <span><kbd class="kbd">↵</kbd> abrir</span>
+        <span><kbd class="kbd">esc</kbd> fechar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       MODAL DE ATALHOS DE TECLADO (?)
+       ════════════════════════════════ -->
+  <div id="kbd-help-overlay" class="cmd-overlay" style="display:none;" onclick="window._adminExtras&&window._adminExtras.closeHelp()">
+    <div class="kbd-help-modal" onclick="event.stopPropagation()">
+      <div class="kbd-help-header">
+        <h3>Atalhos de teclado</h3>
+        <button class="kbd-help-close" onclick="window._adminExtras&&window._adminExtras.closeHelp()" aria-label="Fechar">✕</button>
+      </div>
+      <div class="kbd-help-list">
+        <div class="kbd-help-row"><span>Buscar / Command palette</span><span><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">K</kbd></span></div>
+        <div class="kbd-help-row"><span>Focar busca da lista</span><span><kbd class="kbd">/</kbd></span></div>
+        <div class="kbd-help-row"><span>Nova paciente</span><span><kbd class="kbd">N</kbd></span></div>
+        <div class="kbd-help-row"><span>Voltar para lista</span><span><kbd class="kbd">Esc</kbd></span></div>
+        <div class="kbd-help-row"><span>Alternar feed de atividades</span><span><kbd class="kbd">A</kbd></span></div>
+        <div class="kbd-help-row"><span>Abrir notificações</span><span><kbd class="kbd">Shift</kbd>+<kbd class="kbd">N</kbd></span></div>
+        <div class="kbd-help-row"><span>Mostrar atalhos</span><span><kbd class="kbd">?</kbd></span></div>
+        <div class="kbd-help-row"><span>Modo escuro</span><span><kbd class="kbd">D</kbd></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       FEED DE ATIVIDADES (drawer direito)
+       ════════════════════════════════ -->
+  <div id="activity-overlay" class="cmd-overlay" style="display:none;" onclick="window._adminExtras&&window._adminExtras.closeActivity()"></div>
+  <aside id="activity-drawer" class="activity-drawer" aria-hidden="true">
+    <div class="activity-header">
+      <div>
+        <p class="nh-eyebrow" style="margin-bottom:2px;">Tempo real</p>
+        <h3 style="font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.2rem;margin:0;">Feed de atividades</h3>
+      </div>
+      <button class="kbd-help-close" onclick="window._adminExtras&&window._adminExtras.closeActivity()" aria-label="Fechar">✕</button>
+    </div>
+    <div id="activity-feed" class="activity-feed"></div>
+  </aside>
+
+  <!-- ════════════════════════════════
+       FAB FLUTUANTE (+ Nova paciente — mobile)
+       ════════════════════════════════ -->
+  <button id="admin-fab" class="admin-fab" onclick="showView('novo')" aria-label="Nova paciente">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- ════════════════════════════════
+       BOTÃO FEED (canto inferior direito desktop)
+       ════════════════════════════════ -->
+  <button id="admin-feed-btn" class="admin-feed-btn" onclick="window._adminExtras&&window._adminExtras.openActivity()" aria-label="Feed de atividades" title="Feed de atividades (A)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span class="admin-feed-pulse"></span>
+  </button>
+
+  <script type="module" src="js/admin.js"></script>
+  <script type="module" src="js/admin-extras.js"></script>
+
+</body>
+</html>

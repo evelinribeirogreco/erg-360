@@ -1,0 +1,1274 @@
+/* ============================================================
+   TEMA "NUTRI-CLÍNICO" — paleta 1:1 do NutriHospitalar
+   + overrides para os componentes internos do app Evelin.
+   ------------------------------------------------------------
+   Remover o <link> deste arquivo volta ao tema original.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ──────────────────────────────────────────────────────────
+   1) TOKENS — cópia literal dos tokens do NutriHospitalar
+   ────────────────────────────────────────────────────────── */
+:root {
+  /* Fundos */
+  --bg-primary:   #F7F6F2;   /* NH --bg   */
+  --bg-secondary: #F0EDE6;   /* NH --bg2  */
+  --bg-card:      #FFFFFF;   /* NH --surface (★ branco puro nos cards) */
+  --bg-surface2:  #E8F2EE;   /* NH --surface2 (verde muito claro) */
+
+  /* Texto */
+  --text:         #1A1A16;   /* NH --ink   */
+  --text-light:   #6B6659;   /* NH --muted */
+  --subtitle:     #6B6659;   /* unifica com muted */
+  --text-dark:    #1A1A16;   /* alias */
+
+  /* Marca clínica */
+  --accent:       #2D6A56;   /* verde-escuro — CTAs, botões, links */
+  --accent-hover: #225041;   /* hover do CTA */
+  --detail:       #4CB8A0;   /* NH --accent — verde-água (bordas, hover) */
+  --accent-dim:   rgba(76, 184, 160, 0.12);   /* NH --accent-dim */
+  --accent-border:rgba(76, 184, 160, 0.28);   /* NH --accent-border */
+
+  /* Dourado preservado (selos especiais + logo) */
+  --gold:         #C9A84C;   /* NH --gold */
+  --gold-dim:     rgba(201, 168, 76, 0.10);
+  --gold-border:  rgba(201, 168, 76, 0.28);
+
+  /* Bordas e sombras */
+  --border:       #E0DBD0;   /* NH --border */
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:    0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-lg:    0 6px 28px rgba(0, 0, 0, 0.08);
+
+  /* Semânticas */
+  --success:      #2D6A56;
+  --warning:      #C9A84C;
+  --error:        #E05252;   /* NH --red */
+  --error-dim:    rgba(224, 82, 82, 0.10);
+  --info:         #4CB8A0;
+
+  /* Tipografia — Outfit na UI, Cormorant só em títulos */
+  --font-sans:    'Outfit', -apple-system, system-ui, sans-serif;
+  --font-serif:   'Cormorant Garamond', Georgia, serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+
+  /* Radius */
+  --radius-sm:    0.2rem;
+  --radius-md:    0.3rem;
+  --radius-lg:    0.4rem;
+}
+
+/* ──────────────────────────────────────────────────────────
+   2) BASE — body e tipografia
+   ────────────────────────────────────────────────────────── */
+body {
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  background: var(--bg-primary);
+  color: var(--text);
+}
+
+/* Serifa SÓ em títulos (NH style) */
+h1, h2, h3, .serif,
+.plano-sidebar-header h1,
+.plano-preview-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+/* Tudo o mais em Outfit */
+button, input, select, textarea, label,
+.btn, .label, .nav-item, .tab, .chip, .badge,
+.form-label, .form-input, .form-hint,
+.block-title, .block-sub, .block-eyebrow,
+.plano-nav-item {
+  font-family: var(--font-sans) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   3) CARDS BRANCOS — o coração do estilo NH
+   ────────────────────────────────────────────────────────── */
+.plano-block.active,
+.card, .plano-card, .tpl-card,
+.metric-card, .section-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.plano-block.active:hover,
+.card:hover, .tpl-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-md);
+}
+
+/* Blocos internos (sub-seções dentro de .plano-block) ficam sem card duplo */
+.plano-block.active .plano-block { background: transparent; border: 0; padding: 0; box-shadow: none; }
+
+/* ──────────────────────────────────────────────────────────
+   4) SIDEBARS — bege quente (como a nav do NH)
+   ────────────────────────────────────────────────────────── */
+.plano-sidebar, .admin-sidebar, .sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border) !important;
+}
+
+.plano-sidebar-header,
+.plano-preview-title {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Itens de navegação — hover/active em verde-água sutil */
+.plano-nav-item:hover { background: var(--accent-dim) !important; color: var(--text) !important; }
+.plano-nav-item.active {
+  background: var(--accent-dim) !important;
+  border-left-color: var(--accent) !important;
+  color: var(--text) !important;
+}
+.plano-nav-item.active .plano-nav-num {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.plano-nav-item.done .plano-nav-num {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+/* Preview lateral direita */
+.plano-preview {
+  background: var(--bg-secondary) !important;
+  border-left: 1px solid var(--border) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   5) STATUS BAR (rodapé de rascunho/salvo)
+   ────────────────────────────────────────────────────────── */
+.plano-status-bar {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border) !important;
+}
+.status-dot.rascunho { background: var(--warning) !important; }
+.status-dot.salvo    { background: var(--success) !important; }
+
+/* ──────────────────────────────────────────────────────────
+   6) BOTÕES — padrão NH
+   ────────────────────────────────────────────────────────── */
+.btn-primary,
+button.btn-primary,
+button[type="submit"]:not(.btn-ghost):not(.btn-secondary):not(.btn-draft) {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.7rem 1.6rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  transition: background 0.2s, transform 0.2s !important;
+}
+.btn-primary:hover,
+button[type="submit"]:not(.btn-ghost):not(.btn-secondary):not(.btn-draft):hover {
+  background: var(--accent-hover) !important;
+  transform: translateY(-1px);
+}
+
+.btn-draft {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-light) !important;
+}
+.btn-draft:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+.btn-add-item {
+  background: var(--accent-dim) !important;
+  border: 1px solid var(--accent-border) !important;
+  color: var(--accent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+.btn-add-item:hover { background: var(--accent-border) !important; }
+
+/* ──────────────────────────────────────────────────────────
+   7) INPUTS E FORMS — foco em verde-água
+   ────────────────────────────────────────────────────────── */
+.form-input, input[type="text"], input[type="email"], input[type="number"],
+input[type="date"], input[type="password"], select, textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus, input:focus, select:focus, textarea:focus {
+  border-color: var(--detail) !important;
+  box-shadow: 0 0 0 3px var(--accent-dim) !important;
+  outline: none !important;
+}
+
+.form-label {
+  color: var(--text) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em;
+}
+
+.form-hint { color: var(--text-light) !important; }
+
+/* ──────────────────────────────────────────────────────────
+   8) BADGES, TAGS E CHIPS
+   ────────────────────────────────────────────────────────── */
+.badge, .tag, .chip, .pref-badge,
+.tpl-motivo-badge, .tpl-meta {
+  font-family: var(--font-sans) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Dourado reservado para "selo de marca" / premium */
+.gold-badge, .badge-premium {
+  color: var(--gold) !important;
+  border-color: var(--gold-border) !important;
+  background: var(--gold-dim) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ──────────────────────────────────────────────────────────
+   9) LINKS
+   ────────────────────────────────────────────────────────── */
+a { color: var(--accent); }
+a:hover { color: var(--detail); }
+.plano-back-link { color: var(--text-light) !important; }
+.plano-back-link:hover { color: var(--accent) !important; }
+
+/* ──────────────────────────────────────────────────────────
+   10) SCROLLBAR SUTIL (NH style, 4px)
+   ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--accent-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--detail); }
+
+/* ──────────────────────────────────────────────────────────
+   11) OVERRIDES DE DOURADO LEGADO (rgba do antigo #C49A6C)
+   ────────────────────────────────────────────────────────── */
+.import-opt:hover { background: var(--accent-dim) !important; }
+.import-opt.selected {
+  background: var(--accent-dim) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   12) TÍTULOS DE BLOCO
+   ────────────────────────────────────────────────────────── */
+.block-title {
+  font-family: var(--font-serif) !important;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+.block-sub { color: var(--text-light) !important; }
+.block-eyebrow {
+  color: var(--accent) !important;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════════════════════════
+   UTILITÁRIOS NH — use estas classes em qualquer página
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Section headers (eyebrow + title + desc) ── */
+.nh-section { padding: 1.8rem 0; }
+.nh-section.tight { padding: 1rem 0; }
+.nh-section-header { margin-bottom: 1rem; }
+.nh-eyebrow {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent);
+}
+.nh-eyebrow::before {
+  content: ''; display: inline-block;
+  width: 32px; height: 1px; background: var(--accent); flex-shrink: 0;
+}
+.nh-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+  font-weight: 700; line-height: 1.2; color: var(--text);
+  margin: 0;
+}
+.nh-title em { color: var(--accent); font-style: italic; }
+.nh-desc {
+  color: var(--text-light); max-width: 55ch;
+  margin-top: 0.75rem; font-size: 0.95rem; line-height: 1.7;
+}
+.nh-divider {
+  height: 1px; background: var(--border); border: 0;
+  margin: 2rem 0;
+}
+
+/* ── Grids ── */
+.nh-grid { display: grid; gap: 0.9rem; }
+.nh-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.nh-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.nh-grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) {
+  .nh-grid-2, .nh-grid-3, .nh-grid-4 { grid-template-columns: 1fr; }
+}
+@media (min-width: 901px) and (max-width: 1200px) {
+  .nh-grid-3, .nh-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Ícones em caixa (NH proto-icon) ── */
+.nh-icon-box {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  transition: background 0.25s, transform 0.25s;
+}
+.nh-icon-box svg { width: 17px; height: 17px; }
+.nh-icon-box.lg { width: 46px; height: 46px; }
+.nh-icon-box.lg svg { width: 22px; height: 22px; }
+.nh-icon-box.red {
+  background: var(--error-dim);
+  border-color: rgba(224, 82, 82, 0.25);
+  color: var(--error);
+}
+.nh-icon-box.gold {
+  background: var(--gold-dim);
+  border-color: var(--gold-border);
+  color: var(--gold);
+}
+
+/* ── Hover Card (NH hcard) — com barra lateral verde ── */
+.nh-hcard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex; flex-direction: column; gap: 0;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.25s, border-color 0.25s, transform 0.25s;
+}
+.nh-hcard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent);
+  opacity: 0; transition: opacity 0.25s;
+}
+.nh-hcard:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.nh-hcard:hover::before { opacity: 1; }
+.nh-hcard.gold::before { background: var(--gold); }
+.nh-hcard.red::before { background: var(--error); }
+
+.nh-hcard-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+.nh-hcard-category {
+  font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent);
+  padding: 0.2rem 0.55rem;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+}
+.nh-hcard-num {
+  font-family: var(--font-serif);
+  font-size: 1rem; font-weight: 500;
+  color: var(--text-light); opacity: 0.4; line-height: 1;
+  letter-spacing: 0.05em;
+}
+.nh-hcard h3, .nh-hcard-title {
+  font-family: var(--font-serif);
+  font-size: 0.98rem; font-weight: 600;
+  margin-bottom: 0.3rem; color: var(--text); line-height: 1.25;
+}
+.nh-hcard p {
+  font-size: 0.78rem; color: var(--text-light);
+  line-height: 1.55; flex: 1;
+}
+.nh-hcard-arrow {
+  margin-top: 0.7rem; font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent);
+  display: flex; align-items: center; gap: 0.35rem;
+  transition: gap 0.2s;
+}
+.nh-hcard:hover .nh-hcard-arrow { gap: 0.6rem; }
+
+/* ── Proto card (ícone à esquerda + corpo) ── */
+.nh-proto-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  display: flex; gap: 0.85rem; align-items: flex-start;
+  text-decoration: none; color: inherit;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.nh-proto-card:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.nh-proto-body { flex: 1; min-width: 0; }
+.nh-proto-body h3 {
+  font-family: var(--font-serif);
+  font-size: 0.98rem; font-weight: 600;
+  color: var(--text); margin-bottom: 0.2rem; line-height: 1.25;
+}
+.nh-proto-body p {
+  font-size: 0.82rem; color: var(--text-light);
+  line-height: 1.55; margin: 0;
+}
+.nh-proto-link {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.74rem; font-weight: 500;
+  color: var(--accent); letter-spacing: 0.04em;
+  transition: gap 0.2s;
+}
+.nh-proto-link:hover { gap: 0.6rem; }
+
+/* ── Topic item (numerado, estilo NH topics) ── */
+.nh-topic {
+  background: var(--bg-secondary);
+  padding: 1.25rem 1.15rem;
+  border-radius: var(--radius-md);
+  transition: background 0.25s;
+}
+.nh-topic:hover { background: var(--bg-card); }
+.nh-topic-num {
+  font-family: var(--font-serif);
+  font-size: 1.8rem; font-weight: 700;
+  color: var(--border); line-height: 1; margin-bottom: 0.5rem;
+}
+.nh-topic h3 {
+  font-family: var(--font-serif);
+  font-size: 1.05rem; font-weight: 600;
+  color: var(--text); margin-bottom: 0.3rem;
+}
+.nh-topic p {
+  font-size: 0.82rem; color: var(--text-light); line-height: 1.6;
+}
+.nh-topic-tags {
+  display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.7rem;
+}
+
+/* ── Stats (números grandes, estilo hero-stats) ── */
+.nh-stats {
+  display: flex; gap: 2.5rem; flex-wrap: wrap;
+  padding-top: 1.5rem; border-top: 1px solid var(--border);
+}
+.nh-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+.nh-stat-value {
+  font-family: var(--font-serif);
+  font-size: 2rem; font-weight: 600;
+  color: var(--text); line-height: 1;
+}
+.nh-stat-label {
+  font-size: 0.72rem; color: var(--text-light);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+/* ── Chip pill (estilo about-chips do NH) ── */
+.nh-chip {
+  display: inline-block;
+  font-size: 0.72rem; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.35rem 0.9rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  background: transparent;
+}
+.nh-chip.accent {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* ── Destaque com barra lateral (estilo about-highlight) ── */
+.nh-highlight {
+  background: var(--bg-card);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.5rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.92rem;
+  color: var(--text-light);
+  line-height: 1.7;
+}
+
+/* ── Disclaimer/aviso clínico ── */
+.nh-disclaimer {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.25rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  font-size: 0.82rem; color: var(--text-light); line-height: 1.55;
+}
+.nh-disclaimer svg {
+  width: 18px; height: 18px; flex-shrink: 0; color: var(--accent);
+}
+.nh-disclaimer strong { color: var(--text); font-weight: 500; }
+
+/* ══════════════════════════════════════════════════════════
+   OVERRIDES dos cards existentes do app Evelin → estilo NH
+   ══════════════════════════════════════════════════════════ */
+
+/* db-quick-card (dashboard) — vira hcard */
+.db-quick-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0.95rem 1.05rem !important;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s !important;
+  position: relative; overflow: hidden;
+}
+.db-quick-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent);
+  opacity: 0; transition: opacity 0.25s;
+}
+.db-quick-card:hover {
+  border-color: var(--accent-border) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+.db-quick-card:hover::before { opacity: 1; }
+
+.db-quick-icon {
+  background: var(--accent-dim) !important;
+  border: 1px solid var(--accent-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--accent) !important;
+}
+
+.db-quick-label {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+.db-quick-sub {
+  color: var(--text-light) !important;
+  font-size: 0.85rem !important;
+}
+
+.db-quick-arrow { color: var(--accent) !important; }
+
+/* info-card (dashboard — Última/Próxima consulta) */
+.info-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0.85rem 1rem !important;
+  transition: border-color 0.25s, box-shadow 0.25s !important;
+}
+.info-card:hover {
+  border-color: var(--accent-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.info-card-label {
+  color: var(--accent) !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+}
+.info-card-value {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+/* section-title (dashboard e outras) */
+.section-title {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+/* page-header / page-title */
+.page-title {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 700 !important;
+}
+.page-greeting {
+  color: var(--accent) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+}
+.page-date { color: var(--text-light) !important; }
+
+/* Sidebar do dashboard — bege quente + nav verde */
+.sidebar {
+  background: var(--bg-secondary) !important;
+  border-right: 1px solid var(--border) !important;
+}
+.sidebar-brand-name {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+.sidebar-brand-specialty {
+  color: var(--accent) !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+}
+.nav-item {
+  font-family: var(--font-sans) !important;
+  color: var(--text-light) !important;
+  letter-spacing: 0.04em;
+}
+.nav-item:hover { background: var(--accent-dim) !important; color: var(--text) !important; }
+.nav-item.active {
+  background: var(--accent-dim) !important;
+  color: var(--accent) !important;
+  border-left-color: var(--accent) !important;
+}
+
+/* Bottom nav (mobile) */
+.bottom-nav {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+/* FAB check-in */
+.fab-checkin {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-radius: 2rem !important;
+}
+.fab-checkin:hover { background: var(--accent-hover) !important; }
+
+/* Mobile header */
+.mobile-header {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.mobile-brand {
+  font-family: var(--font-serif) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+/* Tabelas de admin (lista de pacientes) */
+table, .data-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+th {
+  background: var(--bg-secondary) !important;
+  color: var(--text-light) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+td { border-bottom: 1px solid var(--border) !important; }
+tr:hover td { background: var(--accent-dim) !important; }
+
+/* Modais */
+.modal, [id^="modal"] > div {
+  background: var(--bg-card) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   PÁGINA DE LOGIN — visual limpo NH
+   ────────────────────────────────────────────────────────── */
+
+/* Trava a página no viewport — sem rolagem global */
+html:has(body.login-page),
+body.login-page {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+body.login-page {
+  background: var(--bg-primary) !important;
+  font-family: var(--font-sans) !important;
+  display: flex !important;
+  min-height: 100vh !important;
+}
+.login-page { height: 100vh !important; }
+.login-visual {
+  background: linear-gradient(135deg, #2D6A56 0%, #225041 60%, #1A3F33 100%) !important;
+}
+/* Remove riscos diagonais do fundo */
+.login-visual::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+/* ──────────────────────────────────────────────────────────
+   LAYOUT DO PAINEL VISUAL — 2 COLUNAS
+   Esquerda: logo + nome  /  Direita: checklist
+   ────────────────────────────────────────────────────────── */
+.login-visual {
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 40px 32px !important;
+}
+.login-visual-left {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+}
+.login-visual-right {
+  flex: 1 1 55%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Logo maior (agora tem espaço só para ela na coluna esquerda) */
+.login-visual-logo {
+  width: 140px !important;
+  height: 140px !important;
+  margin-bottom: 22px !important;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.3)) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   CHECKLIST ANIMADA DE METAS
+   ────────────────────────────────────────────────────────── */
+.login-checklist {
+  text-align: left;
+  max-width: 340px;
+  width: 100%;
+}
+.login-checklist-eyebrow {
+  font-family: var(--font-sans) !important;
+  font-size: 0.6rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.24em !important;
+  text-transform: uppercase !important;
+  color: var(--gold) !important;
+  margin-bottom: 14px !important;
+  padding-left: 36px;
+  opacity: 0.85;
+}
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 0;
+}
+.check-text {
+  font-size: 1rem !important;
+}
+.check-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.32);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.35s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.35s cubic-bezier(0.4,0,0.2,1),
+              transform 0.35s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.check-icon {
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.3);
+  transition: opacity 0.3s 0.1s, transform 0.3s 0.1s cubic-bezier(0.34,1.56,0.64,1);
+}
+.check-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.35s;
+  line-height: 1.3;
+}
+
+/* ─── Estado "conferido" ─── */
+.checklist-item .check-circle      { animation: circle-cycle var(--dur, 13s) infinite ease-in-out; animation-delay: var(--d, 0s); }
+.checklist-item .check-icon        { animation: icon-cycle   var(--dur, 13s) infinite ease-in-out; animation-delay: var(--d, 0s); }
+.checklist-item .check-text        { animation: text-cycle   var(--dur, 13s) infinite ease-in-out; animation-delay: var(--d, 0s); }
+
+@keyframes circle-cycle {
+  0%, 3%    { background: transparent; border-color: rgba(255,255,255,0.32); transform: scale(1); box-shadow: none; }
+  8%        { background: #4cb8a0;     border-color: #4cb8a0;                transform: scale(1.18); box-shadow: 0 0 0 6px rgba(76,184,160,0.18); }
+  14%, 88%  { background: #4cb8a0;     border-color: #4cb8a0;                transform: scale(1);    box-shadow: 0 0 0 0 rgba(76,184,160,0); }
+  95%, 100% { background: transparent; border-color: rgba(255,255,255,0.32); transform: scale(1);    box-shadow: none; }
+}
+@keyframes icon-cycle {
+  0%, 4%    { opacity: 0; transform: scale(0.3); }
+  10%, 88%  { opacity: 1; transform: scale(1); }
+  94%, 100% { opacity: 0; transform: scale(0.5); }
+}
+@keyframes text-cycle {
+  0%, 4%    { color: rgba(255,255,255,0.55); }
+  10%, 88%  { color: rgba(255,255,255,0.95); }
+  94%, 100% { color: rgba(255,255,255,0.55); }
+}
+
+/* Delays escalonados (1 item a cada 1.2s) — ciclo total de 13s dá
+   ~9.6s para checar todos + 3.4s de pausa com a lista preenchida */
+.item-1 { --d:  0.0s; }
+.item-2 { --d:  1.2s; }
+.item-3 { --d:  2.4s; }
+.item-4 { --d:  3.6s; }
+.item-5 { --d:  4.8s; }
+.item-6 { --d:  6.0s; }
+.item-7 { --d:  7.2s; }
+.item-8 { --d:  8.4s; }
+
+/* Acessibilidade — sem movimento, mostra tudo já conferido */
+@media (prefers-reduced-motion: reduce) {
+  .checklist-item .check-circle,
+  .checklist-item .check-icon,
+  .checklist-item .check-text { animation: none !important; }
+  .checklist-item .check-circle { background: #4cb8a0 !important; border-color: #4cb8a0 !important; }
+  .checklist-item .check-icon   { opacity: 1 !important; transform: scale(1) !important; }
+  .checklist-item .check-text   { color: rgba(255,255,255,0.95) !important; }
+}
+
+/* Empilha colunas em telas médias (tablet) antes do painel sumir */
+@media (max-width: 1100px) and (min-width: 901px) {
+  .login-visual {
+    flex-direction: column !important;
+    padding: 30px 20px !important;
+  }
+  .login-visual-right {
+    border-left: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 24px !important;
+    margin-top: 16px;
+    justify-content: center;
+  }
+  .login-visual-logo {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+/* Esconde checklist em mobile (painel lateral some) */
+@media (max-width: 900px) {
+  .login-checklist { display: none; }
+}
+
+/* ──────────────────────────────────────────────────────────
+   LOGIN — melhorias UX (ícones, olho, caps, banners, etc.)
+   ────────────────────────────────────────────────────────── */
+
+/* Campos com ícone embutido — compactos */
+.login-field { position: relative; margin-bottom: 0.75rem; }
+.login-field .form-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--text) !important;
+  margin-bottom: 0.4rem !important;
+}
+.login-forgot-link {
+  font-weight: 400 !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.04em !important;
+  text-transform: none !important;
+  color: var(--accent) !important;
+  text-decoration: none !important;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+}
+.login-forgot-link:hover { border-bottom-color: var(--accent) !important; }
+
+.login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.login-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+  pointer-events: none;
+}
+.login-input {
+  padding: 10px 14px 10px 38px !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.88rem !important;
+  color: var(--text) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  height: 40px !important;
+}
+.login-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(45,106,86,0.12) !important;
+  outline: none !important;
+}
+.login-input--pw { padding-right: 42px !important; }
+.login-input.has-error {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 3px rgba(224,82,82,0.12) !important;
+}
+
+/* Botão olho (mostrar/ocultar senha) */
+.login-eye-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.login-eye-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+.login-eye-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Mensagens abaixo dos campos */
+.login-field-error {
+  margin-top: 4px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.7rem !important;
+  color: var(--error) !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+}
+.login-field-warning {
+  margin-top: 4px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.68rem !important;
+  color: var(--warning) !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+/* Banner (sessão expirada / reset ok) */
+.login-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-bottom: 0.7rem;
+  background: rgba(224,82,82,0.08);
+  border-left: 3px solid var(--error);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  border-radius: 4px;
+}
+.login-banner svg { color: var(--error); flex-shrink: 0; }
+.login-banner.ok {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+}
+.login-banner.ok svg { color: var(--accent); }
+
+/* Checkbox "lembrar dispositivo" */
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0.1rem 0 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  color: var(--text-light);
+  cursor: pointer;
+  user-select: none;
+}
+.login-remember input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+.login-remember:hover span { color: var(--text); }
+
+/* Botão de submit com spinner */
+.login-submit {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 11px 20px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background 0.15s, transform 0.1s !important;
+  height: 42px !important;
+}
+.login-submit:hover:not(:disabled) { background: var(--accent-hover) !important; }
+.login-submit:active:not(:disabled) { transform: translateY(1px) !important; }
+.login-submit.is-loading { opacity: 0.85; cursor: wait; }
+.login-submit:disabled { cursor: not-allowed; }
+
+.login-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin 0.7s linear infinite;
+}
+@keyframes login-spin { to { transform: rotate(360deg); } }
+
+/* Rodapé */
+.login-footer {
+  margin-top: 1rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.login-footer p { margin: 0; }
+.login-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+}
+.login-footer a:hover { border-bottom-color: var(--accent); }
+
+/* Ajuste geral do painel direito */
+.login-form-panel .form-message {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+}
+.login-form-panel .form-message.error   { color: var(--error); }
+.login-form-panel .form-message.success { color: var(--accent); }
+
+/* Responsivo — compacta rodapé em telas estreitas */
+@media (max-width: 500px) {
+  .login-footer { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .login-form-panel { padding: 32px 24px !important; }
+}
+.login-visual-content {
+  color: #fff !important;
+}
+.login-visual-quote {
+  font-family: 'Cormorant Garamond', serif !important;
+  color: #fff !important;
+  font-weight: 300 !important;
+  font-style: italic !important;
+}
+.login-visual-line {
+  background: var(--gold) !important;
+  opacity: 0.7 !important;
+}
+.login-visual-name {
+  font-family: 'Cormorant Garamond', serif !important;
+  color: var(--gold) !important;
+  letter-spacing: 0.12em !important;
+}
+.login-form-panel {
+  background: var(--bg-card) !important;
+  padding: 28px 44px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;  /* se faltar espaço, só o painel rola */
+  justify-content: center !important;
+  width: 460px !important;
+}
+.login-logo {
+  margin-bottom: 18px !important;
+}
+.login-logo-name {
+  font-family: 'Cormorant Garamond', serif !important;
+  color: var(--text) !important;
+  font-weight: 400 !important;
+  font-size: 1.15rem !important;
+}
+.login-logo-specialty {
+  font-family: var(--font-sans) !important;
+  color: var(--text-light) !important;
+  font-size: 0.66rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  margin-top: 3px !important;
+}
+.login-heading {
+  font-family: 'Cormorant Garamond', serif !important;
+  color: var(--text) !important;
+  font-weight: 400 !important;
+  font-size: 1.5rem !important;
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.25rem !important;
+}
+.login-subheading {
+  font-family: var(--font-sans) !important;
+  color: var(--text-light) !important;
+  font-size: 0.78rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   WRAPPER GENÉRICO PARA CARDS BRANCOS
+   ────────────────────────────────────────────────────────── */
+.nh-card-wrap {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 1.25rem 1.4rem !important;
+  overflow: auto !important;
+}
+
+/* Sobrescreve o padding extra de sections aninhadas */
+.nh-section .nh-card-wrap table {
+  margin: 0 !important;
+}
+
+/* Page-header antigo → comporta-se como nh-section */
+.page-header {
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem !important;
+}
+.page-greeting {
+  font-family: var(--font-sans) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: var(--accent) !important;
+  margin-bottom: 0.4rem !important;
+}
+.page-title {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  color: var(--text) !important;
+  font-size: 1.75rem !important;
+  line-height: 1.2 !important;
+  margin-bottom: 0.4rem !important;
+}
+.page-date {
+  font-family: var(--font-sans) !important;
+  color: var(--text-light) !important;
+  font-size: 0.85rem !important;
+}
+
+/* Sections com card branco embutido */
+main .section {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 1.4rem 1.5rem !important;
+  margin-bottom: 1.25rem !important;
+}
+main .section-title {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  color: var(--text) !important;
+  font-size: 1.2rem !important;
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.6rem !important;
+  border-bottom: 1px solid var(--border) !important;
+}

@@ -1,0 +1,908 @@
+// ============================================================
+// EVELIN RIBEIRO GRECO — admin-extras.js
+// Todas as 24 melhorias do painel admin
+// (saudação, agenda, recentes, command palette, atalhos,
+//  avatares, tags, ordenação, ações inline, sparklines,
+//  KPIs estratégicos, feed, alertas, empty states, dark mode,
+//  export CSV, filtros avançados, favoritos, aniversariantes,
+//  card view mobile, FAB)
+// ============================================================
+
+const STORAGE_RECENTS    = 'erg_admin_recents';
+const STORAGE_FAVS       = 'erg_admin_favs';
+const STORAGE_SORT       = 'erg_admin_sort';
+const STORAGE_ACTIVITY   = 'erg_admin_activity';
+const MAX_RECENTS        = 5;
+
+// ─── Helpers globais ─────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const escapeHTML = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+})[c]);
+
+function getPatients() { return window._allPatients || []; }
+function getJSON(k, fallback) {
+  try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
+  catch (_) { return fallback; }
+}
+function setJSON(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {}
+}
+
+// ─── 1. SAUDAÇÃO PERSONALIZADA + CONTEXTO ────────────────────
+function updateGreeting() {
+  const h = new Date().getHours();
+  const sauda = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
+  const eyebrow = $('admin-greeting-eyebrow');
+  const name    = $('admin-greeting');
+  const date    = $('admin-date');
+  if (eyebrow) eyebrow.textContent = sauda;
+  if (name)    name.textContent    = 'Dra. Evelin';
+
+  const hojeStr = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+  });
+
+  // Contexto rico do dia (só funciona se patients já carregou)
+  const patients = getPatients();
+  if (patients.length === 0) {
+    if (date) date.textContent = hojeStr;
+    return;
+  }
+  const hoje = new Date().toISOString().split('T')[0];
+  const consultasHoje = patients.filter(p => p.data_proxima_consulta === hoje).length;
+  const checkinsHoje  = patients.filter(p => p.ultimo_checkin === hoje).length;
+  const partes = [];
+  if (consultasHoje) partes.push(`${consultasHoje} consulta${consultasHoje > 1 ? 's' : ''}`);
+  if (checkinsHoje)  partes.push(`${checkinsHoje} check-in${checkinsHoje > 1 ? 's' : ''}`);
+  const ctx = partes.length ? ` · ${partes.join(' · ')}` : '';
+  if (date) date.textContent = hojeStr + ctx;
+}
+
+// ─── 2. WIDGET AGENDA DA SEMANA ──────────────────────────────
+function renderAgenda() {
+  const el = $('admin-agenda');
+  if (!el) return;
+  const patients = getPatients();
+  const dias = [];
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(hoje); d.setDate(hoje.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    const consultas = patients.filter(p => p.data_proxima_consulta === iso);
+    dias.push({
+      iso, date: d, count: consultas.length,
+      isToday: i === 0,
+      label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+      day:   d.getDate(),
+      nomes: consultas.map(p => p.nome),
+    });
+  }
+  el.innerHTML = dias.map(d => `
+    <button type="button" class="agenda-day ${d.isToday ? 'today' : ''} ${d.count ? 'has-events' : ''}"
+      data-iso="${d.iso}" title="${d.nomes.join(', ') || 'Sem consultas'}">
+      <span class="agenda-day-label">${d.label}</span>
+      <span class="agenda-day-num">${d.day}</span>
+      <span class="agenda-day-count">${d.count ? d.count + (d.count > 1 ? ' consultas' : ' consulta') : '—'}</span>
+    </button>`).join('');
+  // click → filtra a tabela por aquele dia
+  el.querySelectorAll('.agenda-day').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const iso = btn.dataset.iso;
+      window._extrasDateFilter = iso;
+      window.filterPatients && window.filterPatients();
+      el.querySelectorAll('.agenda-day').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+}
+
+// ─── 3. PACIENTES RECENTES ───────────────────────────────────
+function pushRecent(p) {
+  if (!p || !p.id) return;
+  let arr = getJSON(STORAGE_RECENTS, []);
+  arr = arr.filter(r => r.id !== p.id);
+  arr.unshift({ id: p.id, nome: p.nome, user_id: p.user_id, ts: Date.now() });
+  arr = arr.slice(0, MAX_RECENTS);
+  setJSON(STORAGE_RECENTS, arr);
+  renderRecents();
+}
+function renderRecents() {
+  const sec = $('admin-recents-section');
+  const el  = $('admin-recents');
+  if (!el || !sec) return;
+  const recents = getJSON(STORAGE_RECENTS, []);
+  if (!recents.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  el.innerHTML = recents.map(r => `
+    <button type="button" class="recent-chip" data-id="${escapeHTML(r.id)}" data-uid="${escapeHTML(r.user_id||'')}" data-nome="${encodeURIComponent(r.nome||'')}">
+      ${avatarHTML(r.nome)}
+      <span class="recent-chip-name">${escapeHTML(firstName(r.nome))}</span>
+    </button>
+  `).join('');
+  el.querySelectorAll('.recent-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id   = btn.dataset.id;
+      const uid  = btn.dataset.uid;
+      const nome = decodeURIComponent(btn.dataset.nome || '');
+      window.verPaciente && window.verPaciente(id, uid, nome);
+    });
+  });
+}
+
+// ─── 4. COMMAND PALETTE (Ctrl+K) ─────────────────────────────
+let cmdSelectedIdx = 0;
+function openCmd() {
+  const overlay = $('cmd-overlay');
+  const input   = $('cmd-input');
+  if (!overlay || !input) return;
+  overlay.style.display = 'flex';
+  cmdSelectedIdx = 0;
+  input.value = '';
+  renderCmdResults('');
+  setTimeout(() => input.focus(), 30);
+}
+function closeCmd() {
+  const overlay = $('cmd-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+function renderCmdResults(query) {
+  const list = $('cmd-results');
+  if (!list) return;
+  const q = (query || '').toLowerCase().trim();
+  const actions = [
+    { type: 'action', label: 'Nova paciente',          icon: '+',  fn: () => { closeCmd(); window.showView && window.showView('novo'); } },
+    { type: 'action', label: 'Voltar para lista',      icon: '⌂',  fn: () => { closeCmd(); window.showView && window.showView('pacientes'); } },
+    { type: 'action', label: 'Exportar lista CSV',     icon: '↓',  fn: () => { closeCmd(); exportCSV(); } },
+    { type: 'action', label: 'Abrir feed de atividades', icon: '⚡', fn: () => { closeCmd(); openActivity(); } },
+    { type: 'action', label: 'Ver atalhos de teclado', icon: '⌨',  fn: () => { closeCmd(); openHelp(); } },
+    { type: 'action', label: 'Alternar tema (claro/escuro)', icon: '◐', fn: () => { closeCmd(); toggleDark(); } },
+    { type: 'action', label: 'Sair (logout)',          icon: '⎋',  fn: () => { closeCmd(); window.adminLogout && window.adminLogout(); } },
+  ];
+  const patients = getPatients();
+  const patientItems = patients.filter(p => !q || p.nome.toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q))
+    .slice(0, 30)
+    .map(p => ({
+      type: 'patient',
+      id: p.id, user_id: p.user_id, nome: p.nome, email: p.email,
+      fn: () => { closeCmd(); window.verPaciente && window.verPaciente(p.id, p.user_id, p.nome); }
+    }));
+  const actionItems = actions.filter(a => !q || a.label.toLowerCase().includes(q));
+
+  const items = [];
+  if (patientItems.length) {
+    items.push({ type: 'header', label: 'Pacientes' });
+    items.push(...patientItems);
+  }
+  if (actionItems.length) {
+    items.push({ type: 'header', label: 'Ações' });
+    items.push(...actionItems);
+  }
+  if (!patientItems.length && !actionItems.length) {
+    list.innerHTML = `<div class="cmd-empty">Nenhum resultado para "${escapeHTML(query)}".</div>`;
+    window._cmdItems = [];
+    return;
+  }
+  // Filtra só os "selecionáveis" (sem headers) para navegação
+  const selectable = items.filter(i => i.type !== 'header');
+  if (cmdSelectedIdx >= selectable.length) cmdSelectedIdx = 0;
+  let selectableIdx = 0;
+  list.innerHTML = items.map(it => {
+    if (it.type === 'header') return `<div class="cmd-header">${escapeHTML(it.label)}</div>`;
+    const isSel = selectableIdx === cmdSelectedIdx;
+    const idx = selectableIdx++;
+    if (it.type === 'patient') {
+      return `<button type="button" class="cmd-item ${isSel ? 'selected' : ''}" data-idx="${idx}">
+        ${avatarHTML(it.nome)}
+        <div class="cmd-item-text">
+          <span class="cmd-item-title">${escapeHTML(it.nome)}</span>
+          <span class="cmd-item-sub">${escapeHTML(it.email || '')}</span>
+        </div>
+      </button>`;
+    }
+    return `<button type="button" class="cmd-item cmd-item-action ${isSel ? 'selected' : ''}" data-idx="${idx}">
+      <span class="cmd-icon-mono">${it.icon}</span>
+      <div class="cmd-item-text"><span class="cmd-item-title">${escapeHTML(it.label)}</span></div>
+    </button>`;
+  }).join('');
+  window._cmdItems = selectable;
+
+  list.querySelectorAll('.cmd-item').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      const item = (window._cmdItems || [])[i];
+      if (item && typeof item.fn === 'function') item.fn();
+    });
+  });
+}
+function moveCmd(delta) {
+  const items = window._cmdItems || [];
+  if (!items.length) return;
+  cmdSelectedIdx = (cmdSelectedIdx + delta + items.length) % items.length;
+  renderCmdResults($('cmd-input')?.value || '');
+  // scroll into view
+  const sel = document.querySelector('#cmd-results .cmd-item.selected');
+  if (sel) sel.scrollIntoView({ block: 'nearest' });
+}
+function execCmd() {
+  const items = window._cmdItems || [];
+  const item = items[cmdSelectedIdx];
+  if (item && typeof item.fn === 'function') item.fn();
+}
+
+// ─── 5. ATALHOS DE TECLADO ───────────────────────────────────
+function initShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ignora se foco em input/textarea (exceto Ctrl+K / Esc)
+    const target = e.target;
+    const inField = target.matches('input, textarea, select, [contenteditable="true"]');
+    const cmdOpen = $('cmd-overlay')?.style.display === 'flex';
+
+    // Ctrl/Cmd + K — abre command palette (sempre disponível)
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      cmdOpen ? closeCmd() : openCmd();
+      return;
+    }
+
+    // Esc — fecha modais
+    if (e.key === 'Escape') {
+      if (cmdOpen)                    return closeCmd();
+      if ($('kbd-help-overlay')?.style.display === 'flex') return closeHelp();
+      if ($('activity-overlay')?.style.display === 'flex') return closeActivity();
+      if ($('view-paciente')?.style.display !== 'none' && $('view-paciente')?.style.display !== '') {
+        return window.showView && window.showView('pacientes');
+      }
+    }
+
+    // Setas / Enter — navega no command palette
+    if (cmdOpen) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); moveCmd(+1); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); moveCmd(-1); return; }
+      if (e.key === 'Enter')     { e.preventDefault(); execCmd();   return; }
+    }
+
+    if (inField) return;
+
+    // / → foca busca da lista
+    if (e.key === '/') {
+      const search = $('search-input');
+      if (search) { e.preventDefault(); search.focus(); search.select(); }
+    }
+    // N → nova paciente
+    else if (e.key === 'n' || e.key === 'N') {
+      if (e.shiftKey) {
+        // Shift+N → notificações
+        const btn = document.getElementById('notif-btn');
+        btn && btn.click();
+      } else {
+        window.showView && window.showView('novo');
+      }
+    }
+    // ? → atalhos
+    else if (e.key === '?') { openHelp(); }
+    // A → feed atividades
+    else if (e.key === 'a' || e.key === 'A') { openActivity(); }
+    // D → dark mode
+    else if (e.key === 'd' || e.key === 'D') { toggleDark(); }
+  });
+
+  const input = $('cmd-input');
+  if (input) input.addEventListener('input', (e) => {
+    cmdSelectedIdx = 0;
+    renderCmdResults(e.target.value);
+  });
+}
+
+// ─── 6. AVATARES COLORIDOS COM INICIAIS ──────────────────────
+const AVATAR_COLORS = [
+  ['#2D6A56', '#fff'], ['#4CB8A0', '#fff'], ['#C9A84C', '#fff'],
+  ['#7A2E2E', '#fff'], ['#3A5E8B', '#fff'], ['#8B5E3C', '#fff'],
+  ['#5E4FB8', '#fff'], ['#B8506E', '#fff'], ['#3D6B4F', '#fff'],
+  ['#B8860B', '#fff'], ['#506E8B', '#fff'], ['#6B4F2E', '#fff'],
+];
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < (str || '').length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+function getInitials(nome) {
+  if (!nome) return '?';
+  const parts = nome.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+function avatarHTML(nome, size = 'md') {
+  const ini = getInitials(nome);
+  const idx = hashCode(nome || '') % AVATAR_COLORS.length;
+  const [bg, fg] = AVATAR_COLORS[idx];
+  return `<span class="avatar avatar-${size}" style="background:${bg};color:${fg};" aria-hidden="true">${escapeHTML(ini)}</span>`;
+}
+function firstName(nome) { return (nome || '').trim().split(/\s+/)[0] || ''; }
+
+// ─── 7. TAGS / PILLS DE STATUS POR LINHA (intelligence) ──────
+function getStatusTags(p) {
+  const tags = [];
+  const hoje = new Date().toISOString().split('T')[0];
+  // Aniversariante da semana
+  if (isBirthdayThisWeek(p.data_nascimento)) {
+    tags.push({ cls: 'tag-bday', text: '🎂 Aniversário', title: 'Aniversário esta semana' });
+  }
+  // Sem plano
+  if (!p.plano_url) {
+    tags.push({ cls: 'tag-warn', text: 'Sem plano' });
+  }
+  // Consulta hoje
+  if (p.data_proxima_consulta === hoje) {
+    tags.push({ cls: 'tag-info', text: 'Consulta hoje' });
+  }
+  // Consulta atrasada
+  else if (p.data_proxima_consulta && p.data_proxima_consulta < hoje) {
+    tags.push({ cls: 'tag-err', text: 'Consulta atrasada' });
+  }
+  // Inatividade
+  if (!p.ultimo_checkin && p.plano_url) {
+    tags.push({ cls: 'tag-warn', text: 'Sem check-in' });
+  } else if (p.ultimo_checkin) {
+    const dias = Math.ceil((Date.now() - new Date(p.ultimo_checkin + 'T12:00:00')) / 86400000);
+    if (dias > 7)      tags.push({ cls: 'tag-err',  text: `${dias}d sem check-in` });
+    else if (dias > 3) tags.push({ cls: 'tag-warn', text: `${dias}d sem check-in` });
+  }
+  // Alerta clínico
+  if ((p.flags_recentes || []).some(f => ['energia_baixa', 'overreaching', 'descontrole'].includes(f))) {
+    tags.push({ cls: 'tag-err', text: '⚠ Alerta clínico' });
+  }
+  if (!tags.length) tags.push({ cls: 'tag-ok', text: 'Em acompanhamento' });
+  return tags;
+}
+function tagsHTML(p) {
+  const tags = getStatusTags(p);
+  return tags.map(t => `<span class="status-tag ${t.cls}" title="${escapeHTML(t.title || t.text)}">${escapeHTML(t.text)}</span>`).join('');
+}
+
+// ─── 8. ORDENAÇÃO ────────────────────────────────────────────
+function getSort() { return getJSON(STORAGE_SORT, { col: 'nome', dir: 'asc' }); }
+function setSort(col) {
+  const cur = getSort();
+  const dir = cur.col === col ? (cur.dir === 'asc' ? 'desc' : 'asc') : 'asc';
+  setJSON(STORAGE_SORT, { col, dir });
+  return { col, dir };
+}
+function sortPatients(arr) {
+  const { col, dir } = getSort();
+  const mult = dir === 'asc' ? 1 : -1;
+  const favs = getFavs();
+  return [...arr].sort((a, b) => {
+    // Favoritos sempre no topo
+    const fa = favs[a.id] ? 1 : 0;
+    const fb = favs[b.id] ? 1 : 0;
+    if (fa !== fb) return fb - fa;
+    let va, vb;
+    switch (col) {
+      case 'consulta':
+        va = a.data_proxima_consulta || '9999';
+        vb = b.data_proxima_consulta || '9999';
+        break;
+      case 'checkin':
+        va = a.ultimo_checkin || '0000';
+        vb = b.ultimo_checkin || '0000';
+        return (va > vb ? 1 : va < vb ? -1 : 0) * (dir === 'asc' ? -1 : 1); // mais recente primeiro por padrão
+      case 'score':
+        va = a.score_medio_7d ?? -1;
+        vb = b.score_medio_7d ?? -1;
+        break;
+      case 'nome':
+      default:
+        va = (a.nome || '').toLowerCase();
+        vb = (b.nome || '').toLowerCase();
+    }
+    if (va < vb) return -1 * mult;
+    if (va > vb) return  1 * mult;
+    return 0;
+  });
+}
+
+// ─── 9. AÇÕES INLINE NA LINHA ────────────────────────────────
+function inlineActionsHTML(p) {
+  const wa = (p.telefone || '').replace(/\D/g, '');
+  const waLink = wa ? `https://wa.me/55${wa}?text=${encodeURIComponent('Olá ' + firstName(p.nome) + ',')}` : '';
+  return `
+    <span class="row-actions">
+      ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" class="row-action" title="Abrir WhatsApp" onclick="event.stopPropagation()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      </a>` : ''}
+      <a href="admin-dossie.html?id=${p.id}" class="row-action" title="Abrir dossiê" onclick="event.stopPropagation()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </a>
+      <a href="admin-relatorio.html?id=${p.id}" class="row-action" title="Relatório de consulta" onclick="event.stopPropagation()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+      </a>
+      <button class="row-action row-fav ${getFavs()[p.id] ? 'is-fav' : ''}" data-id="${p.id}" title="Favoritar" onclick="event.stopPropagation();window._adminExtras&&window._adminExtras.toggleFav('${p.id}');">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="${getFavs()[p.id] ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
+    </span>`;
+}
+
+// ─── 10. PILL DA FASE ATUAL ──────────────────────────────────
+const FASE_LABEL = {
+  adaptacao: 'Adaptação', deficit_leve: 'Déficit leve',
+  deficit_moderado: 'Déficit moderado', recomposicao: 'Recomposição',
+  manutencao: 'Manutenção', ganho_massa: 'Ganho de massa',
+};
+function fasePillHTML(p) {
+  const fase = p.fase_atual_nome || p.fase_ativa || null;
+  if (!fase) return '';
+  const tipo = (p.fase_atual_tipo || '').toLowerCase();
+  const label = FASE_LABEL[tipo] || fase;
+  return `<span class="fase-pill fase-${tipo || 'default'}">${escapeHTML(label)}</span>`;
+}
+
+// ─── 11. SPARKLINE MICRO DE SCORE 7D ─────────────────────────
+function sparklineSVG(values, w = 60, h = 18) {
+  if (!values || values.length < 2) return '';
+  const max = Math.max(...values, 100);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const step = w / (values.length - 1);
+  const points = values.map((v, i) => `${i * step},${h - ((v - min) / range) * h}`).join(' ');
+  const last = values[values.length - 1];
+  const trend = values.length > 1 ? Math.sign(last - values[0]) : 0;
+  const color = trend > 0 ? '#3D6B4F' : trend < 0 ? '#7A2E2E' : 'var(--text-light)';
+  return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" points="${points}"/>
+    <circle cx="${(values.length - 1) * step}" cy="${h - ((last - min) / range) * h}" r="2" fill="${color}"/>
+  </svg>`;
+}
+function getSparklineValues(p) {
+  // Se não tiver série, usa o score médio único como ponto único
+  if (Array.isArray(p.scores_7d) && p.scores_7d.length) return p.scores_7d;
+  return null;
+}
+
+// ─── 12. KPIs ESTRATÉGICOS ───────────────────────────────────
+function updateExtendedKPIs() {
+  const patients = getPatients();
+  if (!patients.length) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  // Adesão média = média de checkins_semana / 7
+  const adesao = patients.length ? Math.round(
+    patients.reduce((s, p) => s + (p.checkins_semana || 0), 0) / patients.length / 7 * 100
+  ) : 0;
+  const scoresValid = patients.map(p => p.score_medio_7d).filter(s => s != null);
+  const scoreMedio = scoresValid.length ? Math.round(scoresValid.reduce((a, b) => a + b, 0) / scoresValid.length) : 0;
+  const checkinsHoje = patients.filter(p => p.ultimo_checkin === hoje).length;
+  const aniversarios = patients.filter(p => isBirthdayThisWeek(p.data_nascimento)).length;
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set('kpi-adesao',        adesao + '%');
+  set('kpi-score-medio',   scoreMedio || '—');
+  set('kpi-checkins-hoje', checkinsHoje);
+  set('kpi-aniversarios',  aniversarios || '—');
+}
+
+// ─── 13. FEED DE ATIVIDADES ──────────────────────────────────
+function pushActivity(activity) {
+  const arr = getJSON(STORAGE_ACTIVITY, []);
+  arr.unshift({ ...activity, ts: Date.now() });
+  setJSON(STORAGE_ACTIVITY, arr.slice(0, 50));
+}
+function generateActivityFromPatients() {
+  const patients = getPatients();
+  if (!patients.length) return [];
+  const items = [];
+  const hoje = new Date().toISOString().split('T')[0];
+  // Pacientes que fizeram check-in hoje
+  patients.filter(p => p.ultimo_checkin === hoje).forEach(p => {
+    items.push({
+      icon: '✓',
+      iconClass: 'act-ok',
+      title: `${firstName(p.nome)} fez check-in hoje`,
+      sub: p.score_medio_7d ? `Score 7d: ${p.score_medio_7d}` : '',
+      ts: Date.now(),
+      patient: p,
+    });
+  });
+  // Consultas hoje
+  patients.filter(p => p.data_proxima_consulta === hoje).forEach(p => {
+    items.push({
+      icon: '📅',
+      iconClass: 'act-info',
+      title: `Consulta com ${firstName(p.nome)} hoje`,
+      sub: 'Confirmar horário',
+      ts: Date.now(),
+      patient: p,
+    });
+  });
+  // Aniversariantes
+  patients.filter(p => isBirthdayThisWeek(p.data_nascimento)).forEach(p => {
+    items.push({
+      icon: '🎂',
+      iconClass: 'act-bday',
+      title: `${firstName(p.nome)} faz aniversário esta semana`,
+      sub: '',
+      ts: Date.now(),
+      patient: p,
+    });
+  });
+  // Alertas
+  patients.filter(p => (p.flags_recentes || []).some(f => ['energia_baixa', 'overreaching', 'descontrole'].includes(f))).slice(0, 5).forEach(p => {
+    items.push({
+      icon: '⚠',
+      iconClass: 'act-warn',
+      title: `Alerta clínico: ${firstName(p.nome)}`,
+      sub: 'Verificar último check-in',
+      ts: Date.now(),
+      patient: p,
+    });
+  });
+  return items;
+}
+function renderActivity() {
+  const el = $('activity-feed');
+  if (!el) return;
+  const items = generateActivityFromPatients();
+  if (!items.length) {
+    el.innerHTML = `<div class="activity-empty"><p>Nenhuma atividade hoje</p><span>Conforme as pacientes interagirem, eventos aparecerão aqui em tempo real.</span></div>`;
+    return;
+  }
+  el.innerHTML = items.map(a => `
+    <button type="button" class="activity-item" data-id="${escapeHTML(a.patient?.id || '')}" data-uid="${escapeHTML(a.patient?.user_id||'')}" data-nome="${encodeURIComponent(a.patient?.nome||'')}">
+      <span class="activity-icon ${a.iconClass}">${a.icon}</span>
+      <span class="activity-text">
+        <span class="activity-title">${escapeHTML(a.title)}</span>
+        ${a.sub ? `<span class="activity-sub">${escapeHTML(a.sub)}</span>` : ''}
+      </span>
+    </button>
+  `).join('');
+  el.querySelectorAll('.activity-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id   = btn.dataset.id;
+      const uid  = btn.dataset.uid;
+      const nome = decodeURIComponent(btn.dataset.nome || '');
+      if (!id) return;
+      closeActivity();
+      window.verPaciente && window.verPaciente(id, uid, nome);
+    });
+  });
+}
+function openActivity() {
+  const ov = $('activity-overlay');
+  const dr = $('activity-drawer');
+  if (!ov || !dr) return;
+  renderActivity();
+  ov.style.display = 'block';
+  dr.classList.add('open');
+  dr.setAttribute('aria-hidden', 'false');
+}
+function closeActivity() {
+  const ov = $('activity-overlay');
+  const dr = $('activity-drawer');
+  if (!ov || !dr) return;
+  ov.style.display = 'none';
+  dr.classList.remove('open');
+  dr.setAttribute('aria-hidden', 'true');
+}
+
+// ─── 14. ALERTAS INTELIGENTES NO TOPO (com ação) ─────────────
+function renderSmartAlerts() {
+  const sec = $('admin-smart-alerts');
+  if (!sec) return;
+  const patients = getPatients();
+  if (!patients.length) { sec.style.display = 'none'; return; }
+  const hoje = new Date().toISOString().split('T')[0];
+  const alerts = [];
+  const inativos = patients.filter(p => p.ultimo_checkin && Math.ceil((Date.now() - new Date(p.ultimo_checkin + 'T12:00:00')) / 86400000) > 7);
+  if (inativos.length) {
+    alerts.push({
+      cls: 'alert-warn',
+      icon: '⏱',
+      title: `${inativos.length} paciente${inativos.length > 1 ? 's' : ''} sem check-in há mais de 7 dias`,
+      sub: inativos.slice(0, 3).map(p => firstName(p.nome)).join(', ') + (inativos.length > 3 ? ` e mais ${inativos.length - 3}` : ''),
+      action: 'Filtrar inativos',
+      onclick: () => { $('filter-status').value = 'inativo'; window.filterPatients && window.filterPatients(); }
+    });
+  }
+  const consultaHoje = patients.filter(p => p.data_proxima_consulta === hoje);
+  if (consultaHoje.length) {
+    alerts.push({
+      cls: 'alert-info',
+      icon: '📅',
+      title: `${consultaHoje.length} consulta${consultaHoje.length > 1 ? 's' : ''} agendada${consultaHoje.length > 1 ? 's' : ''} hoje`,
+      sub: consultaHoje.map(p => firstName(p.nome)).join(', '),
+      action: 'Ver agenda',
+      onclick: () => { $('filter-consulta').value = 'hoje'; window.filterPatients && window.filterPatients(); }
+    });
+  }
+  const semPlano = patients.filter(p => !p.plano_url);
+  if (semPlano.length >= 3) {
+    alerts.push({
+      cls: 'alert-soft',
+      icon: '📋',
+      title: `${semPlano.length} pacientes ainda sem plano alimentar`,
+      sub: 'Considere priorizar elaboração desses planos.',
+      action: 'Ver lista',
+      onclick: () => { $('filter-plano').value = 'sem'; window.filterPatients && window.filterPatients(); }
+    });
+  }
+  const aniversarios = patients.filter(p => isBirthdayThisWeek(p.data_nascimento));
+  if (aniversarios.length) {
+    alerts.push({
+      cls: 'alert-bday',
+      icon: '🎂',
+      title: `${aniversarios.length} aniversário${aniversarios.length > 1 ? 's' : ''} esta semana`,
+      sub: aniversarios.map(p => firstName(p.nome)).join(', '),
+    });
+  }
+  if (!alerts.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  sec.innerHTML = `
+    <p class="nh-eyebrow">Alertas inteligentes</p>
+    <h2 class="nh-title sm">Atenção do dia</h2>
+    <div class="smart-alerts-list">
+      ${alerts.map((a, i) => `
+        <div class="smart-alert ${a.cls}">
+          <span class="smart-alert-icon">${a.icon}</span>
+          <div class="smart-alert-text">
+            <p class="smart-alert-title">${escapeHTML(a.title)}</p>
+            <p class="smart-alert-sub">${escapeHTML(a.sub)}</p>
+          </div>
+          ${a.action ? `<button type="button" class="smart-alert-btn" data-i="${i}">${escapeHTML(a.action)}</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  sec.querySelectorAll('.smart-alert-btn').forEach((btn) => {
+    const i = +btn.dataset.i;
+    btn.addEventListener('click', () => {
+      try { alerts[i].onclick && alerts[i].onclick(); } catch (e) {}
+    });
+  });
+}
+
+// ─── 15. NOTIFICAÇÕES CATEGORIZADAS ──────────────────────────
+// Hook: o painel de notificações já existe — apenas adiciona CSS .notif-cat-*
+// (mantemos como está, já é categorizado pelo type que vem do backend)
+
+// ─── 16. EMPTY STATES MELHORES ───────────────────────────────
+function renderEmptyState(wrapper, kind) {
+  if (!wrapper) return;
+  if (kind === 'no-patients') {
+    wrapper.innerHTML = `
+      <div class="empty-state empty-state-rich">
+        <div class="empty-illustration">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Nenhuma paciente cadastrada ainda</h3>
+        <p>Comece criando o primeiro perfil. Você poderá adicionar plano alimentar, anamnese e fases depois.</p>
+        <button class="btn-primary" onclick="showView('novo')" style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Cadastrar primeira paciente
+        </button>
+      </div>`;
+  } else if (kind === 'no-results') {
+    wrapper.innerHTML = `
+      <div class="empty-state empty-state-rich">
+        <div class="empty-illustration">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>Nenhum resultado encontrado</h3>
+        <p>Tente outra palavra-chave ou ajuste os filtros aplicados.</p>
+        <button class="btn-secondary" onclick="window._adminExtras&&window._adminExtras.clearFilters()">
+          Limpar todos os filtros
+        </button>
+      </div>`;
+  }
+}
+
+// ─── 17. DARK MODE FUNCIONAL ─────────────────────────────────
+// Compartilha chave 'erg-theme' com admin.js (sem hífen seria duplicar estado)
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+function toggleDark() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem('erg-theme', next); } catch(_) {}
+}
+function initDarkMode() { /* admin.js já cuida da inicialização e do botão */ }
+
+// ─── 18. EXPORT CSV ──────────────────────────────────────────
+function exportCSV() {
+  const patients = getPatients();
+  if (!patients.length) return;
+  const filtered = (window._extrasFilteredPatients || patients);
+  const cols = ['nome', 'email', 'telefone', 'data_nascimento', 'sexo', 'data_proxima_consulta', 'data_ultima_consulta', 'ultimo_checkin', 'score_medio_7d', 'checkins_semana', 'plano_url', 'observacoes'];
+  const head = cols.join(',');
+  const rows = filtered.map(p => cols.map(c => {
+    const v = p[c] ?? '';
+    return `"${String(v).replace(/"/g, '""')}"`;
+  }).join(','));
+  const csv = [head, ...rows].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pacientes-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+// ─── 19. FILTROS AVANÇADOS ───────────────────────────────────
+function applyAdvancedFilter(arr) {
+  const status   = $('filter-status')?.value || '';
+  const objetivo = $('filter-objetivo')?.value || '';
+  const fav      = $('filter-favoritos')?.value || '';
+  const dateIso  = window._extrasDateFilter || '';
+  let r = arr;
+  if (status) {
+    if (status === 'ativo') {
+      r = r.filter(p => p.ultimo_checkin && Math.ceil((Date.now() - new Date(p.ultimo_checkin + 'T12:00:00')) / 86400000) <= 3);
+    }
+    if (status === 'inativo') {
+      r = r.filter(p => !p.ultimo_checkin || Math.ceil((Date.now() - new Date(p.ultimo_checkin + 'T12:00:00')) / 86400000) > 3);
+    }
+    if (status === 'alerta') {
+      r = r.filter(p => (p.flags_recentes || []).some(f => ['energia_baixa', 'overreaching', 'descontrole'].includes(f)));
+    }
+    if (status === 'sem-checkin') {
+      r = r.filter(p => !p.ultimo_checkin);
+    }
+  }
+  if (objetivo) {
+    r = r.filter(p => p.objetivo === objetivo);
+  }
+  if (fav === 'fav') {
+    const favs = getFavs();
+    r = r.filter(p => favs[p.id]);
+  }
+  if (dateIso) {
+    r = r.filter(p => p.data_proxima_consulta === dateIso);
+  }
+  return r;
+}
+function clearFilters() {
+  ['search-input', 'filter-plano', 'filter-consulta', 'filter-status', 'filter-objetivo', 'filter-favoritos'].forEach(id => {
+    const el = $(id);
+    if (el) el.value = '';
+  });
+  window._extrasDateFilter = null;
+  document.querySelectorAll('.agenda-day.selected').forEach(b => b.classList.remove('selected'));
+  window.filterPatients && window.filterPatients();
+}
+
+// ─── 20. PIN DE FAVORITOS ────────────────────────────────────
+function getFavs() { return getJSON(STORAGE_FAVS, {}); }
+function toggleFav(id) {
+  const favs = getFavs();
+  if (favs[id]) delete favs[id];
+  else favs[id] = Date.now();
+  setJSON(STORAGE_FAVS, favs);
+  // Re-renderiza
+  window.filterPatients && window.filterPatients();
+}
+
+// ─── 21. ANIVERSARIANTES DA SEMANA ───────────────────────────
+function isBirthdayThisWeek(dataNasc) {
+  if (!dataNasc) return false;
+  const today = new Date();
+  const next7 = new Date(); next7.setDate(today.getDate() + 7);
+  const m = parseInt(dataNasc.slice(5, 7), 10);
+  const d = parseInt(dataNasc.slice(8, 10), 10);
+  if (!m || !d) return false;
+  // Constrói aniversário deste ano
+  const bday = new Date(today.getFullYear(), m - 1, d);
+  if (bday < today.setHours(0, 0, 0, 0)) {
+    bday.setFullYear(bday.getFullYear() + 1);
+  }
+  return bday >= new Date().setHours(0, 0, 0, 0) && bday <= next7;
+}
+
+// ─── 22. CARD VIEW NO MOBILE ─────────────────────────────────
+// (handled via CSS — abaixo de 768px a tabela vira lista de cards
+//  e renderTable já gera linhas que viram cards via @media query)
+
+// ─── 23. SWIPE NAS TABS (mobile) ─────────────────────────────
+function initTabSwipe() {
+  const tabs = document.getElementById('pac-tabs');
+  if (!tabs) return;
+  let startX = 0, startY = 0;
+  const SWIPE_MIN = 60;
+  document.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 900) return;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (window.innerWidth > 900) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dy) > Math.abs(dx)) return;
+    const list = Array.from(tabs.querySelectorAll('.pac-tab:not(.pac-tab-next)'));
+    const active = list.findIndex(t => t.classList.contains('active'));
+    if (active < 0) return;
+    let next = dx < 0 ? active + 1 : active - 1;
+    next = Math.max(0, Math.min(list.length - 1, next));
+    list[next].click();
+  }, { passive: true });
+}
+
+// ─── 24. FAB FLUTUANTE (mobile) ──────────────────────────────
+// já está no HTML — apenas aparece via @media query no CSS
+
+// ─── HELP MODAL ───────────────────────────────────────────────
+function openHelp() { const ov = $('kbd-help-overlay'); if (ov) ov.style.display = 'flex'; }
+function closeHelp() { const ov = $('kbd-help-overlay'); if (ov) ov.style.display = 'none'; }
+
+// ─── HOOKS para admin.js (chamados pela própria admin.js) ────
+function onPatientsLoaded(patients) {
+  window._allPatients = patients;
+  updateGreeting();
+  renderAgenda();
+  renderRecents();
+  renderSmartAlerts();
+  updateExtendedKPIs();
+}
+function onPatientView(p) {
+  pushRecent(p);
+}
+function onTableRender(filteredPatients) {
+  window._extrasFilteredPatients = filteredPatients;
+}
+
+// Função para enriquecer cada linha da tabela com avatar + tags + ações + sparkline + favorito
+function enrichRow(p) {
+  return {
+    avatar:   avatarHTML(p.nome),
+    initials: getInitials(p.nome),
+    tags:     tagsHTML(p),
+    fasePill: fasePillHTML(p),
+    spark:    sparklineSVG(getSparklineValues(p) || []),
+    actions:  inlineActionsHTML(p),
+    isFav:    !!getFavs()[p.id],
+  };
+}
+
+// ─── SETUP UI ────────────────────────────────────────────────
+function initUI() {
+  // Filtros avançados toggle
+  const advBtn = $('btn-toggle-advanced');
+  const adv    = $('admin-advanced-filters');
+  if (advBtn && adv) {
+    advBtn.addEventListener('click', () => {
+      const open = adv.style.display !== 'none';
+      adv.style.display = open ? 'none' : 'block';
+      advBtn.classList.toggle('active', !open);
+    });
+  }
+  const clearBtn = $('btn-clear-filters');
+  if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+  const exportBtn = $('btn-export-csv');
+  if (exportBtn) exportBtn.addEventListener('click', exportCSV);
+}
+
+// ─── EXPÕE A API GLOBAL ──────────────────────────────────────
+window._adminExtras = {
+  // hooks
+  onPatientsLoaded, onPatientView, onTableRender,
+  enrichRow,
+  // command palette
+  openCmd, closeCmd, openHelp, closeHelp,
+  // activity feed
+  openActivity, closeActivity,
+  // utilities
+  avatarHTML, tagsHTML, sortPatients, applyAdvancedFilter,
+  getSort, setSort, getFavs, toggleFav, exportCSV, clearFilters,
+  fasePillHTML, sparklineSVG, getSparklineValues,
+  inlineActionsHTML, getInitials, firstName,
+  isBirthdayThisWeek, renderEmptyState, applyTheme, toggleDark,
+};
+
+// ─── INICIALIZAÇÃO ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initShortcuts();
+  initUI();
+  initDarkMode();
+  initTabSwipe();
+  updateGreeting(); // antes do load: só mostra a data
+});

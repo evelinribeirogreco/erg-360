@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Check-in Diário — ERG</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/ux-improvements.css">
+<link rel="stylesheet" href="css/theme-nutri.css">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-primary);
+  min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Shell mobile ── */
+.ci-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── Barra de progresso ── */
+.ci-progress-bar {
+  height: 3px;
+  background: rgba(76,184,160,0.2);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+}
+.ci-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.4s ease;
+}
+
+/* ── Header fixo ── */
+.ci-header {
+  padding: 20px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ci-step-count {
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  font-weight: 400;
+}
+.ci-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ci-back-btn:hover { color: var(--text); }
+
+/* ── Telas ── */
+.ci-screen {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  padding: 24px 24px 40px;
+  animation: ci-fade 0.25s ease;
+}
+.ci-screen.active { display: flex; }
+
+@keyframes ci-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Título da tela ── */
+.ci-eyebrow {
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.ci-question {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(1.5rem, 5vw, 1.9rem);
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.ci-sub {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin-bottom: 28px;
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+/* ── Botões de opção ── */
+.ci-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ci-opt {
+  padding: 16px 20px;
+  border: 1.5px solid rgba(76,184,160,0.3);
+  background: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ci-opt:hover  { border-color: var(--detail); background: var(--bg-secondary); }
+.ci-opt.active { border-color: var(--text); background: var(--text); color: var(--bg-primary); }
+.ci-opt.active .ci-opt-sub { color: rgba(248,244,239,0.7); }
+
+.ci-opt-icon { font-size: 1.1rem; flex-shrink: 0; }
+.ci-opt-label { font-weight: 400; }
+.ci-opt-sub { font-size: 0.72rem; color: var(--text-light); font-weight: 300; display: block; margin-top: 1px; }
+
+/* Opções em grid (2 colunas) */
+.ci-opts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.ci-opts-grid .ci-opt { flex-direction: column; align-items: flex-start; text-align: left; }
+
+/* ── Escala 1–5 ── */
+.ci-scale {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.ci-scale-btn {
+  flex: 1;
+  aspect-ratio: 1;
+  border: 1.5px solid rgba(76,184,160,0.3);
+  background: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.15s;
+  min-height: 60px;
+}
+.ci-scale-btn:hover  { border-color: var(--detail); }
+.ci-scale-btn.active { border-color: var(--text); background: var(--text); color: var(--bg-primary); }
+.ci-scale-label { font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+
+/* ── Sub-perguntas condicionais ── */
+.ci-sub-section {
+  display: none;
+  border-top: 1px solid rgba(76,184,160,0.2);
+  padding-top: 20px;
+  margin-top: 4px;
+  animation: ci-fade 0.2s ease;
+}
+.ci-sub-section.visible { display: block; }
+
+.ci-sub-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+/* ── Chips multi-select ── */
+.ci-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ci-chip {
+  padding: 8px 14px;
+  border: 1.5px solid rgba(76,184,160,0.3);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg-primary);
+}
+.ci-chip:hover  { border-color: var(--detail); color: var(--text); }
+.ci-chip.active { border-color: var(--text); background: var(--text); color: var(--bg-primary); }
+
+/* ── Bristol visual ── */
+.bristol-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.bristol-btn {
+  aspect-ratio: 1;
+  border: 1.5px solid rgba(76,184,160,0.3);
+  background: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.bristol-btn:hover  { border-color: var(--detail); }
+.bristol-btn.active { border-color: var(--text); background: var(--text); color: var(--bg-primary); }
+.bristol-btn.b-ruim { border-color: rgba(122,46,46,0.3); }
+.bristol-btn.b-ruim.active { background: #7A2E2E; border-color: #7A2E2E; }
+.bristol-btn.b-ok   { border-color: rgba(61,107,79,0.3); }
+.bristol-btn.b-ok.active   { background: #3D6B4F; border-color: #3D6B4F; }
+.bristol-legend {
+  font-size: 0.6rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* ── Botão avançar ── */
+.ci-next {
+  width: 100%;
+  padding: 18px;
+  background: var(--text);
+  color: var(--bg-primary);
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: auto;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.ci-next:hover   { opacity: 0.88; }
+.ci-next.skip    { background: transparent; color: var(--text-light); border: 1px solid rgba(76,184,160,0.3); margin-top: 10px; }
+.ci-next.skip:hover { color: var(--text); }
+
+/* ── Textarea ── */
+.ci-textarea {
+  width: 100%;
+  border: 1px solid rgba(76,184,160,0.3);
+  background: transparent;
+  padding: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: var(--text);
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+.ci-textarea:focus { border-color: var(--detail); }
+
+/* ── Tela final — score ── */
+.ci-done-score {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.ci-score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--detail);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.ci-score-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1;
+}
+.ci-score-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+.ci-score-class {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.ci-score-desc {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.ci-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+.ci-flag-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  border-left: 3px solid;
+}
+.ci-flag-ok     { border-color: #3D6B4F; background: rgba(61,107,79,0.06); color: #2E5E3A; }
+.ci-flag-warn   { border-color: #B8860B; background: rgba(184,134,11,0.06); color: #7A5E00; }
+.ci-flag-crit   { border-color: #7A2E2E; background: rgba(122,46,46,0.06); color: #6B2020; }
+
+.ci-done-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Tela intro ── */
+.ci-intro {
+  text-align: center;
+  padding: 60px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.ci-intro-date {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 32px;
+}
+.ci-intro-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+.ci-intro-sub {
+  font-size: 0.82rem;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+.ci-intro-time {
+  font-size: 0.72rem;
+  color: var(--subtitle);
+  margin-bottom: 48px;
+}
+
+@media (max-width: 380px) {
+  .ci-question { font-size: 1.4rem; }
+  .ci-scale-btn { min-height: 52px; }
+}
+</style>
+</head>
+<body>
+
+<div class="ci-progress-bar">
+  <div class="ci-progress-fill" id="ci-progress" style="width:0%;"></div>
+</div>
+
+<div class="ci-shell">
+
+  <!-- Header -->
+  <div class="ci-header" id="ci-header" style="display:none;">
+    <button class="ci-back-btn" onclick="voltarStep()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar
+    </button>
+    <span class="ci-step-count" id="ci-step-count"></span>
+  </div>
+
+  <!-- ══ TELA 0 — Intro ══════════════════════════════════ -->
+  <div class="ci-screen active" id="screen-0">
+    <div class="ci-intro">
+      <p class="ci-intro-date" id="ci-data-hoje"></p>
+      <h1 class="ci-intro-title">Check-in de hoje</h1>
+      <p class="ci-intro-sub">Algumas perguntas rápidas sobre como você está.</p>
+      <p class="ci-intro-time">Menos de 60 segundos</p>
+      <button class="ci-next" onclick="avancarStep()">
+        Começar
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TELA 1 — Energia e humor ═══════════════════════ -->
+  <div class="ci-screen" id="screen-1">
+    <p class="ci-eyebrow">Status do dia</p>
+    <h2 class="ci-question">Como você está hoje?</h2>
+    <p class="ci-sub">Uma visão rápida do seu dia.</p>
+
+    <p class="ci-sub-label">Energia</p>
+    <div class="ci-slider-wrap">
+      <div class="ci-slider-value">
+        <span class="ci-slider-value-num" id="val-energia">—</span>
+        <span class="ci-slider-value-label" id="lbl-energia">Mova o controle</span>
+      </div>
+      <div class="ci-slider-track">
+        <div class="ci-slider-bg"></div>
+        <div class="ci-slider-fill" id="fill-energia" style="width:0%"></div>
+        <input type="range" class="ci-slider" id="slider-energia"
+          min="1" max="5" step="1" value="3"
+          oninput="onSlider('energia',this.value)">
+      </div>
+      <div class="ci-slider-labels"><span>Sem energia</span><span>Ótima</span></div>
+    </div>
+
+    <p class="ci-sub-label" style="margin-top:4px;">Humor</p>
+    <div class="ci-slider-wrap">
+      <div class="ci-slider-value">
+        <span class="ci-slider-value-num" id="val-humor">—</span>
+        <span class="ci-slider-value-label" id="lbl-humor">Mova o controle</span>
+      </div>
+      <div class="ci-slider-track">
+        <div class="ci-slider-bg"></div>
+        <div class="ci-slider-fill" id="fill-humor" style="width:0%"></div>
+        <input type="range" class="ci-slider" id="slider-humor"
+          min="1" max="5" step="1" value="3"
+          oninput="onSlider('humor',this.value)">
+      </div>
+      <div class="ci-slider-labels"><span>Péssimo</span><span>Ótimo</span></div>
+    </div>
+
+    <button class="ci-next" onclick="avancarStep()" id="btn-1">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 2 — Sono ════════════════════════════════════ -->
+  <div class="ci-screen" id="screen-2">
+    <p class="ci-eyebrow">Sono</p>
+    <h2 class="ci-question">Como você dormiu?</h2>
+
+    <p class="ci-sub-label">Horas de sono</p>
+    <div class="ci-opts-grid" id="opts-sono-horas">
+      <button class="ci-opt" data-val="4" onclick="selectOpt('sono_horas',4,this)">
+        <span class="ci-opt-label">Menos de 5h</span>
+      </button>
+      <button class="ci-opt" data-val="5.5" onclick="selectOpt('sono_horas',5.5,this)">
+        <span class="ci-opt-label">5 – 6h</span>
+      </button>
+      <button class="ci-opt" data-val="6.5" onclick="selectOpt('sono_horas',6.5,this)">
+        <span class="ci-opt-label">6 – 7h</span>
+      </button>
+      <button class="ci-opt" data-val="7.5" onclick="selectOpt('sono_horas',7.5,this)">
+        <span class="ci-opt-label">7 – 8h</span>
+      </button>
+      <button class="ci-opt" data-val="9" onclick="selectOpt('sono_horas',9,this)" style="grid-column:1/-1;">
+        <span class="ci-opt-label">Mais de 8h</span>
+      </button>
+    </div>
+
+    <p class="ci-sub-label">Qualidade do sono</p>
+    <div class="ci-slider-wrap">
+      <div class="ci-slider-value">
+        <span class="ci-slider-value-num" id="val-sono_qualidade">—</span>
+        <span class="ci-slider-value-label" id="lbl-sono_qualidade">Mova o controle</span>
+      </div>
+      <div class="ci-slider-track">
+        <div class="ci-slider-bg"></div>
+        <div class="ci-slider-fill" id="fill-sono_qualidade" style="width:0%"></div>
+        <input type="range" class="ci-slider" id="slider-sono_qualidade"
+          min="1" max="5" step="1" value="3"
+          oninput="onSlider('sono_qualidade',this.value)">
+      </div>
+      <div class="ci-slider-labels"><span>Péssimo</span><span>Ótimo</span></div>
+    </div>
+
+    <p class="ci-sub-label">Despertares noturnos</p>
+    <div class="ci-opts" style="flex-direction:row;gap:8px;" id="opts-despertares">
+      <button class="ci-opt" style="flex:1;justify-content:center;" data-val="0" onclick="selectOpt('despertares',0,this)">Nenhum</button>
+      <button class="ci-opt" style="flex:1;justify-content:center;" data-val="1" onclick="selectOpt('despertares',1,this)">1 – 2×</button>
+      <button class="ci-opt" style="flex:1;justify-content:center;" data-val="3" onclick="selectOpt('despertares',3,this)">3+</button>
+    </div>
+
+    <button class="ci-next" onclick="avancarStep()">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 3 — Fome e comportamento ════════════════════ -->
+  <div class="ci-screen" id="screen-3">
+    <p class="ci-eyebrow">Fome e comportamento</p>
+    <h2 class="ci-question">Como foi sua fome hoje?</h2>
+
+    <p class="ci-sub-label">Intensidade da fome</p>
+    <div class="ci-slider-wrap">
+      <div class="ci-slider-value">
+        <span class="ci-slider-value-num" id="val-fome_nivel">—</span>
+        <span class="ci-slider-value-label" id="lbl-fome_nivel">Mova o controle</span>
+      </div>
+      <div class="ci-slider-track">
+        <div class="ci-slider-bg"></div>
+        <div class="ci-slider-fill" id="fill-fome_nivel" style="width:0%"></div>
+        <input type="range" class="ci-slider" id="slider-fome_nivel"
+          min="1" max="5" step="1" value="3"
+          oninput="onSlider('fome_nivel',this.value)">
+      </div>
+      <div class="ci-slider-labels"><span>Sem fome</span><span>Incontrolável</span></div>
+    </div>
+
+    <p class="ci-sub-label">Episódio de descontrole alimentar</p>
+    <div class="ci-opts" id="opts-descontrole">
+      <button class="ci-opt" data-val="nao" onclick="selectOpt('descontrole','nao',this)"><span class="ci-opt-label">Não</span></button>
+      <button class="ci-opt" data-val="leve" onclick="selectOpt('descontrole','leve',this)"><span class="ci-opt-label">Leve</span><span class="ci-opt-sub">Comi um pouco mais do planejado</span></button>
+      <button class="ci-opt" data-val="moderado" onclick="selectOpt('descontrole','moderado',this)"><span class="ci-opt-label">Moderado</span><span class="ci-opt-sub">Saí do plano em uma refeição</span></button>
+      <button class="ci-opt" data-val="forte" onclick="selectOpt('descontrole','forte',this)"><span class="ci-opt-label">Forte</span><span class="ci-opt-sub">Perdi o controle por um período</span></button>
+    </div>
+
+    <button class="ci-next" onclick="avancarStep()">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 4 — Intestino ════════════════════════════════ -->
+  <div class="ci-screen" id="screen-4">
+    <p class="ci-eyebrow">Trânsito intestinal</p>
+    <h2 class="ci-question">Evacuou hoje?</h2>
+
+    <div class="ci-opts" id="opts-evacuou">
+      <button class="ci-opt" data-val="false" onclick="selectEvacuou(false,this)"><span class="ci-opt-label">Não</span></button>
+      <button class="ci-opt" data-val="true" onclick="selectEvacuou(true,this)"><span class="ci-opt-label">Sim</span></button>
+    </div>
+
+    <!-- Condicional: só se evacuou = sim -->
+    <div class="ci-sub-section" id="section-intestino">
+
+      <p class="ci-sub-label">Frequência</p>
+      <div class="ci-opts" style="flex-direction:row;gap:8px;" id="opts-vezes">
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="1" onclick="selectOpt('evacuacao_vezes',1,this)">1×</button>
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="2" onclick="selectOpt('evacuacao_vezes',2,this)">2×</button>
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="3" onclick="selectOpt('evacuacao_vezes',3,this)">3+</button>
+      </div>
+
+      <p class="ci-sub-label" style="margin-top:12px;">Como foi a consistência?</p>
+      <div class="bristol-grid">
+        <button class="bristol-btn b-ruim" onclick="selectBristol(1,this)" title="Muito ressecada">1</button>
+        <button class="bristol-btn b-ruim" onclick="selectBristol(2,this)" title="Ressecada">2</button>
+        <button class="bristol-btn b-ok"   onclick="selectBristol(3,this)" title="Normal">3</button>
+        <button class="bristol-btn b-ok"   onclick="selectBristol(4,this)" title="Ideal">4</button>
+        <button class="bristol-btn b-ok"   onclick="selectBristol(5,this)" title="Normal">5</button>
+        <button class="bristol-btn b-ruim" onclick="selectBristol(6,this)" title="Mole">6</button>
+        <button class="bristol-btn b-ruim" onclick="selectBristol(7,this)" title="Muito mole">7</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:16px;text-align:center;">
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:#7A2E2E;font-weight:400;padding:4px 8px;background:rgba(122,46,46,0.06);border-radius:2px;">1–2<br>Muito seco</p>
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:#3D6B4F;font-weight:400;padding:4px 8px;background:rgba(61,107,79,0.06);border-radius:2px;">3–5<br>Ideal</p>
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:#7A2E2E;font-weight:400;padding:4px 8px;background:rgba(122,46,46,0.06);border-radius:2px;">6–7<br>Muito mole</p>
+      </div>
+
+      <p class="ci-sub-label">Sintomas (pode marcar mais de um)</p>
+      <div class="ci-chips" id="chips-sintomas">
+        <button class="ci-chip" data-val="gases" onclick="toggleChip(this)">Gases</button>
+        <button class="ci-chip" data-val="distensao" onclick="toggleChip(this)">Distensão</button>
+        <button class="ci-chip" data-val="refluxo" onclick="toggleChip(this)">Refluxo</button>
+        <button class="ci-chip" data-val="nausea" onclick="toggleChip(this)">Náusea</button>
+        <button class="ci-chip" data-val="dor_abdominal" onclick="toggleChip(this)">Dor abdominal</button>
+        <button class="ci-chip" data-val="nenhum" onclick="toggleChipExclusivo(this)">Nenhum</button>
+      </div>
+
+    </div>
+
+    <button class="ci-next" onclick="avancarStep()">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 5 — Treino ══════════════════════════════════ -->
+  <div class="ci-screen" id="screen-5">
+    <p class="ci-eyebrow">Treino</p>
+    <h2 class="ci-question">Treinou hoje?</h2>
+
+    <div class="ci-opts" id="opts-treinou">
+      <button class="ci-opt" data-val="false" onclick="selectTreinou(false,this)"><span class="ci-opt-label">Não</span></button>
+      <button class="ci-opt" data-val="true" onclick="selectTreinou(true,this)"><span class="ci-opt-label">Sim</span></button>
+    </div>
+
+    <!-- Condicional: só se treinou = sim -->
+    <div class="ci-sub-section" id="section-treino">
+
+      <p class="ci-sub-label">Tipo</p>
+      <div class="ci-opts" style="flex-direction:row;flex-wrap:wrap;gap:8px;" id="opts-treino-tipo">
+        <button class="ci-opt" style="flex:1;min-width:100px;justify-content:center;" data-val="musculacao" onclick="selectOpt('treino_tipo','musculacao',this)">Musculação</button>
+        <button class="ci-opt" style="flex:1;min-width:100px;justify-content:center;" data-val="cardio" onclick="selectOpt('treino_tipo','cardio',this)">Cardio</button>
+        <button class="ci-opt" style="flex:1;min-width:100px;justify-content:center;" data-val="outro" onclick="selectOpt('treino_tipo','outro',this)">Outro</button>
+      </div>
+
+      <p class="ci-sub-label" style="margin-top:12px;">Duração</p>
+      <div class="ci-opts" style="flex-direction:row;gap:8px;">
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="20" onclick="selectOpt('treino_duracao',20,this)">< 30min</button>
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="45" onclick="selectOpt('treino_duracao',45,this)">30–60min</button>
+        <button class="ci-opt" style="flex:1;justify-content:center;" data-val="75" onclick="selectOpt('treino_duracao',75,this)">> 60min</button>
+      </div>
+
+      <p class="ci-sub-label" style="margin-top:12px;">Intensidade</p>
+      <div class="ci-scale" id="scale-treino_intensidade">
+        <button class="ci-scale-btn" data-val="1" onclick="selectScale('treino_intensidade',1)">1<span class="ci-scale-label">Leve</span></button>
+        <button class="ci-scale-btn" data-val="2" onclick="selectScale('treino_intensidade',2)">2</button>
+        <button class="ci-scale-btn" data-val="3" onclick="selectScale('treino_intensidade',3)">3<span class="ci-scale-label">Médio</span></button>
+        <button class="ci-scale-btn" data-val="4" onclick="selectScale('treino_intensidade',4)">4</button>
+        <button class="ci-scale-btn" data-val="5" onclick="selectScale('treino_intensidade',5)">5<span class="ci-scale-label">Máximo</span></button>
+      </div>
+
+      <p class="ci-sub-label">Fadiga pós-treino</p>
+      <div class="ci-scale" id="scale-treino_fadiga">
+        <button class="ci-scale-btn" data-val="1" onclick="selectScale('treino_fadiga',1)">1<span class="ci-scale-label">Nenhuma</span></button>
+        <button class="ci-scale-btn" data-val="2" onclick="selectScale('treino_fadiga',2)">2</button>
+        <button class="ci-scale-btn" data-val="3" onclick="selectScale('treino_fadiga',3)">3<span class="ci-scale-label">Média</span></button>
+        <button class="ci-scale-btn" data-val="4" onclick="selectScale('treino_fadiga',4)">4</button>
+        <button class="ci-scale-btn" data-val="5" onclick="selectScale('treino_fadiga',5)">5<span class="ci-scale-label">Total</span></button>
+      </div>
+
+    </div>
+
+    <button class="ci-next" onclick="avancarStep()">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 6 — Hidratação ══════════════════════════════ -->
+  <div class="ci-screen" id="screen-6">
+    <p class="ci-eyebrow">Hidratação</p>
+    <h2 class="ci-question">Quanta água você bebeu hoje?</h2>
+
+    <div class="ci-opts" id="opts-agua">
+      <button class="ci-opt" data-val="0.5" onclick="selectOpt('agua_litros',0.5,this)">
+        <span class="ci-opt-label">Menos de 1L</span>
+        <span class="ci-opt-sub">Hidratação insuficiente</span>
+      </button>
+      <button class="ci-opt" data-val="1.5" onclick="selectOpt('agua_litros',1.5,this)">
+        <span class="ci-opt-label">1 – 2L</span>
+        <span class="ci-opt-sub">Abaixo do ideal</span>
+      </button>
+      <button class="ci-opt" data-val="2.5" onclick="selectOpt('agua_litros',2.5,this)">
+        <span class="ci-opt-label">2 – 3L</span>
+        <span class="ci-opt-sub">Adequado</span>
+      </button>
+      <button class="ci-opt" data-val="3.5" onclick="selectOpt('agua_litros',3.5,this)">
+        <span class="ci-opt-label">Mais de 3L</span>
+        <span class="ci-opt-sub">Ótimo</span>
+      </button>
+    </div>
+
+    <button class="ci-next" onclick="irParaObservacao()">Continuar</button>
+  </div>
+
+  <!-- ══ TELA 7 — Observação (condicional por flags) ═══════ -->
+  <div class="ci-screen" id="screen-7">
+    <p class="ci-eyebrow">Observação</p>
+    <h2 class="ci-question">Algo relevante hoje?</h2>
+    <p class="ci-sub" id="ci-obs-contexto">Campo opcional.</p>
+
+    <textarea class="ci-textarea" id="obs" rows="4"
+      placeholder="Escreva livremente..."></textarea>
+
+    <button class="ci-next" onclick="salvarCheckin()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Registrar check-in
+    </button>
+    <button class="ci-next skip" onclick="salvarCheckin()">Pular</button>
+  </div>
+
+  <!-- ══ TELA FINAL — Score e feedback ═════════════════════ -->
+  <div class="ci-screen" id="screen-done">
+    <div class="ci-done-score">
+      <div class="ci-score-circle" id="score-circle">
+        <span class="ci-score-num" id="score-num">—</span>
+        <span class="ci-score-label">Score</span>
+      </div>
+      <p class="ci-score-class" id="score-class">—</p>
+      <p class="ci-score-desc" id="score-desc">—</p>
+    </div>
+
+    <div class="ci-flags" id="ci-flags-list"></div>
+
+    <div class="ci-done-actions">
+      <a href="dashboard.html" class="ci-next" style="text-decoration:none;justify-content:center;">
+        Voltar ao início
+      </a>
+      <a href="checkin-resumo.html" class="ci-next skip" style="text-decoration:none;justify-content:center;">
+        Ver resumo semanal
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="js/checkin.js"></script>
+</body>
+</html>

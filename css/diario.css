@@ -1,0 +1,315 @@
+/* ============================================================
+   DIARIO.CSS — Diário Alimentar
+   ============================================================ */
+
+body#diario-root {
+  background: var(--bg-primary);
+  min-height: 100dvh;
+}
+
+.diario-main {
+  padding-top: 56px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+/* ── Hero ── */
+.diario-hero {
+  padding: 32px 24px 20px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.diario-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 6px;
+}
+
+.diario-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.diario-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+
+/* ── Seletor de data ── */
+.diario-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.diario-nav-btn {
+  background: none;
+  border: 1px solid var(--detail);
+  cursor: pointer;
+  color: var(--subtitle);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.diario-nav-btn:hover { border-color: var(--text); color: var(--text); }
+
+.diario-date-input {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--detail);
+  background: transparent;
+  padding: 6px 0;
+  outline: none;
+  letter-spacing: 0.04em;
+}
+
+/* ── Refeições ── */
+.diario-refeicoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.diario-refeicao {
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.diario-ref-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 8px;
+}
+
+.diario-ref-hora {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--detail);
+  min-width: 40px;
+}
+
+.diario-ref-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.diario-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px 24px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+  min-height: 72px;
+}
+
+.diario-textarea::placeholder {
+  color: rgba(154,125,94,0.4);
+  font-style: italic;
+}
+
+.diario-textarea:focus {
+  background: rgba(201,168,130,0.03);
+}
+
+/* ── Adesão ── */
+.diario-adesao {
+  padding: 28px 24px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+  border-top: 1px solid rgba(201,168,130,0.2);
+  margin-top: 8px;
+}
+
+.diario-adesao-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 16px;
+}
+
+.diario-adesao-scale {
+  display: flex;
+  gap: 8px;
+}
+
+.diario-adesao-btn {
+  flex: 1;
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 14px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s;
+}
+
+.diario-adesao-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.diario-adesao-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.3rem;
+  color: var(--text);
+  line-height: 1;
+}
+
+.diario-adesao-btn.active .diario-adesao-num { color: var(--bg-primary); }
+
+.diario-adesao-btn small {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.55rem;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.diario-adesao-btn.active small { color: rgba(248,244,239,0.8); }
+
+/* ── Observações ── */
+.diario-obs {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.diario-obs-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 8px;
+}
+
+.diario-obs .diario-textarea {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(201,168,130,0.3);
+  min-height: 60px;
+}
+
+/* ── Ações ── */
+.diario-actions {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.diario-saved-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  color: var(--subtitle);
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* ── Histórico ── */
+.diario-historico {
+  padding: 24px;
+  border-top: 1px solid rgba(201,168,130,0.2);
+  margin-top: 8px;
+}
+
+.diario-historico-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 16px;
+}
+
+.diario-historico-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(201,168,130,0.15);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.diario-historico-item:last-child { border-bottom: none; }
+.diario-historico-item:hover { opacity: 0.7; }
+
+.diario-hist-data {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.diario-hist-preview {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diario-hist-adesao {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  color: var(--detail);
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* ── Refeição preenchida ── */
+.diario-refeicao.preenchida .diario-ref-nome {
+  color: var(--subtitle);
+}
+
+.diario-refeicao.preenchida .diario-ref-header::after {
+  content: '✓';
+  font-size: 0.7rem;
+  color: var(--detail);
+  margin-left: auto;
+}

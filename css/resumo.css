@@ -1,0 +1,260 @@
+/* ============================================================
+   RESUMO.CSS — Resumo semanal visual da paciente
+   ============================================================ */
+
+body#resumo-root {
+  background: var(--bg-primary);
+  min-height: 100dvh;
+}
+
+.resumo-main {
+  padding-top: 56px;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+
+/* ── Loading ── */
+.resumo-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 56px);
+  gap: 16px;
+}
+
+.resumo-loading-icon {
+  font-size: 2rem;
+  color: var(--detail);
+  animation: pulse 1.8s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.resumo-loading p {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  color: var(--subtitle);
+}
+
+/* ── Hero ── */
+.resumo-hero {
+  padding: 40px 24px 24px;
+  border-bottom: 1px solid rgba(201,168,130,0.2);
+}
+
+.resumo-greeting {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 8px;
+}
+
+.resumo-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.resumo-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* ── Score card ── */
+.resumo-score-card {
+  margin: 24px;
+  padding: 28px;
+  border: 1px solid var(--detail);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.resumo-score-circle {
+  width: 80px;
+  height: 80px;
+  border: 2px solid var(--detail);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.resumo-score-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  color: var(--text);
+  line-height: 1;
+}
+
+.resumo-score-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  color: var(--subtitle);
+  align-self: flex-end;
+  padding-bottom: 4px;
+}
+
+.resumo-score-info {}
+
+.resumo-score-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 6px;
+}
+
+.resumo-score-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Metrics grid ── */
+.resumo-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--detail);
+  margin: 0 24px 24px;
+  border: 1px solid var(--detail);
+}
+
+.resumo-metric-card {
+  background: var(--bg-primary);
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.rm-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 8px;
+}
+
+.rm-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.6rem;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.rm-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.6rem;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+
+.rm-good { color: #4a7c5f; }
+.rm-warn { color: #8B6914; }
+.rm-bad  { color: #8B3A3A; }
+
+/* ── Gráficos ── */
+.resumo-chart-card {
+  margin: 0 24px 20px;
+  padding: 24px 20px;
+  border: 1px solid var(--detail);
+}
+
+.resumo-section-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 20px;
+}
+
+/* ── Dicas ── */
+.resumo-dicas {
+  margin: 0 24px 24px;
+}
+
+.resumo-dica-item {
+  border-left: 2px solid var(--detail);
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  background: var(--bg-secondary);
+}
+
+.resumo-dica-titulo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 6px;
+}
+
+.resumo-dica-texto {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* ── CTA check-in ── */
+.resumo-checkin-cta {
+  margin: 0 24px 32px;
+  padding: 24px;
+  border: 1px solid var(--detail);
+  text-align: center;
+}
+
+.cta-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.cta-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--text);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}

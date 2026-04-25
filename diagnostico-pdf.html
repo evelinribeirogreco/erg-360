@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico PDF v2</title>
+<style>
+  body{font-family:monospace;background:#f5f5f5;padding:24px;color:#333;font-size:13px}
+  #drop{border:2px dashed #999;padding:32px;text-align:center;margin-bottom:16px;cursor:pointer;background:#fff}
+  #drop.over{border-color:#333;background:#eee}
+  #output{background:#fff;border:1px solid #ccc;padding:16px;white-space:pre-wrap;max-height:80vh;overflow-y:auto;line-height:1.8}
+  h1{font-size:1rem;margin-bottom:12px}
+  #status{margin-bottom:8px;color:#666}
+  input[type=file]{display:none}
+  button{margin-top:8px;padding:6px 16px;cursor:pointer;font-family:monospace;margin-right:8px}
+</style>
+</head>
+<body>
+<h1>Diagnóstico PDF — linha por linha exata</h1>
+<div id="drop" onclick="document.getElementById('f').click()">
+  Clique ou arraste o PDF aqui
+  <input type="file" id="f" accept=".pdf">
+</div>
+<div id="status">Carregando PDF.js...</div>
+<button onclick="copyAll()">Copiar tudo</button>
+<div id="output">Aguardando...</div>
+
+<script>
+const drop=document.getElementById('drop'),status=document.getElementById('status'),output=document.getElementById('output'),input=document.getElementById('f');
+let rawLines=[];
+
+async function loadLib(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);})}
+
+async function init(){
+  try{
+    await loadLib('/js/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='/js/pdf.worker.min.js';
+    status.textContent='PDF.js pronto. Selecione o arquivo.';
+  }catch(e){status.textContent='ERRO PDF.js: '+e.message;}
+}
+init();
+
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');process(e.dataTransfer.files[0]);});
+input.addEventListener('change',()=>process(input.files[0]));
+
+async function process(file){
+  if(!file)return;
+  status.textContent='Lendo: '+file.name;
+  output.textContent='';rawLines=[];
+  try{
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      rawLines.push('=== PÁGINA '+p+' ===');
+      // Agrupa por Y — mesma lógica do extrator
+      const byY={};
+      content.items.forEach(item=>{
+        const y=Math.round(item.transform[5]);
+        if(!byY[y])byY[y]=[];
+        byY[y].push({x:item.transform[4],str:item.str});
+      });
+      Object.keys(byY).sort((a,b)=>b-a).forEach(y=>{
+        const row=byY[y].sort((a,b)=>a.x-b.x).map(i=>i.str).join(' ').trim();
+        if(row)rawLines.push(row);
+      });
+    }
+    output.textContent=rawLines.map((l,i)=>'['+String(i).padStart(2,'0')+'] '+l).join('\n');
+    status.textContent='Concluído. '+rawLines.length+' linhas. Copie e cole para análise.';
+  }catch(err){
+    output.textContent='ERRO: '+err.message;
+    status.textContent='Falha.';
+  }
+}
+
+function copyAll(){
+  const txt=rawLines.join('\n');
+  navigator.clipboard.writeText(txt).then(()=>alert('Copiado!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('Copiado!');
+  });
+}
+</script>
+</body>
+</html>

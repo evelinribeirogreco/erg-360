@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Resumo Semanal — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/checkin.css">
+  <link rel="stylesheet" href="css/resumo.css">
+  <link rel="stylesheet" href="css/ux-improvements.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body id="resumo-root">
+
+  <header class="checkin-header">
+    <button class="checkin-back" onclick="window.location.href='dashboard.html'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="checkin-header-center">
+      <img src="icons/logo-80.png" alt="ERG" class="checkin-logo">
+    </div>
+    <div class="checkin-header-date" id="resumo-periodo"></div>
+  </header>
+
+  <div class="back-bar"><a href="dashboard.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao dashboard</a></div>
+
+  <main class="resumo-main">
+
+    <!-- Loading -->
+    <div id="resumo-content" style="display:none;">
+
+    <!-- Nota parcial -->
+    <p id="resumo-nota-parcial" style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--subtitle);margin-bottom:12px;font-style:italic;display:none;"></p>
+
+    <!-- Tendências -->
+    <section class="section" style="margin-bottom:16px;">
+      <div id="tendencias-container"></div>
+    </section>
+
+    <!-- Diagnóstico -->
+    <section class="section">
+      <div id="diagnostico-semana"></div>
+    </section>
+
+  </div><!-- /resumo-content extra -->
+  <div id="resumo-loading" class="resumo-loading">
+      <div class="resumo-loading-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <p>Analisando sua semana...</p>
+    </div>
+
+    <!-- Conteúdo carregado via JS -->
+    <div id="resumo-content" style="display:none;">
+
+      <!-- Saudação -->
+      <div class="resumo-hero">
+        <p class="resumo-greeting" id="resumo-greeting"></p>
+        <h1 class="resumo-title" id="resumo-title"></h1>
+        <p class="resumo-sub" id="resumo-sub"></p>
+      </div>
+
+      <!-- Score geral da semana -->
+      <div class="resumo-score-card">
+        <div class="resumo-score-circle" id="score-circle">
+          <span class="resumo-score-num" id="score-num">—</span>
+          <span class="resumo-score-label">/ 10</span>
+        </div>
+        <div class="resumo-score-info">
+          <p class="resumo-score-title" id="score-title">Pontuação da semana</p>
+          <p class="resumo-score-desc" id="score-desc"></p>
+        </div>
+      </div>
+
+      <!-- Grid de métricas -->
+      <div class="resumo-metrics-grid">
+        <div class="resumo-metric-card" id="metric-sono">
+          <p class="rm-label">Sono</p>
+          <p class="rm-value" id="rm-sono">—</p>
+          <p class="rm-sub" id="rm-sono-sub"></p>
+        </div>
+        <div class="resumo-metric-card" id="metric-intestino">
+          <p class="rm-label">Intestino</p>
+          <p class="rm-value" id="rm-intestino">—</p>
+          <p class="rm-sub" id="rm-intestino-sub"></p>
+        </div>
+        <div class="resumo-metric-card" id="metric-agua">
+          <p class="rm-label">Hidratação</p>
+          <p class="rm-value" id="rm-agua">—</p>
+          <p class="rm-sub" id="rm-agua-sub"></p>
+        </div>
+        <div class="resumo-metric-card" id="metric-treino">
+          <p class="rm-label">Treinos</p>
+          <p class="rm-value" id="rm-treino">—</p>
+          <p class="rm-sub" id="rm-treino-sub"></p>
+        </div>
+        <div class="resumo-metric-card" id="metric-energia">
+          <p class="rm-label">Energia</p>
+          <p class="rm-value" id="rm-energia">—</p>
+          <p class="rm-sub" id="rm-energia-sub"></p>
+        </div>
+        <div class="resumo-metric-card" id="metric-humor">
+          <p class="rm-label">Humor</p>
+          <p class="rm-value" id="rm-humor">—</p>
+          <p class="rm-sub" id="rm-humor-sub"></p>
+        </div>
+      </div>
+
+      <!-- Gráfico da semana -->
+      <div class="resumo-chart-card">
+        <p class="resumo-section-title">Energia e Humor ao longo da semana</p>
+        <canvas id="chart-semana" height="180"></canvas>
+      </div>
+
+      <!-- Sono -->
+      <div class="resumo-chart-card">
+        <p class="resumo-section-title">Horas de sono</p>
+        <canvas id="chart-sono" height="140"></canvas>
+      </div>
+
+      <!-- Dicas personalizadas -->
+      <div class="resumo-dicas" id="resumo-dicas"></div>
+
+      <!-- Check-in de hoje -->
+      <div class="resumo-checkin-cta" id="cta-container"></div>
+
+    </div>
+
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+  <script type="module" src="js/checkin-resumo.js"></script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check-ins — Admin ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/doc-extractor.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Check-ins</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Check-ins</p>
+      </div>
+      <div class="sidebar-nav">
+        <p class="nav-section-label">Período</p>
+        <a class="nav-item active" onclick="setPeriodo(7)" id="per-7">Últimos 7 dias</a>
+        <a class="nav-item" onclick="setPeriodo(14)" id="per-14">Últimos 14 dias</a>
+        <a class="nav-item" onclick="setPeriodo(30)" id="per-30">Últimos 30 dias</a>
+        <a class="nav-item" onclick="setPeriodo(90)" id="per-90">Últimos 90 dias</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="patient-nome-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content" id="ci-main">
+
+      <!-- ── Extração de documentos com IA ── -->
+      <div class="section fade-up" style="margin-bottom:0;">
+        <h2 class="section-title">Anexar Documento</h2>
+        <div id="doc-extractor-exames"></div>
+      </div>
+
+
+      <!-- Loading -->
+      <div id="ci-loading" class="page-header fade-up">
+        <p class="page-greeting">Carregando...</p>
+        <h1 class="page-title">Check-ins</h1>
+      </div>
+
+      <!-- Conteúdo -->
+      <div id="ci-content" style="display:none;">
+
+        <header class="page-header fade-up">
+          <p class="page-greeting" id="ci-periodo-label">Últimos 7 dias</p>
+          <h1 class="page-title" id="ci-patient-title">—</h1>
+          <p class="page-date" id="ci-total-label"></p>
+        </header>
+
+        <!-- ══ SCORE METABÓLICO INTELIGENTE ══ -->
+        <section class="section fade-up" id="smet-section">
+          <h2 class="section-title">Score Metabólico Inteligente</h2>
+          <div id="smet-mount">
+            <div style="padding:24px;text-align:center;color:var(--sub);font-family:'DM Sans',sans-serif;font-size:0.78rem;">
+              Calculando score...
+            </div>
+          </div>
+        </section>
+
+        <!-- Score e resumo semanal -->
+        <section class="section fade-up fade-up-delay-1">
+          <h2 class="section-title">Resumo do Período</h2>
+          <div class="info-grid" id="resumo-grid"></div>
+        </section>
+
+        <!-- Gráficos — grid compacto 2 colunas -->
+        <section class="section fade-up fade-up-delay-2">
+          <h2 class="section-title">Gráficos do Período</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--detail);border:1px solid var(--detail);">
+            <div style="background:var(--bg-primary);padding:16px;">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:12px;">Energia e Humor</p>
+              <canvas id="chart-energia-humor" height="120"></canvas>
+            </div>
+            <div style="background:var(--bg-primary);padding:16px;">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:12px;">Sono</p>
+              <canvas id="chart-sono" height="120"></canvas>
+            </div>
+            <div style="background:var(--bg-primary);padding:16px;grid-column:1/-1;">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:12px;">Hidratação e Treinos</p>
+              <canvas id="chart-hidra-treino" height="90"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Intestino -->
+        <section class="section fade-up fade-up-delay-3">
+          <h2 class="section-title">Trânsito Intestinal</h2>
+          <div class="info-grid" id="intestino-grid"></div>
+          <div id="sintomas-gi-resumo" style="margin-top:16px;"></div>
+        </section>
+
+        <!-- Tabela de check-ins -->
+        <section class="section fade-up fade-up-delay-4">
+          <h2 class="section-title">Registro Diário — Check-ins</h2>
+          <div id="tabela-checkins" style="max-height:320px;overflow-y:auto;"></div>
+        </section>
+
+        <!-- Diário alimentar -->
+        <section class="section fade-up fade-up-delay-4">
+          <h2 class="section-title">Diário Alimentar</h2>
+          <div id="tabela-diario" style="max-height:280px;overflow-y:auto;"></div>
+        </section>
+
+      </div>
+
+      <!-- Sem dados -->
+      <div id="ci-empty" style="display:none;" class="page-header fade-up">
+        <p class="page-greeting">Nenhum dado</p>
+        <h1 class="page-title" id="ci-empty-title">—</h1>
+        <p class="page-date">Nenhum check-in registrado neste período.</p>
+      </div>
+
+      <div class="admin-back-bottom"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+    </main>
+  </div>
+
+  <style>
+    /* ══ SCORE METABÓLICO ══════════════════════════════════════ */
+    .smet-container { display:flex; flex-direction:column; gap:20px; }
+
+    /* Cabeçalho */
+    .smet-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .smet-header-sup { font-family:'DM Sans',sans-serif; font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--sub); margin:0 0 4px; }
+    .smet-header-titulo { font-family:'DM Serif Display',serif; font-size:1.35rem; color:var(--text); margin:0; font-weight:400; }
+    .smet-badge-tend { padding:5px 14px; border-radius:20px; font-family:'DM Sans',sans-serif; font-size:0.68rem; font-weight:600; letter-spacing:0.08em; white-space:nowrap; }
+
+    /* Linha superior: gauge + componentes + padrões rápidos */
+    .smet-row-top { display:grid; grid-template-columns:auto 1fr 1fr; gap:20px; align-items:start; }
+    @media(max-width:900px) { .smet-row-top { grid-template-columns:1fr; } }
+
+    /* Gauge */
+    .smet-gauge-box { text-align:center; }
+    .smet-gauge-period { font-family:'DM Sans',sans-serif; font-size:0.65rem; color:var(--sub); margin:4px 0 2px; }
+    .smet-gauge-sub { font-family:'DM Sans',sans-serif; font-size:0.62rem; color:var(--subtitle); line-height:1.4; max-width:200px; margin:0 auto; }
+
+    /* Componentes */
+    .smet-section-label { font-family:'DM Sans',sans-serif; font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--sub); margin:0 0 10px; }
+    .smet-comps-box, .smet-padroes-mini { padding:0; }
+    .smet-comp-row { display:grid; grid-template-columns:70px 1fr 36px; gap:8px; align-items:center; margin-bottom:8px; }
+    .smet-comp-label { font-family:'DM Sans',sans-serif; font-size:0.72rem; color:var(--sub); }
+    .smet-comp-bar-bg { height:6px; background:var(--bg2); border-radius:3px; overflow:hidden; }
+    .smet-comp-bar-fill { height:100%; border-radius:3px; transition:width 0.6s ease; }
+    .smet-comp-val { font-family:'DM Sans',sans-serif; font-size:0.68rem; color:var(--text); text-align:right; }
+
+    /* Padrões mini */
+    .smet-padrao-mini-item { display:flex; align-items:center; gap:8px; font-family:'DM Sans',sans-serif; font-size:0.74rem; color:var(--text); padding:6px 0; border-bottom:1px solid var(--detail); }
+    .smet-padrao-mini-item:last-child { border-bottom:none; }
+    .smet-ok-label { font-family:'DM Sans',sans-serif; font-size:0.74rem; color:#2E8B6A; }
+
+    /* Gráfico score */
+    .smet-chart-box { background:var(--bg2); padding:20px; border:1px solid var(--detail); }
+
+    /* Interpretação */
+    .smet-interpretacao-box { display:flex; gap:14px; background:#f0eeff; padding:18px 20px; border-left:3px solid #6D5ACF; }
+    .smet-interp-icon { font-size:1.3rem; flex-shrink:0; margin-top:2px; }
+    .smet-interp-label { font-family:'DM Sans',sans-serif; font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:#6D5ACF; margin:0 0 5px; font-weight:600; }
+    .smet-interp-text { font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--text); line-height:1.6; margin:0; }
+
+    /* Seção genérica */
+    .smet-section { display:flex; flex-direction:column; gap:8px; }
+
+    /* Padrões detalhados */
+    .smet-padroes-grid { display:flex; flex-direction:column; gap:10px; }
+    .smet-padrao-card { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; }
+    .smet-padrao-icone { font-size:1.2rem; flex-shrink:0; margin-top:2px; }
+    .smet-padrao-titulo { font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.82rem; color:var(--text); margin:0 0 3px; }
+    .smet-padrao-desc { font-family:'DM Sans',sans-serif; font-size:0.74rem; color:var(--sub); line-height:1.5; margin:0; }
+
+    /* Sugestões */
+    .smet-sug-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+    .smet-sug-card { background:var(--bg2); padding:16px; border:1px solid var(--detail); display:flex; flex-direction:column; gap:8px; }
+    .smet-sug-header { display:flex; align-items:flex-start; gap:10px; }
+    .smet-sug-icone { font-size:1.3rem; flex-shrink:0; }
+    .smet-sug-titulo { font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.8rem; color:var(--text); margin:0 0 4px; }
+    .smet-sug-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.58rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
+    .smet-sug-acao { font-family:'DM Sans',sans-serif; font-size:0.74rem; color:var(--text); line-height:1.5; margin:0; }
+    .smet-sug-impacto { font-family:'DM Sans',sans-serif; font-size:0.72rem; color:var(--sub); line-height:1.5; margin:0; }
+
+    /* Simulador */
+    .smet-simulador-section { border:1px solid var(--detail); padding:20px; }
+    .smet-sim-layout { display:grid; grid-template-columns:260px 1fr; gap:24px; }
+    @media(max-width:900px) { .smet-sim-layout { grid-template-columns:1fr; } }
+    .smet-sim-form { display:flex; flex-direction:column; gap:12px; }
+    .smet-sim-field { display:flex; flex-direction:column; gap:4px; }
+    .smet-sim-field label { font-family:'DM Sans',sans-serif; font-size:0.68rem; color:var(--sub); letter-spacing:0.06em; text-transform:uppercase; }
+    .smet-sim-field input { font-family:'DM Sans',sans-serif; font-size:0.82rem; color:var(--text); background:var(--bg2); border:1px solid var(--detail); padding:8px 12px; outline:none; }
+    .smet-sim-field input:focus { border-color:var(--gold,#C9A882); }
+    .smet-sim-hint { font-family:'DM Sans',sans-serif; font-size:0.65rem; color:var(--subtitle); }
+    .smet-sim-btn { background:var(--text); color:var(--bg); font-family:'DM Sans',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; border:none; padding:12px 20px; cursor:pointer; margin-top:4px; transition:opacity .2s; }
+    .smet-sim-btn:hover { opacity:0.8; }
+    .smet-sim-metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:20px; }
+    .smet-sim-metric { background:var(--bg2); border:1px solid var(--detail); padding:14px; text-align:center; }
+    .smet-sm-val { font-family:'DM Serif Display',serif; font-size:1.3rem; color:var(--text); margin:0 0 4px; font-weight:400; }
+    .smet-sm-label { font-family:'DM Sans',sans-serif; font-size:0.62rem; color:var(--sub); letter-spacing:0.08em; text-transform:uppercase; margin:0; }
+  </style>
+
+  <script type="module" src="js/admin-checkins.js"></script>
+</body>
+</html>

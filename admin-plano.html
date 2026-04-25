@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano Alimentar — ERG Admin</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/doc-extractor.css">
+<link rel="stylesheet" href="css/theme-nutri.css">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+/* ══ LAYOUT PLANO ══════════════════════════════════════════ */
+.plano-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar esquerda ── */
+.plano-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--detail);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.plano-sidebar-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid rgba(76,184,160,0.3);
+}
+
+.plano-sidebar-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.plano-sidebar-header p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  color: var(--subtitle);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.plano-sidebar-nav {
+  padding: 12px 0;
+  flex: 1;
+}
+
+.plano-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-light);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  background: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+  text-align: left;
+  width: 100%;
+}
+
+.plano-nav-item:hover { color: var(--text); background: rgba(76,184,160,0.08); }
+.plano-nav-item.active { color: var(--text); border-left-color: var(--detail); background: rgba(76,184,160,0.1); font-weight: 500; }
+.plano-nav-item.done { color: var(--success); }
+.plano-nav-item.done::after { content: '✓'; margin-left: auto; font-size: 0.7rem; }
+
+.plano-nav-num {
+  width: 20px; height: 20px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.plano-nav-item.active .plano-nav-num { opacity: 1; background: var(--detail); border-color: var(--detail); color: #fff; }
+.plano-nav-item.done .plano-nav-num   { opacity: 1; background: var(--success); border-color: var(--success); color: #fff; }
+
+.plano-sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(76,184,160,0.3);
+}
+
+.plano-back-link {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--subtitle);
+  text-decoration: none; transition: color 0.2s;
+}
+.plano-back-link:hover { color: var(--text); }
+
+/* ── Main ── */
+.plano-main {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  gap: 0;
+}
+
+.plano-form-area {
+  flex: 1;
+  padding: 40px 36px 80px;
+  min-width: 0;
+}
+
+/* ── Preview lateral ── */
+.plano-preview {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--detail);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 28px 20px;
+}
+
+.plano-preview-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(76,184,160,0.3);
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(76,184,160,0.15);
+}
+
+.preview-row:last-child { border-bottom: none; }
+
+.preview-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-light);
+  font-weight: 300;
+}
+
+.preview-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  color: var(--text);
+  font-weight: 300;
+}
+
+.preview-unit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: var(--subtitle);
+  margin-left: 3px;
+}
+
+.preview-progress {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(76,184,160,0.3);
+}
+
+.preview-progress-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 10px;
+}
+
+.preview-progress-bar {
+  height: 3px;
+  background: rgba(76,184,160,0.2);
+  margin-bottom: 4px;
+}
+
+.preview-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.5s ease;
+}
+
+.preview-progress-pct {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+/* ── Blocos ── */
+.plano-block { display: none; }
+.plano-block.active { display: block; }
+
+.block-header {
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(76,184,160,0.2);
+}
+
+.block-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 6px;
+}
+
+.block-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(1.6rem, 2.5vw, 2rem);
+  color: var(--text);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.block-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* ── Opções de importação ── */
+.import-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--detail);
+  border: 1px solid var(--detail);
+  margin-bottom: 28px;
+}
+
+.import-opt {
+  background: var(--bg-primary);
+  padding: 24px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  text-align: left;
+}
+
+.import-opt:hover { background: var(--bg-secondary); }
+.import-opt.selected { background: var(--bg-secondary); border-bottom: 2px solid var(--detail); }
+
+.import-opt-icon { color: var(--detail); margin-bottom: 10px; }
+.import-opt-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.import-opt-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+/* ── Grade de formulário ── */
+.plano-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; }
+.plano-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+.col-full { grid-column: 1 / -1; }
+
+/* ── Refeição card ── */
+.refeicao-card {
+  border: 1px solid var(--detail);
+  margin-bottom: 12px;
+  background: var(--bg-primary);
+}
+
+.refeicao-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(76,184,160,0.3);
+  cursor: pointer;
+}
+
+.refeicao-card-header h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.refeicao-card-body { padding: 16px; }
+
+.refeicao-item-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 28px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.item-novo-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.macro-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(76,184,160,0.2);
+}
+
+/* ── Lista de itens ── */
+.item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-remove-row {
+  width: 28px; height: 28px;
+  background: none;
+  border: 1px solid rgba(76,184,160,0.3);
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-remove-row:hover { border-color: var(--error); color: var(--error); }
+
+.btn-add-item {
+  background: none;
+  border: none;
+  color: var(--subtitle);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+  letter-spacing: 0.06em;
+}
+.btn-add-item:hover { color: var(--text); }
+
+/* ── Navegação entre blocos ── */
+.block-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(76,184,160,0.2);
+}
+
+.block-nav-left { display: flex; gap: 10px; }
+
+.btn-draft {
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid var(--detail);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-draft:hover { border-color: var(--text); color: var(--text); }
+
+/* ── Status do plano ── */
+.plano-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--detail);
+  margin-bottom: 24px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--detail);
+  flex-shrink: 0;
+}
+.status-dot.rascunho { background: #B8860B; }
+.status-dot.salvo    { background: var(--success); }
+
+/* ── Mobile ── */
+@media (max-width: 1100px) {
+  .plano-preview { display: none; }
+}
+
+@media (max-width: 768px) {
+  .plano-sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+  .plano-sidebar.open { transform: translateX(0); }
+  .plano-main { margin-left: 0; }
+  .plano-form-area { padding: 20px 16px 80px; }
+  .plano-grid { grid-template-columns: 1fr; }
+  .import-options { grid-template-columns: 1fr; }
+  .macro-row { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="plano-layout">
+
+  <!-- ══ SIDEBAR ════════════════════════════════════════════ -->
+  <aside class="plano-sidebar" id="plano-sidebar">
+    <div class="plano-sidebar-header">
+      <h1>Plano Alimentar</h1>
+      <p id="sb-paciente-nome">Carregando...</p>
+    </div>
+
+    <nav class="plano-sidebar-nav">
+      <button class="plano-nav-item active" id="nav-0" onclick="goBlock(0)">
+        <span class="plano-nav-num">1</span>
+        Dados Gerais
+      </button>
+      <button class="plano-nav-item" id="nav-1" onclick="goBlock(1)">
+        <span class="plano-nav-num">2</span>
+        Metas Nutricionais
+      </button>
+      <button class="plano-nav-item" id="nav-2" onclick="goBlock(2)">
+        <span class="plano-nav-num">3</span>
+        Refeições
+      </button>
+      <button class="plano-nav-item" id="nav-3" onclick="goBlock(3)">
+        <span class="plano-nav-num">4</span>
+        Ajustes Clínicos
+      </button>
+      <button class="plano-nav-item" id="nav-4" onclick="goBlock(4)">
+        <span class="plano-nav-num">5</span>
+        Revisão Final
+      </button>
+    </nav>
+
+    <div class="plano-sidebar-footer">
+      <a href="admin.html" class="plano-back-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar ao painel
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ═══════════════════════════════════════════════ -->
+  <div class="plano-main">
+    <div class="plano-form-area">
+
+      <!-- Status bar -->
+      <div class="plano-status-bar">
+        <span class="status-dot rascunho" id="status-dot"></span>
+        <span id="status-label">Rascunho</span>
+        <span style="margin-left:auto;color:var(--detail);font-size:0.65rem;" id="status-saved"></span>
+      </div>
+
+      <form id="plano-form" novalidate>
+        <input type="hidden" id="f-patient-id">
+        <input type="hidden" id="f-user-id">
+        <input type="hidden" id="f-plano-id">
+
+        <!-- ══ BLOCO 1 — DADOS GERAIS ══════════════════════ -->
+        <div class="plano-block active" id="block-0">
+          <div class="block-header">
+            <p class="block-eyebrow">Bloco 1 de 5</p>
+            <h1 class="block-title">Dados Gerais</h1>
+            <p class="block-sub">Identificação do plano e importação via PDF.</p>
+          </div>
+
+          <!-- Importação -->
+          <div style="margin-bottom:28px;">
+            <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:14px;">Como deseja preencher?</p>
+            <div class="import-options">
+              <button type="button" class="import-opt selected" id="opt-pdf" onclick="selectImport('pdf')">
+                <div class="import-opt-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="import-opt-label">Importar via PDF</div>
+                <div class="import-opt-sub">Extrai dados automaticamente do plano existente</div>
+              </button>
+              <button type="button" class="import-opt" id="opt-manual" onclick="selectImport('manual')">
+                <div class="import-opt-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div class="import-opt-label">Criar manualmente</div>
+                <div class="import-opt-sub">Preencha campo a campo o novo plano</div>
+              </button>
+            </div>
+
+            <!-- Widget PDF (visível quando PDF selecionado) -->
+            <div id="pdf-widget-area">
+              <div id="doc-extractor-plano"></div>
+            </div>
+          </div>
+
+          <!-- Identificação -->
+          <div style="margin-bottom:24px;">
+            <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:14px;">Identificação</p>
+            <div class="plano-grid">
+              <div class="form-group">
+                <label class="form-label">Nome / versão do plano</label>
+                <input class="form-input" type="text" id="f-plano-nome" placeholder="Ex: Plano de Emagrecimento — Fase 1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data de elaboração</label>
+                <input class="form-input" type="date" id="f-plano-data">
+              </div>
+              <div class="form-group col-full">
+                <label class="form-label">Subtítulo / nota</label>
+                <input class="form-input" type="text" id="f-plano-subtitulo" placeholder="Ex: Elaborado em março/2026 · Validade: 3 meses">
+              </div>
+            </div>
+          </div>
+
+          <div class="block-nav">
+            <div class="block-nav-left">
+              <button type="button" class="btn-draft" onclick="salvarRascunho()">Salvar rascunho</button>
+            </div>
+            <button type="button" class="btn-primary" style="width:auto;padding:14px 32px;" onclick="goBlock(1)">
+              Próximo: Metas
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ BLOCO 2 — METAS NUTRICIONAIS ════════════════ -->
+        <div class="plano-block" id="block-1">
+          <div class="block-header">
+            <p class="block-eyebrow">Bloco 2 de 5</p>
+            <h1 class="block-title">Metas Nutricionais</h1>
+            <p class="block-sub">Defina as metas calóricas e de macronutrientes. O preview atualiza em tempo real.</p>
+          </div>
+
+          <!-- ─── Templates pré-prontos ─── -->
+          <div id="templatesCard" style="margin-bottom:20px;border:1px solid var(--detail);background:var(--bg-primary);padding:16px 18px;border-radius:6px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtitle);margin:0 0 2px 0;">Atalho</p>
+                <h3 style="font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.15rem;color:var(--text-dark);margin:0;">Aplicar template pré-pronto</h3>
+                <p id="templatesHint" style="font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--subtitle);margin:6px 0 0 0;">Preenche macros, kcal e texto clínico a partir do perfil da paciente.</p>
+              </div>
+              <button type="button" class="btn-primary" style="padding:10px 20px;font-size:0.74rem;width:auto;" onclick="abrirModalTemplates()">
+                Ver sugestões
+              </button>
+            </div>
+          </div>
+
+          <!-- ─── Calculadora GEB/GET automática ─── -->
+          <div id="gebCalc" style="margin-bottom:20px;border:1px solid var(--detail);background:var(--bg-secondary);padding:16px 18px;border-radius:6px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+              <div>
+                <p style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtitle);margin:0 0 2px 0;">Calculadora rápida</p>
+                <h3 style="font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.15rem;color:var(--text-dark);margin:0;">Sugerir calorias e macros a partir da TMB</h3>
+              </div>
+              <button type="button" class="btn-draft" onclick="toggleGebCalc()" id="gebCalcToggle" style="font-size:0.75rem;padding:6px 14px;">Abrir</button>
+            </div>
+            <div id="gebCalcBody" style="display:none;padding-top:6px;">
+              <div class="plano-grid plano-grid--3" style="margin-bottom:12px;">
+                <div class="form-group">
+                  <label class="form-label">TMB (kcal/dia)</label>
+                  <input class="form-input" type="number" id="calc-tmb" placeholder="1500" oninput="recalcGeb()">
+                  <p class="form-hint" id="calc-tmb-hint" style="font-size:0.7rem;color:var(--subtitle);margin-top:4px;">—</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Fator de atividade</label>
+                  <select class="form-input" id="calc-af" onchange="recalcGeb()">
+                    <option value="1.2">Sedentária (1,2)</option>
+                    <option value="1.375">Levemente ativa (1,375)</option>
+                    <option value="1.55" selected>Moderadamente ativa (1,55)</option>
+                    <option value="1.725">Muito ativa (1,725)</option>
+                    <option value="1.9">Extremamente ativa (1,9)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Objetivo</label>
+                  <select class="form-input" id="calc-obj" onchange="recalcGeb()">
+                    <option value="-500">Emagrecer (-500 kcal)</option>
+                    <option value="-300">Emagrecer leve (-300 kcal)</option>
+                    <option value="0" selected>Manutenção</option>
+                    <option value="300">Ganho leve (+300 kcal)</option>
+                    <option value="500">Ganho (+500 kcal)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="plano-grid plano-grid--3" style="margin-bottom:12px;">
+                <div class="form-group">
+                  <label class="form-label">Peso atual (kg)</label>
+                  <input class="form-input" type="number" step="0.1" id="calc-peso" placeholder="70" oninput="recalcGeb()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Proteína (g/kg)</label>
+                  <input class="form-input" type="number" step="0.1" id="calc-ptn-kg" value="1.8" oninput="recalcGeb()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Lipídio (% VET)</label>
+                  <input class="form-input" type="number" step="1" id="calc-lip-pct" value="25" oninput="recalcGeb()">
+                </div>
+              </div>
+              <div id="gebCalcResult" style="background:var(--bg-primary);border:1px solid var(--detail);padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text-dark);margin-bottom:12px;">
+                <p style="margin:0;color:var(--subtitle);">Preencha TMB e peso para calcular GET e macros.</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn-primary" style="padding:10px 18px;font-size:0.78rem;width:auto;" onclick="aplicarGebCalc()">Aplicar ao plano</button>
+                <button type="button" class="btn-draft" style="padding:10px 18px;font-size:0.78rem;" onclick="resetarGebCalc()">Limpar</button>
+              </div>
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--subtitle);margin-top:10px;font-style:italic;">
+                Fórmula: <b>GET = TMB × AF ± Objetivo</b>. Proteína = peso × g/kg (4 kcal/g). Lipídio = % do VET (9 kcal/g). Carboidrato preenche o restante (4 kcal/g).
+                Edite os campos do plano manualmente depois se quiser ajustar.
+              </p>
+            </div>
+          </div>
+
+          <div class="plano-grid plano-grid--3" style="margin-bottom:24px;">
+            <div class="form-group">
+              <label class="form-label">Calorias alvo (kcal)</label>
+              <input class="form-input" type="number" id="f-kcal" placeholder="2000" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Proteína (g)</label>
+              <input class="form-input" type="number" id="f-ptn" placeholder="150" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Carboidratos (g)</label>
+              <input class="form-input" type="number" id="f-cho" placeholder="200" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lipídios (g)</label>
+              <input class="form-input" type="number" id="f-lip" placeholder="70" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fibras (g)</label>
+              <input class="form-input" type="number" id="f-fibras" placeholder="28" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número de refeições</label>
+              <input class="form-input" type="number" id="f-refeicoes" min="1" max="8" placeholder="5" oninput="updatePreview()">
+            </div>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:14px;">Contexto clínico</p>
+            <div class="plano-grid">
+              <div class="form-group">
+                <label class="form-label">Critério central</label>
+                <textarea class="form-input form-textarea" id="f-criterio" rows="3" placeholder="Ex: Plano priorizando alimentos já consumidos pela paciente. Ajustes apenas onde clinicamente necessário."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cálculo energético (VET)</label>
+                <textarea class="form-input form-textarea" id="f-calculo-vet" rows="3" placeholder="Ex: TMB = 1.661 kcal · AF 1,55 · GET 2.575 · Déficit -500 → VET 2.075 kcal/dia"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="block-nav">
+            <div class="block-nav-left">
+              <button type="button" class="btn-draft" onclick="goBlock(0)">← Anterior</button>
+              <button type="button" class="btn-draft" onclick="salvarRascunho()">Salvar rascunho</button>
+            </div>
+            <button type="button" class="btn-primary" style="width:auto;padding:14px 32px;" onclick="goBlock(2)">
+              Próximo: Refeições
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ BLOCO 3 — REFEIÇÕES ══════════════════════════ -->
+        <div class="plano-block" id="block-2">
+          <div class="block-header">
+            <p class="block-eyebrow">Bloco 3 de 5</p>
+            <h1 class="block-title">Refeições</h1>
+            <p class="block-sub">Monte o cardápio diário. Adicione itens e marque os que são novos no plano.</p>
+          </div>
+
+          <div class="form-group" style="margin-bottom:20px;">
+            <label class="form-label">Observação geral do plano</label>
+            <textarea class="form-input form-textarea" id="f-plano-obs" rows="2" placeholder="Ex: Horários ajustados ao ciclo de sono. Musculação 5×/sem."></textarea>
+          </div>
+
+          <div id="refeicoes-container"></div>
+          <button type="button" class="btn-draft" onclick="addRefeicao()" style="width:100%;padding:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar refeição
+          </button>
+
+          <div class="block-nav">
+            <div class="block-nav-left">
+              <button type="button" class="btn-draft" onclick="goBlock(1)">← Anterior</button>
+              <button type="button" class="btn-draft" onclick="salvarRascunho()">Salvar rascunho</button>
+            </div>
+            <button type="button" class="btn-primary" style="width:auto;padding:14px 32px;" onclick="goBlock(3)">
+              Próximo: Ajustes
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ BLOCO 4 — AJUSTES CLÍNICOS ══════════════════ -->
+        <div class="plano-block" id="block-3">
+          <div class="block-header">
+            <p class="block-eyebrow">Bloco 4 de 5</p>
+            <h1 class="block-title">Ajustes Clínicos</h1>
+            <p class="block-sub">Substitutos, micronutrientes, suplementação, hidratação, timing e lista de compras.</p>
+          </div>
+
+          <!-- Substituições -->
+          <div style="margin-bottom:28px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Substituições</p>
+              <button type="button" class="btn-add-item" onclick="addSubstGrupo()">+ Adicionar grupo</button>
+            </div>
+            <div id="subst-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:28px;padding-top:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Micronutrientes prioritários</p>
+              <button type="button" class="btn-add-item" onclick="addMicro()">+ Adicionar</button>
+            </div>
+            <div id="micro-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:28px;padding-top:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Suplementação</p>
+              <button type="button" class="btn-add-item" onclick="addSupl()">+ Adicionar</button>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <textarea class="form-input form-textarea" id="f-supl-obs" rows="2" placeholder="Obs. geral sobre suplementação..."></textarea>
+            </div>
+            <div id="supl-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:28px;padding-top:24px;">
+            <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:14px;">Hidratação</p>
+            <div class="plano-grid" style="margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label">Meta hídrica</label>
+                <input class="form-input" type="text" id="f-hidra-meta" placeholder="Ex: 2,5–3,0 L/dia">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Restrições</label>
+                <input class="form-input" type="text" id="f-hidra-restricoes" placeholder="Ex: Não beber durante as refeições">
+              </div>
+            </div>
+            <div id="hidra-container"></div>
+            <button type="button" class="btn-add-item" onclick="addHidra()" style="margin-top:8px;">+ Adicionar horário</button>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:28px;padding-top:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Timing clínico</p>
+              <button type="button" class="btn-add-item" onclick="addTiming()">+ Adicionar</button>
+            </div>
+            <div id="timing-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:28px;padding-top:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Lista de compras</p>
+              <button type="button" class="btn-add-item" onclick="addComprasCat()">+ Adicionar categoria</button>
+            </div>
+            <div id="compras-container"></div>
+            <div class="form-group" style="margin-top:12px;">
+              <label class="form-label">Alimentos a evitar</label>
+              <textarea class="form-input form-textarea" id="f-compras-evitar" rows="2" placeholder="Ex: Temperos prontos, embutidos, refrigerantes..."></textarea>
+            </div>
+          </div>
+
+          <div class="block-nav">
+            <div class="block-nav-left">
+              <button type="button" class="btn-draft" onclick="goBlock(2)">← Anterior</button>
+              <button type="button" class="btn-draft" onclick="salvarRascunho()">Salvar rascunho</button>
+            </div>
+            <button type="button" class="btn-primary" style="width:auto;padding:14px 32px;" onclick="goBlock(4)">
+              Próximo: Revisão
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ BLOCO 5 — REVISÃO FINAL ══════════════════════ -->
+        <div class="plano-block" id="block-4">
+          <div class="block-header">
+            <p class="block-eyebrow">Bloco 5 de 5</p>
+            <h1 class="block-title">Revisão Final</h1>
+            <p class="block-sub">Orientações finais e publicação do plano.</p>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">O que manter</p>
+              <button type="button" class="btn-add-item" onclick="addOrient('manter')">+ Adicionar</button>
+            </div>
+            <div id="orient-manter-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:24px;padding-top:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">O que ajustar</p>
+              <button type="button" class="btn-add-item" onclick="addOrient('mudar')">+ Adicionar</button>
+            </div>
+            <div id="orient-mudar-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:24px;padding-top:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Sinais de atenção</p>
+              <button type="button" class="btn-add-item" onclick="addOrient('atencao')">+ Adicionar</button>
+            </div>
+            <div id="orient-atencao-container"></div>
+          </div>
+
+          <div style="border-top:1px solid rgba(76,184,160,0.2);margin-bottom:24px;padding-top:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);">Exames de retorno</p>
+              <button type="button" class="btn-add-item" onclick="addOrient('exames')">+ Adicionar</button>
+            </div>
+            <div id="orient-exames-container"></div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:28px;">
+            <label class="form-label">Rodapé do plano</label>
+            <textarea class="form-input form-textarea" id="f-orient-rodape" rows="3"
+              placeholder="Ex: Próxima consulta: 30–45 dias. Fontes: CFN, OMS, PubMed, TACO, TBCA."></textarea>
+          </div>
+
+          <!-- Revisão rápida antes de salvar -->
+          <div id="revisao-resumo" style="border:1px solid var(--detail);padding:24px;margin-bottom:24px;background:var(--bg-secondary);">
+            <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);margin-bottom:16px;">Resumo do plano</p>
+            <div id="revisao-content"></div>
+          </div>
+
+          <div class="block-nav">
+            <div class="block-nav-left">
+              <button type="button" class="btn-draft" onclick="goBlock(3)">← Anterior</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="btn-draft" onclick="salvarRascunho()">Salvar rascunho</button>
+              <button type="button" class="btn-draft" onclick="exportarPlanoPdf()" title="Abre janela de impressão — escolha 'Salvar como PDF' para enviar à paciente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <polyline points="9 15 12 18 15 15"/>
+                </svg>
+                Exportar PDF
+              </button>
+              <button type="submit" class="btn-primary" id="btn-save" style="width:auto;padding:14px 36px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Publicar plano
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-message" id="form-message"></div>
+      </form>
+    </div>
+
+    <!-- ══ PREVIEW LATERAL ══════════════════════════════════ -->
+    <aside class="plano-preview">
+      <p class="plano-preview-title">Resumo em tempo real</p>
+
+      <div class="preview-row">
+        <span class="preview-label">Calorias</span>
+        <span><span class="preview-val" id="prev-kcal">—</span><span class="preview-unit">kcal</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Proteína</span>
+        <span><span class="preview-val" id="prev-ptn">—</span><span class="preview-unit">g</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Carboidratos</span>
+        <span><span class="preview-val" id="prev-cho">—</span><span class="preview-unit">g</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Lipídios</span>
+        <span><span class="preview-val" id="prev-lip">—</span><span class="preview-unit">g</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Fibras</span>
+        <span><span class="preview-val" id="prev-fibras">—</span><span class="preview-unit">g</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Refeições</span>
+        <span><span class="preview-val" id="prev-ref">—</span></span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">Paciente</span>
+        <span class="preview-label" id="prev-pac" style="text-align:right;max-width:120px;">—</span>
+      </div>
+
+      <div class="preview-progress">
+        <p class="preview-progress-label">Progresso do cadastro</p>
+        <div class="preview-progress-bar">
+          <div class="preview-progress-fill" id="prev-progress-fill" style="width:20%;"></div>
+        </div>
+        <p class="preview-progress-pct" id="prev-progress-pct">Bloco 1 de 5</p>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(76,184,160,0.2);">
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtitle);margin-bottom:10px;">Macros (%)</p>
+        <div id="prev-macro-pct" style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);line-height:2;"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;padding:14px 24px;
+  font-family:'DM Sans',sans-serif;font-size:0.8rem;z-index:1000;
+  box-shadow:0 4px 16px rgba(44,34,24,0.25);white-space:nowrap;"></div>
+
+<script>
+// ── Navegação entre blocos ────────────────────────────────
+let currentBlock = 0;
+const TOTAL = 5;
+
+function goBlock(n) {
+  document.getElementById('block-' + currentBlock).classList.remove('active');
+  document.getElementById('nav-' + currentBlock).classList.remove('active');
+
+  if (n > currentBlock) {
+    document.getElementById('nav-' + currentBlock).classList.add('done');
+  }
+
+  currentBlock = n;
+  document.getElementById('block-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.remove('done');
+
+  updatePreview();
+  updateRevisao();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.goBlock = goBlock;
+
+// ── Preview em tempo real ─────────────────────────────────
+function updatePreview() {
+  const get = id => document.getElementById(id)?.value || '';
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v || '—'; };
+
+  const kcal  = parseFloat(get('f-kcal'))  || 0;
+  const ptn   = parseFloat(get('f-ptn'))   || 0;
+  const cho   = parseFloat(get('f-cho'))   || 0;
+  const lip   = parseFloat(get('f-lip'))   || 0;
+  const fibras= parseFloat(get('f-fibras'))|| 0;
+  const ref   = get('f-refeicoes');
+
+  set('prev-kcal',   kcal  || '—');
+  set('prev-ptn',    ptn   || '—');
+  set('prev-cho',    cho   || '—');
+  set('prev-lip',    lip   || '—');
+  set('prev-fibras', fibras|| '—');
+  set('prev-ref',    ref   || '—');
+
+  // Percentuais
+  const total_kcal = (ptn * 4) + (cho * 4) + (lip * 9);
+  const pctEl = document.getElementById('prev-macro-pct');
+  if (pctEl && total_kcal > 0) {
+    const pp = Math.round((ptn*4/total_kcal)*100);
+    const pc = Math.round((cho*4/total_kcal)*100);
+    const pl = Math.round((lip*9/total_kcal)*100);
+    pctEl.innerHTML = `Ptn ${pp}% &nbsp; CHO ${pc}% &nbsp; Lip ${pl}%`;
+  }
+
+  // Progresso
+  const pct = Math.round(((currentBlock + 1) / TOTAL) * 100);
+  const fill = document.getElementById('prev-progress-fill');
+  if (fill) fill.style.width = pct + '%';
+  const pctLabel = document.getElementById('prev-progress-pct');
+  if (pctLabel) pctLabel.textContent = `Bloco ${currentBlock + 1} de ${TOTAL}`;
+}
+
+// ── Importação PDF vs manual ──────────────────────────────
+function selectImport(type) {
+  document.getElementById('opt-pdf').classList.toggle('selected', type === 'pdf');
+  document.getElementById('opt-manual').classList.toggle('selected', type === 'manual');
+  document.getElementById('pdf-widget-area').style.display = type === 'pdf' ? '' : 'none';
+}
+
+window.selectImport = selectImport;
+
+// ── Revisão final ─────────────────────────────────────────
+function updateRevisao() {
+  if (currentBlock !== 4) return;
+  const get = id => document.getElementById(id)?.value || '—';
+  const el  = document.getElementById('revisao-content');
+  if (!el) return;
+  const kcal = get('f-kcal');
+  const ptn  = get('f-ptn');
+  const cho  = get('f-cho');
+  const lip  = get('f-lip');
+  const ref  = get('f-refeicoes');
+  const nome = get('f-plano-nome');
+  const nRefs= document.querySelectorAll('.refeicao-card').length;
+  const nSubst = document.querySelectorAll('#subst-container .item-list').length;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);">
+      <div><span style="color:var(--text-light);">Plano:</span> ${nome}</div>
+      <div><span style="color:var(--text-light);">Calorias:</span> ${kcal} kcal</div>
+      <div><span style="color:var(--text-light);">Proteína:</span> ${ptn}g</div>
+      <div><span style="color:var(--text-light);">CHO:</span> ${cho}g</div>
+      <div><span style="color:var(--text-light);">Lipídios:</span> ${lip}g</div>
+      <div><span style="color:var(--text-light);">Refeições:</span> ${ref} previstas / ${nRefs} cadastradas</div>
+    </div>
+    ${nRefs < parseInt(ref||0) ? '<p style="margin-top:12px;color:#B8860B;font-family:\'DM Sans\',sans-serif;font-size:0.75rem;">⚠ Algumas refeições ainda não foram cadastradas.</p>' : ''}
+  `;
+}
+
+// ── Status salvo ──────────────────────────────────────────
+function setSaved(msg) {
+  const el = document.getElementById('status-saved');
+  const dot = document.getElementById('status-dot');
+  const lbl = document.getElementById('status-label');
+  if (el)  el.textContent  = msg;
+  if (dot) dot.className   = 'status-dot salvo';
+  if (lbl) lbl.textContent = 'Salvo';
+}
+
+function salvarRascunho() {
+  if (typeof window._salvarRascunho === 'function') window._salvarRascunho();
+  else showToast('Salvando rascunho...');
+}
+
+window.salvarRascunho = salvarRascunho;
+
+function showToast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = '';
+  setTimeout(() => t.style.display = 'none', dur);
+}
+
+window.showToast = showToast;
+
+// Init
+updatePreview();
+</script>
+
+<!-- ══ MODAL: Templates pré-prontos ══ -->
+<div id="modalTemplates" style="display:none;position:fixed;inset:0;background:rgba(44,34,24,0.6);z-index:600;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+  <div style="background:var(--bg-primary);max-width:900px;width:100%;padding:32px 36px;position:relative;">
+    <button type="button" onclick="fecharModalTemplates()" aria-label="Fechar"
+      style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.5rem;color:var(--subtitle);cursor:pointer;line-height:1;">&times;</button>
+
+    <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtitle);margin:0 0 4px 0;">Templates de cardápio</p>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.8rem;color:var(--text-dark);margin:0 0 6px 0;">Sugestões para esta paciente</h2>
+    <p id="modalTemplatesPerfil" style="font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text-light);margin:0 0 20px 0;">—</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--detail);padding-bottom:10px;">
+      <button type="button" id="tabSugeridos" class="tpl-tab tpl-tab-active" onclick="modalTplTab('sugeridos')">Sugeridos</button>
+      <button type="button" id="tabTodos" class="tpl-tab" onclick="modalTplTab('todos')">Ver todos</button>
+    </div>
+
+    <div id="modalTemplatesList" style="display:grid;gap:12px;"></div>
+  </div>
+</div>
+
+<style>
+  .tpl-tab {
+    font-family:'DM Sans',sans-serif; font-size:0.74rem; font-weight:500;
+    letter-spacing:0.08em; text-transform:uppercase;
+    padding:8px 16px; background:none; border:none;
+    color:var(--text-light); cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:all 0.15s;
+  }
+  .tpl-tab-active { color:var(--text-dark); border-bottom-color:#b8860b; }
+  .tpl-card {
+    border:1px solid var(--detail); padding:16px 18px;
+    background:var(--bg-secondary); transition:border-color 0.15s;
+  }
+  .tpl-card:hover { border-color:#b8860b; }
+  .tpl-card-title {
+    font-family:'Cormorant Garamond',serif; font-weight:500; font-size:1.15rem;
+    color:var(--text-dark); margin:0 0 4px 0;
+  }
+  .tpl-card-desc {
+    font-family:'DM Sans',sans-serif; font-size:0.8rem;
+    color:var(--text-light); margin:0 0 10px 0; line-height:1.5;
+  }
+  .tpl-meta {
+    display:flex; gap:10px; flex-wrap:wrap; font-size:0.74rem;
+    font-family:'DM Sans',sans-serif; color:var(--text);
+    margin-bottom:10px;
+  }
+  .tpl-meta b { color:var(--subtitle); font-weight:500; }
+  .tpl-motivos {
+    display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;
+  }
+  .tpl-motivo-badge {
+    font-family:'DM Sans',sans-serif; font-size:0.68rem;
+    padding:2px 8px; background:#3d6b4f18; color:#3d6b4f;
+    border-radius:10px; letter-spacing:0.04em;
+  }
+  .tpl-score {
+    display:inline-block; font-family:'DM Sans',sans-serif; font-size:0.68rem;
+    padding:2px 8px; background:#b8860b22; color:#8a6108;
+    border-radius:10px; letter-spacing:0.04em; font-weight:500;
+  }
+</style>
+
+<script type="module" src="js/admin-plano.js"></script>
+</body>
+</html>

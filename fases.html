@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Meu Plano — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/checkin.css">
+  <link rel="stylesheet" href="css/fases.css">
+  <link rel="stylesheet" href="css/ux-improvements.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body id="fases-root">
+
+  <header class="checkin-header">
+    <button class="checkin-back" onclick="window.location.href='dashboard.html'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="checkin-header-center">
+      <img src="icons/logo-80.png" alt="ERG" class="checkin-logo">
+    </div>
+    <span></span>
+  </header>
+
+  <div class="back-bar"><a href="dashboard.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao dashboard</a></div>
+
+  <main class="fases-main" id="fases-main">
+    <div class="resumo-loading" id="fases-loading">
+      <div class="resumo-loading-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <p>Carregando seu plano...</p>
+    </div>
+    <div id="fases-content" style="display:none;"></div>
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+  <script type="module" src="js/fases.js"></script>
+</body>
+</html>

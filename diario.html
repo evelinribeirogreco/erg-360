@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Diário Alimentar — ERG 360</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/checkin.css">
+  <link rel="stylesheet" href="css/diario.css">
+  <link rel="stylesheet" href="css/ux-improvements.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body id="diario-root">
+
+  <header class="checkin-header">
+    <button class="checkin-back" onclick="window.location.href='dashboard.html'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="checkin-header-center">
+      <img src="icons/logo-80.png" alt="ERG" class="checkin-logo">
+    </div>
+    <div class="checkin-header-date" id="diario-date"></div>
+  </header>
+
+  <div class="back-bar"><a href="dashboard.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao dashboard</a></div>
+
+  <main class="diario-main">
+
+    <!-- Hero -->
+    <div class="diario-hero">
+      <p class="diario-eyebrow">Registro do dia</p>
+      <h1 class="diario-title">Diário Alimentar</h1>
+      <p class="diario-sub" id="diario-date-full"></p>
+    </div>
+
+    <!-- Seletor de data -->
+    <div class="diario-date-nav">
+      <button class="diario-nav-btn" onclick="changeDate(-1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <input type="date" id="diario-date-input" class="diario-date-input" onchange="loadDiario()">
+      <button class="diario-nav-btn" onclick="changeDate(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Formulário -->
+    <form id="diario-form" novalidate>
+      <input type="hidden" id="diario-id">
+
+      <div class="diario-refeicoes">
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Café da manhã</span>
+          </div>
+          <textarea class="diario-textarea" id="d-cafe" placeholder="O que você comeu no café da manhã?"></textarea>
+        </div>
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Lanche da manhã</span>
+          </div>
+          <textarea class="diario-textarea" id="d-lanche-manha" placeholder="Lanche da manhã..."></textarea>
+        </div>
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Almoço</span>
+          </div>
+          <textarea class="diario-textarea" id="d-almoco" placeholder="O que você comeu no almoço?"></textarea>
+        </div>
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Lanche da tarde</span>
+          </div>
+          <textarea class="diario-textarea" id="d-lanche-tarde" placeholder="Lanche da tarde..."></textarea>
+        </div>
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Jantar</span>
+          </div>
+          <textarea class="diario-textarea" id="d-jantar" placeholder="O que você comeu no jantar?"></textarea>
+        </div>
+
+        <div class="diario-refeicao">
+          <div class="diario-ref-header">
+            <span class="diario-ref-hora">—</span>
+            <span class="diario-ref-nome">Ceia</span>
+          </div>
+          <textarea class="diario-textarea" id="d-ceia" placeholder="Ceia (se houver)..."></textarea>
+        </div>
+
+      </div>
+
+      <!-- Adesão ao plano -->
+      <div class="diario-adesao">
+        <p class="diario-adesao-label">Como foi sua adesão ao plano hoje?</p>
+        <div class="diario-adesao-scale">
+          <button type="button" class="diario-adesao-btn" onclick="setAdesao(1, this)">
+            <span class="diario-adesao-num">1</span>
+            <small>Péssima</small>
+          </button>
+          <button type="button" class="diario-adesao-btn" onclick="setAdesao(2, this)">
+            <span class="diario-adesao-num">2</span>
+            <small>Ruim</small>
+          </button>
+          <button type="button" class="diario-adesao-btn" onclick="setAdesao(3, this)">
+            <span class="diario-adesao-num">3</span>
+            <small>Regular</small>
+          </button>
+          <button type="button" class="diario-adesao-btn" onclick="setAdesao(4, this)">
+            <span class="diario-adesao-num">4</span>
+            <small>Boa</small>
+          </button>
+          <button type="button" class="diario-adesao-btn" onclick="setAdesao(5, this)">
+            <span class="diario-adesao-num">5</span>
+            <small>Ótima</small>
+          </button>
+        </div>
+        <input type="hidden" id="d-adesao">
+      </div>
+
+      <!-- Observações -->
+      <div class="diario-obs">
+        <label class="diario-obs-label">Observações do dia</label>
+        <textarea class="diario-textarea" id="d-obs" placeholder="Algo relevante sobre sua alimentação hoje? Saiu do plano? Por quê?"></textarea>
+      </div>
+
+      <!-- Salvar -->
+      <div class="diario-actions">
+        <button type="submit" class="ci-btn-next" id="diario-save-btn">Salvar diário</button>
+        <p class="diario-saved-msg" id="diario-saved-msg" style="display:none;">Salvo com sucesso.</p>
+      </div>
+
+    </form>
+
+    <!-- Histórico rápido -->
+    <div class="diario-historico" id="diario-historico">
+      <p class="diario-historico-title">Últimos registros</p>
+      <div id="diario-historico-list"></div>
+    </div>
+
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+  <script type="module" src="js/diario.js"></script>
+</body>
+</html>

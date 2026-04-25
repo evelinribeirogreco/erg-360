@@ -1,0 +1,217 @@
+/* ============================================================
+   ADMIN-PLANO.CSS — estilos específicos do formulário de plano
+   ============================================================ */
+
+/* ── Blocos dinâmicos (itens adicionáveis) ── */
+.dynamic-block {
+  border: 1px solid var(--detail);
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+.dynamic-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dynamic-block-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'DM Sans', sans-serif;
+  padding: 4px 8px;
+  transition: color var(--transition);
+}
+
+.remove-btn:hover { color: #8B3A3A; }
+
+/* ── Grid de 3 colunas para itens de refeição ── */
+.refeicao-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.refeicao-item-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 80px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.refeicao-item-row .form-input {
+  margin: 0;
+}
+
+.item-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.item-remove:hover { color: #8B3A3A; }
+
+.add-item-btn {
+  background: none;
+  border: 1px dashed var(--detail);
+  color: var(--subtitle);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  width: 100%;
+  text-align: center;
+  transition: all var(--transition);
+  margin-top: 4px;
+}
+
+.add-item-btn:hover {
+  border-color: var(--subtitle);
+  color: var(--text);
+}
+
+/* ── Select pequeno ── */
+.select-sm {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid var(--detail);
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+/* ── Checkbox novo ── */
+.check-novo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.check-novo input { cursor: pointer; accent-color: var(--detail); }
+
+/* ── Macros row ── */
+.macros-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(201,168,130,0.2);
+}
+
+/* ── Substituição item ── */
+.subst-item-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ── Hidratação item ── */
+.hidra-item-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ── Orientação item ── */
+.orient-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ── Stat item ── */
+.stat-item-row {
+  display: grid;
+  grid-template-columns: 160px 120px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ── Condição item ── */
+.condicao-item-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 80px 1fr auto;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+/* ── Diff item ── */
+.diff-item-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 80px auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ── Suplemento ── */
+.supl-block-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Compras items ── */
+.compras-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  .refeicao-item-row { grid-template-columns: 1fr 100px auto; }
+  .refeicao-item-row .qty-input { display: none; }
+  .subst-item-row { grid-template-columns: 1fr 1fr auto; }
+  .hidra-item-row { grid-template-columns: 100px 1fr auto; }
+  .macros-row { grid-template-columns: repeat(3, 1fr); }
+  .stat-item-row { grid-template-columns: 1fr 1fr auto; }
+  .condicao-item-row { grid-template-columns: 1fr 1fr auto; }
+  .diff-item-row { grid-template-columns: 1fr 1fr 1fr auto; }
+  .supl-block-grid { grid-template-columns: 1fr; }
+}

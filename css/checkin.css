@@ -1,0 +1,692 @@
+/* ============================================================
+   CHECKIN.CSS — Check-in diário mobile first
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body#checkin-root {
+  background: var(--bg-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── Header ── */
+.checkin-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid rgba(201,168,130,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  padding-top: env(safe-area-inset-top);
+}
+
+.checkin-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.checkin-header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.checkin-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.checkin-header-date {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--subtitle);
+  text-align: right;
+}
+
+/* ── Barra de progresso ── */
+.checkin-progress {
+  position: fixed;
+  top: 56px; left: 0; right: 0;
+  height: 2px;
+  background: var(--bg-secondary);
+  z-index: 99;
+}
+
+.checkin-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+/* ── Main ── */
+.checkin-main {
+  padding-top: calc(56px + 2px);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Steps ── */
+.ci-step {
+  display: none;
+  flex-direction: column;
+  min-height: calc(100dvh - 58px);
+  padding: 0 0 env(safe-area-inset-bottom);
+}
+
+.ci-step.active {
+  display: flex;
+}
+
+.ci-question-wrap {
+  flex: 1;
+  padding: 40px 24px 24px;
+  overflow-y: auto;
+}
+
+/* ── Intro ── */
+.ci-intro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  text-align: center;
+  gap: 16px;
+}
+
+.ci-intro-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  margin-bottom: 8px;
+}
+
+.ci-intro-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.ci-intro-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+
+.ci-intro-time {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--detail);
+  border: 1px solid var(--detail);
+  padding: 6px 16px;
+  margin-top: 8px;
+}
+
+/* ── Rótulos de seção ── */
+.ci-step-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-bottom: 12px;
+}
+
+.ci-question {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 32px;
+}
+
+.ci-question-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin-top: -24px;
+  margin-bottom: 24px;
+}
+
+/* ── Sim / Não ── */
+.ci-yesno {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.ci-yn-btn {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 28px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  transition: all 0.3s ease;
+  min-height: 100px;
+}
+
+.ci-yn-btn:active { transform: scale(0.97); }
+.ci-yn-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+}
+
+.ci-yn-icon { font-size: 2rem; }
+
+/* ── Sub-perguntas (follow-up) ── */
+.ci-followup {
+  animation: fadeUp 0.4s ease;
+}
+
+.ci-sub-question {
+  margin-bottom: 28px;
+}
+
+.ci-sub-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 12px;
+}
+
+/* ── Input de texto ── */
+.ci-text-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--detail);
+  background: transparent;
+  padding: 10px 0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 1rem;
+  color: var(--text);
+  outline: none;
+}
+
+/* ── Escala 1-5 ── */
+.ci-scale-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ci-scale-btn {
+  flex: 1;
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 14px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s;
+  min-height: 64px;
+}
+
+.ci-scale-btn span {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.4rem;
+  color: var(--text);
+}
+
+.ci-scale-btn small {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.ci-scale-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.ci-scale-btn.active span,
+.ci-scale-btn.active small { color: var(--bg-primary); }
+
+/* ── Bristol mini ── */
+.ci-bristol-mini {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ci-bristol-btn {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 10px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: calc(14.28% - 6px);
+  min-width: 44px;
+  transition: all 0.25s;
+}
+
+.ci-bristol-btn svg {
+  width: 36px;
+  height: 36px;
+}
+
+.ci-bristol-btn small {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.6rem;
+  color: var(--subtitle);
+}
+
+.ci-bristol-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+}
+
+/* ── Chips (sintomas GI) ── */
+.ci-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ci-chip {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text-light);
+  transition: all 0.25s;
+}
+
+.ci-chip.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+  color: var(--text);
+}
+
+/* ── Escala de fome ── */
+.ci-fome-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ci-fome-btn {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  transition: all 0.25s;
+  text-align: left;
+}
+
+.ci-fome-btn:active { transform: scale(0.98); }
+.ci-fome-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+}
+
+.ci-fome-icon { font-size: 1.6rem; flex-shrink: 0; }
+.ci-fome-label { flex: 1; }
+
+/* ── Horas de sono ── */
+.ci-horas-sono {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ci-hora-btn {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 18px 8px;
+  cursor: pointer;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  transition: all 0.25s;
+}
+
+.ci-hora-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-primary);
+}
+
+/* ── Água ── */
+.ci-agua-scale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ci-agua-btn {
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 16px 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--text);
+  transition: all 0.25s;
+}
+
+.ci-agua-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-primary);
+}
+
+/* ── Humor ── */
+.ci-humor-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ci-humor-btn {
+  flex: 1;
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 12px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s;
+}
+
+.ci-humor-btn span { font-size: 1.6rem; }
+
+.ci-humor-btn small {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.55rem;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.ci-humor-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--subtitle);
+}
+
+/* ── Contador ── */
+.ci-counter {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.ci-counter-btn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--detail);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ci-counter-btn:active { background: var(--bg-secondary); }
+
+.ci-counter-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  color: var(--text);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ── Textarea ── */
+.ci-textarea {
+  width: 100%;
+  border: 1px solid var(--detail);
+  background: transparent;
+  padding: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-height: 140px;
+  resize: none;
+  outline: none;
+  line-height: 1.7;
+}
+
+.ci-textarea:focus { border-color: var(--subtitle); }
+
+/* ── Navegação ── */
+.ci-nav {
+  padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid rgba(201,168,130,0.2);
+  background: var(--bg-primary);
+}
+
+.ci-btn-next, .ci-btn-start {
+  width: 100%;
+  padding: 18px;
+  background: var(--text);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: opacity 0.3s;
+}
+
+.ci-btn-next:active,
+.ci-btn-start:active { opacity: 0.8; }
+
+.ci-btn-skip {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: var(--subtitle);
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-decoration: underline;
+}
+
+/* ── Tela final ── */
+.ci-done {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px calc(48px + env(safe-area-inset-bottom));
+  text-align: center;
+  gap: 16px;
+}
+
+.ci-done-icon {
+  font-size: 2.5rem;
+  color: var(--detail);
+  margin-bottom: 8px;
+}
+
+.ci-done-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.ci-done-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.ci-done-dica {
+  background: var(--bg-secondary);
+  border-left: 2px solid var(--detail);
+  padding: 16px 20px;
+  margin: 8px 0;
+  width: 100%;
+  text-align: left;
+}
+
+.ci-done-dica p {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
+.ci-done-dica strong {
+  font-weight: 400;
+  color: var(--subtitle);
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* ── Animação ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ci-step.active .ci-question-wrap {
+  animation: fadeUp 0.4s ease;
+}
+
+/* ── Substituições de emoji por elementos visuais ── */
+
+/* Fome — número no lugar do emoji */
+.ci-fome-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.6rem;
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--detail);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.ci-fome-btn.active .ci-fome-num {
+  background: var(--text);
+  color: var(--bg-primary);
+  border-color: var(--text);
+}
+
+/* Humor — número no lugar do emoji */
+.ci-humor-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.4rem;
+  color: var(--text);
+  line-height: 1;
+}
+
+.ci-humor-btn.active .ci-humor-num {
+  color: var(--bg-primary);
+}
+
+/* Sim/Não — SVG no lugar do emoji */
+.ci-yn-btn svg {
+  color: var(--subtitle);
+  transition: color 0.2s;
+}
+
+.ci-yn-btn.active svg { color: var(--bg-primary); }
+
+/* Ícone de conclusão — SVG no lugar do ✦ */
+.ci-done-icon svg {
+  color: var(--detail);
+}
+
+/* Loading icon — SVG animado */
+.resumo-loading-icon svg {
+  color: var(--detail);
+  animation: pulse 1.8s ease infinite;
+}

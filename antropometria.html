@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antropometria — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ERG 360º">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/doc-extractor.css">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Antropometria</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Antropometria</p>
+      </div>
+      <div class="sidebar-nav">
+        <p class="nav-section-label">Seções</p>
+        <a class="nav-item active" onclick="goToStep(0)" id="snav-0">Dados Básicos</a>
+        <a class="nav-item" onclick="goToStep(1)" id="snav-1">Composição Corporal</a>
+        <a class="nav-item" onclick="goToStep(2)" id="snav-2">Circunferências</a>
+        <a class="nav-item" onclick="goToStep(3)" id="snav-3">Resultado</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="patient-name-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="admin-back-top"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+      <div class="form-progress-bar"><div class="form-progress-fill" id="progress-fill"></div></div>
+
+      <form id="antro-form" novalidate>
+        <input type="hidden" id="patient-id">
+        <input type="hidden" id="user-id">
+
+        <!-- ══ STEP 0: Dados Básicos ══ -->
+        <div class="form-step active" id="step-0">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 1 de 4</p>
+            <h1 class="page-title">Dados Básicos</h1>
+          </header>
+
+          <section class="section fade-up">
+            <h2 class="section-title">Importar PDF de Avaliação</h2>
+            <p class="field-hint" style="margin-bottom:16px;">Faça upload do PDF de antropometria ou bioimpedância para preencher automaticamente.</p>
+            <div id="doc-extractor-antro"></div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Identificação da Avaliação</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Data da avaliação</label>
+                <input class="form-input" type="date" id="data_avaliacao">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Descrição</label>
+                <input class="form-input" type="text" id="descricao" placeholder="Ex: 1ª Avaliação Física">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Medidas Principais</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Peso atual (kg)</label>
+                <input class="form-input" type="number" id="peso" step="0.1" placeholder="Ex: 68.5" oninput="calcularIMC()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Altura (m)</label>
+                <input class="form-input" type="number" id="altura" step="0.01" placeholder="Ex: 1.65" oninput="calcularIMC()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">IMC</label>
+                <input class="form-input" type="number" id="imc" readonly placeholder="Calculado automaticamente">
+                <p class="field-hint" id="imc-class"></p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Peso ideal (kg)</label>
+                <input class="form-input" type="number" id="peso_ideal" step="0.1" placeholder="Ex: 62.0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Peso usual (kg)</label>
+                <input class="form-input" type="number" id="peso_usual" step="0.1" placeholder="Peso habitual">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Peso meta (kg)</label>
+                <input class="form-input" type="number" id="peso_meta" step="0.1" placeholder="Meta da paciente">
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 1: Composição Corporal ══ -->
+        <div class="form-step" id="step-1">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 2 de 4</p>
+            <h1 class="page-title">Composição Corporal</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Método de Avaliação</h2>
+            <div class="form-group">
+              <label class="form-label">Método</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn active" data-field="metodo" data-value="bioimpedancia" onclick="showMetodo('bio')">Bioimpedância</button>
+                <button type="button" class="toggle-btn" data-field="metodo" data-value="pregas" onclick="showMetodo('pregas')">Pregas Cutâneas</button>
+              </div>
+              <input type="hidden" id="metodo" value="bioimpedancia">
+            </div>
+          </section>
+
+          <!-- Bioimpedância -->
+          <div id="secao-bio">
+            <section class="section fade-up fade-up-delay-2">
+              <h2 class="section-title">Dados da Bioimpedância</h2>
+              <div class="admin-form-grid">
+                <div class="form-group">
+                  <label class="form-label">% Gordura</label>
+                  <input class="form-input" type="number" id="pct_gordura" step="0.1" placeholder="Ex: 28.5" oninput="calcularComposicao()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">% Massa Magra</label>
+                  <input class="form-input" type="number" id="pct_magra" step="0.1" placeholder="Calculado" readonly>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Massa Gorda (kg)</label>
+                  <input class="form-input" type="number" id="massa_gorda" step="0.1" placeholder="Calculado" readonly>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Massa Magra (kg)</label>
+                  <input class="form-input" type="number" id="massa_magra" step="0.1" placeholder="Calculado" readonly>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Massa Muscular (kg)</label>
+                  <input class="form-input" type="number" id="massa_muscular" step="0.1" placeholder="Ex: 48.2">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Massa Óssea (kg)</label>
+                  <input class="form-input" type="number" id="massa_ossea" step="0.1" placeholder="Ex: 2.8">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Água Corporal (%)</label>
+                  <input class="form-input" type="number" id="agua_corporal" step="0.1" placeholder="Ex: 55.0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Gordura Visceral</label>
+                  <input class="form-input" type="number" id="gordura_visceral" step="0.1" placeholder="Ex: 8">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Metabolismo Basal (kcal)</label>
+                  <input class="form-input" type="number" id="metabolismo_basal" step="1" placeholder="Ex: 1450">
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Pregas Cutâneas -->
+          <div id="secao-pregas" style="display:none;">
+            <section class="section fade-up fade-up-delay-2">
+              <h2 class="section-title">Protocolo</h2>
+              <div class="form-group">
+                <label class="form-label">Protocolo de dobras</label>
+                <select class="form-input" id="protocolo" onchange="calcularPregas()">
+                  <option value="">Selecione...</option>
+                  <option value="pollock7">7 Pregas — Jackson, Pollock & Ward</option>
+                  <option value="pollock3">3 Pregas — Pollock</option>
+                  <option value="guedes">Guedes</option>
+                  <option value="faulkner">Faulkner</option>
+                </select>
+              </div>
+            </section>
+            <section class="section fade-up fade-up-delay-3">
+              <h2 class="section-title">Dobras Cutâneas (mm)</h2>
+              <div class="admin-form-grid">
+                <div class="form-group">
+                  <label class="form-label">Bíceps</label>
+                  <input class="form-input" type="number" id="dobra_biceps" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tríceps</label>
+                  <input class="form-input" type="number" id="dobra_triceps" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Subescapular</label>
+                  <input class="form-input" type="number" id="dobra_subescapular" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Suprailíaca</label>
+                  <input class="form-input" type="number" id="dobra_suprailiaca" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Abdominal</label>
+                  <input class="form-input" type="number" id="dobra_abdominal" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Axilar Média</label>
+                  <input class="form-input" type="number" id="dobra_axilar" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Peitoral</label>
+                  <input class="form-input" type="number" id="dobra_peitoral" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Coxa</label>
+                  <input class="form-input" type="number" id="dobra_coxa" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Panturrilha Medial</label>
+                  <input class="form-input" type="number" id="dobra_panturrilha" step="0.1" oninput="calcularPregas()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Soma das dobras (mm)</label>
+                  <input class="form-input" type="number" id="soma_dobras" readonly placeholder="Calculado">
+                </div>
+              </div>
+              <!-- Resultado pregas -->
+              <div style="margin-top:24px;" id="resultado-pregas" class="resultado-composicao" style="display:none;">
+                <div class="resultado-card">
+                  <p class="resultado-card-label">% Gordura</p>
+                  <p class="resultado-card-value" id="res-pct-gordura">—</p>
+                </div>
+                <div class="resultado-card">
+                  <p class="resultado-card-label">% Massa Magra</p>
+                  <p class="resultado-card-value" id="res-pct-magra">—</p>
+                </div>
+                <div class="resultado-card">
+                  <p class="resultado-card-label">Massa Gorda</p>
+                  <p class="resultado-card-value" id="res-massa-gorda">—</p>
+                </div>
+                <div class="resultado-card">
+                  <p class="resultado-card-label">Massa Magra</p>
+                  <p class="resultado-card-value" id="res-massa-magra">—</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ══ STEP 2: Circunferências ══ -->
+        <div class="form-step" id="step-2">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 3 de 4</p>
+            <h1 class="page-title">Circunferências</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Tronco</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Pescoço (cm)</label>
+                <input class="form-input" type="number" id="circ_pescoco" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tórax (cm)</label>
+                <input class="form-input" type="number" id="circ_torax" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cintura (cm)</label>
+                <input class="form-input" type="number" id="circ_cintura" step="0.1" oninput="calcularIndices()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Abdominal (cm)</label>
+                <input class="form-input" type="number" id="circ_abdominal" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quadril (cm)</label>
+                <input class="form-input" type="number" id="circ_quadril" step="0.1" oninput="calcularIndices()">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Membros Superiores (cm)</h2>
+            <div class="circ-table-wrapper">
+              <table class="circ-form-table">
+                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
+                <tbody>
+                  <tr><td>Braço relaxado</td><td><input class="form-input" type="number" id="circ_braco_rel_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_braco_rel_e" step="0.1"></td></tr>
+                  <tr><td>Braço contraído</td><td><input class="form-input" type="number" id="circ_braco_cont_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_braco_cont_e" step="0.1"></td></tr>
+                  <tr><td>Antebraço</td><td><input class="form-input" type="number" id="circ_antebraco_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_antebraco_e" step="0.1"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Membros Inferiores (cm)</h2>
+            <div class="circ-table-wrapper">
+              <table class="circ-form-table">
+                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
+                <tbody>
+                  <tr><td>Coxa proximal</td><td><input class="form-input" type="number" id="circ_coxa_prox_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_coxa_prox_e" step="0.1"></td></tr>
+                  <tr><td>Coxa medial</td><td><input class="form-input" type="number" id="circ_coxa_med_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_coxa_med_e" step="0.1"></td></tr>
+                  <tr><td>Panturrilha</td><td><input class="form-input" type="number" id="circ_panturrilha_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_panturrilha_e" step="0.1"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 3: Resultado ══ -->
+        <div class="form-step" id="step-3">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 4 de 4</p>
+            <h1 class="page-title">Resultado e Interpretação</h1>
+          </header>
+
+          <!-- ── Score corporal ── -->
+          <section class="section fade-up fade-up-delay-1">
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;border:1px solid var(--detail);padding:24px;background:var(--bg-secondary);margin-bottom:24px;">
+              <div style="text-align:center;">
+                <div id="score-circulo" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--detail);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                  <span id="score-valor" style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--text);line-height:1;">—</span>
+                  <span style="font-family:'DM Sans',sans-serif;font-size:0.55rem;color:var(--subtitle);letter-spacing:0.1em;text-transform:uppercase;">score</span>
+                </div>
+              </div>
+              <div>
+                <p id="score-status" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.3rem;color:var(--text);margin-bottom:6px;">—</p>
+                <p id="score-descricao" style="font-family:'DM Sans',sans-serif;font-weight:300;font-size:0.78rem;color:var(--text-light);line-height:1.6;">Preencha os dados de composição corporal e circunferências para gerar o score.</p>
+                <div style="margin-top:10px;height:4px;background:rgba(76,184,160,0.2);border-radius:2px;">
+                  <div id="score-barra" style="height:100%;border-radius:2px;background:var(--detail);transition:width 0.8s ease;width:0%;"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Indicadores principais ── -->
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Indicadores Principais</h2>
+            <div class="resultado-composicao" id="resultado-final">
+              <div class="resultado-card">
+                <p class="resultado-card-label">Peso</p>
+                <p class="resultado-card-value" id="rf-peso">—</p>
+                <p class="resultado-card-class" id="rf-imc-class"></p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">IMC</p>
+                <p class="resultado-card-value" id="rf-imc">—</p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">% Gordura</p>
+                <p class="resultado-card-value" id="rf-gordura">—</p>
+                <p class="resultado-card-class" id="rf-gordura-class"></p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">Massa Magra</p>
+                <p class="resultado-card-value" id="rf-mm">—</p>
+                <p class="resultado-card-class" id="rf-magra-class"></p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">RCQ</p>
+                <p class="resultado-card-value" id="rf-rcq">—</p>
+                <p class="resultado-card-class" id="rf-rcq-class"></p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">C/Estatura</p>
+                <p class="resultado-card-value" id="rf-rcest">—</p>
+                <p class="resultado-card-class" id="rf-rcest-class"></p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Diagnóstico clínico automático ── -->
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Diagnóstico Clínico</h2>
+
+            <div id="diagnostico-container" style="display:none;">
+
+              <!-- Achados principais -->
+              <div id="achados-box" style="border:1px solid var(--detail);overflow:hidden;margin-bottom:16px;">
+                <div style="padding:12px 16px;background:var(--bg-secondary);border-bottom:1px solid rgba(76,184,160,0.2);">
+                  <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);">Principais achados</p>
+                </div>
+                <div id="achados-lista" style="padding:16px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);line-height:2;"></div>
+              </div>
+
+              <!-- Prioridades de intervenção -->
+              <div id="prioridades-box" style="border:1px solid var(--detail);overflow:hidden;margin-bottom:16px;">
+                <div style="padding:12px 16px;background:var(--bg-secondary);border-bottom:1px solid rgba(76,184,160,0.2);">
+                  <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);">Prioridades de intervenção</p>
+                </div>
+                <div id="prioridades-lista" style="padding:16px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);line-height:2;"></div>
+              </div>
+
+              <!-- Distância da meta -->
+              <div id="meta-box" style="border:1px solid var(--detail);overflow:hidden;margin-bottom:16px;display:none;">
+                <div style="padding:12px 16px;background:var(--bg-secondary);border-bottom:1px solid rgba(76,184,160,0.2);">
+                  <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--subtitle);">Distância da meta</p>
+                </div>
+                <div id="meta-content" style="padding:16px;"></div>
+              </div>
+
+            </div>
+
+            <p id="diagnostico-vazio" style="font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text-light);font-style:italic;">
+              Complete as seções anteriores para gerar o diagnóstico automaticamente.
+            </p>
+          </section>
+
+          <!-- ── Comparação temporal ── -->
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Evolução</h2>
+            <div id="evolucao-container">
+              <p style="font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text-light);font-style:italic;" id="evolucao-vazio">
+                Nenhuma avaliação anterior registrada.
+              </p>
+
+              <!-- Seletor de métrica a plotar -->
+              <div id="evolucao-chart-wrap" style="display:none;margin-bottom:20px;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" id="evolucao-metric-tabs">
+                  <button type="button" class="evol-tab active" data-metric="peso">Peso</button>
+                  <button type="button" class="evol-tab" data-metric="imc">IMC</button>
+                  <button type="button" class="evol-tab" data-metric="pct_gordura">% Gordura</button>
+                  <button type="button" class="evol-tab" data-metric="massa_magra">Massa magra</button>
+                  <button type="button" class="evol-tab" data-metric="circ_cintura">Cintura</button>
+                  <button type="button" class="evol-tab" data-metric="circ_quadril">Quadril</button>
+                  <button type="button" class="evol-tab" data-metric="todas">Todas</button>
+                </div>
+                <div id="evolucao-chart" style="border:1px solid var(--detail);padding:14px;background:var(--bg-secondary);"></div>
+              </div>
+
+              <div id="evolucao-tabela" style="display:none;"></div>
+            </div>
+          </section>
+
+          <!-- ── Observações ── -->
+          <section class="section fade-up fade-up-delay-4">
+            <h2 class="section-title">Observações</h2>
+            <div class="form-group">
+              <textarea class="form-input form-textarea" id="obs" rows="4" placeholder="Observações clínicas sobre esta avaliação..."></textarea>
+            </div>
+          </section>
+        </div>
+
+        <!-- Navegação -->
+        <div class="step-navigation">
+          <button type="button" class="btn-secondary" id="btn-prev" onclick="prevStep()" style="display:none;">Anterior</button>
+          <button type="button" class="btn-primary" id="btn-next" onclick="nextStep()" style="width:auto;padding:16px 48px;">Próximo</button>
+          <button type="submit" class="btn-primary" id="btn-save" style="display:none;width:auto;padding:16px 48px;">Salvar Avaliação</button>
+        </div>
+        <div class="form-message" id="form-message"></div>
+      </form>
+      <div class="admin-back-bottom"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script type="module" src="js/antropometria.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  
+  // ── Sidebar colapsável ──────────────────────────────────
+  const sidebarEl    = document.getElementById('sidebar');
+  const collapseBtn  = document.getElementById('sidebar-collapse-btn');
+  if (collapseBtn && sidebarEl) {
+    const KEY = 'erg-sidebar-collapsed';
+    // Restaura estado
+    if (localStorage.getItem(KEY) === '1') sidebarEl.classList.add('collapsed');
+    collapseBtn.addEventListener('click', () => {
+      sidebarEl.classList.toggle('collapsed');
+      localStorage.setItem(KEY, sidebarEl.classList.contains('collapsed') ? '1' : '0');
+    });
+  }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Importar Mathias — ERG</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F4EF;color:#2C2218;padding:40px 24px;min-height:100vh}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:1.8rem;letter-spacing:0.04em;margin-bottom:4px}
+  .eyebrow{font-size:0.65rem;letter-spacing:0.22em;text-transform:uppercase;color:#7A5E42;margin-bottom:20px}
+  .panel{background:#fff;border:1px solid #B8936A;padding:24px 28px;margin-bottom:16px}
+  .panel h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:1.1rem;margin-bottom:14px;letter-spacing:0.04em}
+  .row{margin-bottom:12px}
+  label{display:block;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#7A5E42;margin-bottom:4px}
+  input{width:100%;padding:9px 10px;border:1px solid #B8936A;background:#F8F4EF;font:inherit;font-size:0.85rem;color:#2C2218}
+  input:focus{outline:none;border-color:#6B4F35}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{display:block;width:100%;padding:14px;background:#2C2218;color:#F8F4EF;border:none;font:inherit;font-size:0.8rem;letter-spacing:0.16em;text-transform:uppercase;cursor:pointer;margin-top:16px;transition:background 0.2s}
+  .btn:hover{background:#6B4F35}
+  .btn:disabled{opacity:0.5;cursor:not-allowed}
+  .log{background:#2C2218;color:#EDD8C3;padding:18px;font-family:'SF Mono','Consolas',monospace;font-size:0.72rem;line-height:1.8;min-height:200px;max-height:400px;overflow-y:auto;white-space:pre-wrap}
+  .log .ok{color:#A5C9A8}
+  .log .err{color:#E89090}
+  .log .step{color:#E8C78C}
+  .log .dim{color:#7A6E60}
+  .preview{font-size:0.75rem;line-height:1.7;color:#5C4A38}
+  .preview strong{color:#2C2218;font-weight:500}
+  .hint{font-size:0.72rem;color:#7A5E42;margin-top:4px;line-height:1.5}
+  .warn{background:#FEF5E7;border-left:3px solid #B8860B;padding:12px 16px;margin-bottom:16px;font-size:0.78rem;line-height:1.6;color:#7A5E2E}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Importação Automática</p>
+  <h1>Mathias Garcia Miguel Della Tonia</h1>
+
+  <div class="warn">
+    <strong>Antes de importar:</strong> abra o <a href="admin.html" target="_blank">admin.html</a> numa aba e faça login. Depois volte nesta página e clique em "Importar tudo". A sessão é compartilhada automaticamente.
+  </div>
+
+  <div class="panel">
+    <h2>Dados que faltam preencher</h2>
+    <p class="preview" style="margin-bottom:16px;">Os dados clínicos (peso, altura, macros, refeições, suplementos) já estão montados a partir do PDF. Preencha apenas o que é pessoal:</p>
+
+    <div class="row">
+      <label>E-mail de acesso</label>
+      <input type="email" id="f-email" placeholder="mathias@exemplo.com">
+      <p class="hint">Será usado pelo paciente para fazer login.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="row">
+        <label>Data de nascimento</label>
+        <input type="date" id="f-nascimento">
+        <p class="hint">29 anos em 10/04/2026.</p>
+      </div>
+      <div class="row">
+        <label>Telefone (opcional)</label>
+        <input type="tel" id="f-telefone" placeholder="(11) 99999-9999">
+      </div>
+    </div>
+
+    <div class="row">
+      <label>Senha inicial</label>
+      <input type="text" id="f-senha" placeholder="(deixe vazio para usar DDMMAAAA)">
+      <p class="hint">Se vazio, usa a data de nascimento como DDMMAAAA.</p>
+    </div>
+
+    <button class="btn" id="btn-importar">Importar tudo</button>
+  </div>
+
+  <div class="panel">
+    <h2>O que será importado</h2>
+    <div class="preview">
+      <strong>Perfil:</strong> Mathias Garcia Miguel Della Tonia · 29 anos · masculino · 1,80 m · 83,6 kg<br>
+      <strong>Objetivo:</strong> Melhora de performance e redução da fadiga<br>
+      <strong>Composição:</strong> IMC 25,8 · %G 11,6 · MM 73,9 kg · MG 9,7 kg · TMB 1.966 · GET 3.859 · meta 72,9 kg<br>
+      <strong>Macros:</strong> 2.900 kcal · 167 g PTN · 375 g CHO · 83 g LIP<br>
+      <strong>Refeições:</strong> 7 (Café, Colação, Almoço, Pré-treino, Pós-treino, Lanche, Jantar)<br>
+      <strong>Suplementos:</strong> 5 (Creatina, Whey, Cafeína, Magnésio, Melatonina)<br>
+      <strong>Orientações:</strong> Hidratação, Álcool, Açúcar, Colesterol/Úrico, Sono, Pré-treino
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Log</h2>
+    <div class="log" id="log"><span class="dim">Aguardando início da importação...</span></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL  = 'https://gqnlrhmriufepzpustna.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const logEl = document.getElementById('log');
+const btn   = document.getElementById('btn-importar');
+
+function log(msg, cls = '') {
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = msg + '\n';
+  logEl.appendChild(span);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.innerHTML = ''; }
+
+// ═════════════════════════════════════════════
+// DADOS DO MATHIAS — extraídos do PDF
+// ═════════════════════════════════════════════
+
+const DADOS_MATHIAS = {
+  // Perfil básico (patients)
+  nome:     'Mathias Garcia Miguel Della Tonia',
+  sexo:     'masculino',
+  observacoes: 'Objetivo: Melhora de Performance e Redução da Fadiga. Histórico familiar de colesterol e ácido úrico. Treino: musculação, futebol, tênis. Privação de sono (4-5h).',
+  metas: [
+    'Reduzir fadiga intra-treino',
+    'Melhorar performance esportiva',
+    'Alcançar peso meta de 72,9 kg',
+    'Otimizar recuperação muscular'
+  ].join('\n'),
+  data_proxima_consulta: '2026-05-10', // retorno em 4 semanas
+
+  // Antropometria
+  antropometria: {
+    data_avaliacao:    '2026-04-10',
+    descricao:         'Avaliação inicial — base do plano alimentar',
+    peso:              83.6,
+    altura:            180,          // cm
+    imc:               25.80,
+    peso_meta:         72.9,
+    pct_gordura:       11.6,
+    massa_magra:       73.9,
+    massa_gorda:       9.7,
+    metabolismo_basal: 1966,
+    metodo:            'Bioimpedância',
+    obs:               'RDEE 1966 kcal · GET Total 3859 kcal · Plano ~2900 kcal (déficit leve ~16%). Classificação IMC: sobrepeso leve. %G: bom.'
+  },
+
+  // Plano alimentar
+  plano: {
+    descricao:        'Plano Alimentar — Performance & Redução da Fadiga',
+    sub_titulo:       'Baseado em Katch-McArdle + fator atividade Muito Ativo (1,48)',
+    data_elaboracao:  '2026-04-10',
+    kcal_alvo:        2900,
+    proteina_g:       167,
+    carboidrato_g:    375,
+    lipidio_g:        83,
+    num_refeicoes:    7,
+    criterio_central: 'A principal causa da fadiga muscular identificada é a inadequação energética peri-treino. As refeições de pré e pós-treino são OBRIGATÓRIAS e não devem ser suprimidas.',
+    calculo_vet:      'Cálculo baseado em Katch-McArdle (massa magra 73,9 kg) + fator atividade Muito Ativo (1,48). Déficit de ~16% sobre o GET. Carboidrato priorizado para suporte de performance (musculação, futebol, tênis). Meta diária: Proteína 2,0 g/kg · Carboidrato 4,5 g/kg · Lipídio 1,0 g/kg.',
+
+    stats_clinicos: [
+      { label: 'Peso',          valor: '83,6 kg',    desc: 'Atual' },
+      { label: 'Altura',        valor: '1,80 m',     desc: '' },
+      { label: 'IMC',           valor: '25,80',      desc: 'Sobrepeso leve' },
+      { label: '% Gordura',     valor: '11,60%',     desc: 'Bom' },
+      { label: 'Massa Magra',   valor: '73,90 kg',   desc: '' },
+      { label: 'Massa Gorda',   valor: '9,70 kg',    desc: '' },
+      { label: 'TMB (RDEE)',    valor: '1.966 kcal', desc: 'Katch-McArdle' },
+      { label: 'GET Total',     valor: '3.859 kcal', desc: 'Fator 1,48 (Muito Ativo)' },
+      { label: 'Plano calórico',valor: '~2.900 kcal',desc: 'Déficit leve (~16%)' },
+      { label: 'Meta peso',     valor: '72,90 kg',   desc: 'Ideal' },
+    ],
+
+    refeicoes: [
+      {
+        nome: 'Café da manhã', horario: '07h30', alerta: '', alerta_cor: 'amarelo',
+        itens: [
+          { nome: 'Pão integral', qty: '2 fatias', novo: false },
+          { nome: 'Ovos mexidos ou cozidos', qty: '2 unidades', novo: false },
+          { nome: 'Requeijão light', qty: '2 pontas de faca', novo: false },
+          { nome: 'Café preto sem açúcar', qty: '200 ml', novo: false },
+          { nome: 'Fruta (banana pequena ou maçã)', qty: '1 unidade', novo: false },
+        ],
+        macros: { kcal: '500', ptn: '28', cho: '58', lip: '16', fibras: '' }
+      },
+      {
+        nome: 'Colação', horario: '10h00', alerta: '', alerta_cor: 'amarelo',
+        itens: [
+          { nome: 'Banana média', qty: '1 unidade', novo: false },
+          { nome: 'Aveia em flocos', qty: '1 colher de sopa', novo: false },
+          { nome: 'Castanhas-do-pará ou amêndoas', qty: '10 unidades', novo: false },
+        ],
+        macros: { kcal: '280', ptn: '6', cho: '42', lip: '10', fibras: '' }
+      },
+      {
+        nome: 'Almoço', horario: '12h00',
+        alerta: 'A laranja é estratégica — não substituir por suco processado.',
+        alerta_cor: 'laranja',
+        itens: [
+          { nome: 'Alface + tomate à vontade (azeite, vinagre, sal)', qty: 'livre', novo: false },
+          { nome: 'Arroz branco cozido', qty: '3 escumadeiras médias (~180 g)', novo: false },
+          { nome: 'Feijão carioca cozido', qty: '1 concha média', novo: false },
+          { nome: 'Outros legumes cozidos', qty: '1 colher de servir', novo: false },
+          { nome: 'Carne bovina ou frango grelhado', qty: '120-150 g', novo: false },
+          { nome: 'Laranja (pós-refeição — absorção de ferro)', qty: '1 unidade', novo: true },
+        ],
+        macros: { kcal: '750', ptn: '48', cho: '95', lip: '18', fibras: '' }
+      },
+      {
+        nome: 'Pré-treino (OBRIGATÓRIO)', horario: '60-90 min antes do treino',
+        alerta: 'NUNCA treinar sem esta refeição — intervenção direta contra fadiga intra-treino. Cafeína (200-300 mg) pode ser incluída se tolerada.',
+        alerta_cor: 'vermelho',
+        itens: [
+          { nome: 'OPÇÃO A: 1 banana + 1 fatia de pão integral com pasta de amendoim', qty: '1 colher', novo: false },
+          { nome: 'OPÇÃO B: 1 banana + whey protein com água ou leite desnatado', qty: '30 g whey', novo: false },
+          { nome: 'OPÇÃO C: iogurte natural sem açúcar + fruta + aveia', qty: '1 col. sopa aveia', novo: false },
+        ],
+        macros: { kcal: '300-350', ptn: '15-25', cho: '45-55', lip: '6-10', fibras: '' }
+      },
+      {
+        nome: 'Pós-treino', horario: 'Até 60 min após o treino',
+        alerta: 'Creatina (5 g) pode ser adicionada ao shake pós-treino.',
+        alerta_cor: 'verde',
+        itens: [
+          { nome: 'Whey protein com água ou leite desnatado', qty: '30 g', novo: false },
+          { nome: 'Fruta de rápida absorção (banana, manga ou uva)', qty: '1 unidade', novo: false },
+          { nome: 'Alternativa: 2 ovos + 2 fatias pão integral + fruta', qty: '', novo: false },
+        ],
+        macros: { kcal: '350', ptn: '32', cho: '40', lip: '5', fibras: '' }
+      },
+      {
+        nome: 'Lanche da tarde', horario: '15h00 (se não treinar neste horário)',
+        alerta: '', alerta_cor: 'amarelo',
+        itens: [
+          { nome: 'Banana média', qty: '1 unidade', novo: false },
+          { nome: 'Queijo mussarela', qty: '2 fatias', novo: false },
+          { nome: 'Canela em pó (anti-inflamatório natural)', qty: '1 colher de café', novo: true },
+        ],
+        macros: { kcal: '280', ptn: '14', cho: '30', lip: '10', fibras: '' }
+      },
+      {
+        nome: 'Jantar', horario: '21h00',
+        alerta: 'Evitar frituras e molhos industrializados (colesterol e ácido úrico em histórico familiar). Jantar às 21h com treino encerrado: carboidrato moderado — não cortar.',
+        alerta_cor: 'laranja',
+        itens: [
+          { nome: 'Salada verde à vontade (alface, rúcula, tomate) — azeite + limão', qty: 'livre', novo: false },
+          { nome: 'Arroz branco cozido', qty: '2 escumadeiras (~120 g)', novo: false },
+          { nome: 'Feijão ou lentilha cozida', qty: '1 concha', novo: false },
+          { nome: 'Frango grelhado ou peixe (tilápia, atum)', qty: '120-150 g', novo: false },
+          { nome: 'Laranja ou kiwi (vitamina C — suporte imune e ferro)', qty: '1 unidade', novo: false },
+        ],
+        macros: { kcal: '580', ptn: '45', cho: '70', lip: '12', fibras: '' }
+      },
+    ],
+
+    suplementacao: {
+      obs: 'Suplementos estratégicos para performance, recuperação e qualidade do sono.',
+      itens: [
+        { nome: 'Creatina',     dose: '5 g/dia',            horario: 'Qualquer horário',     status: 'INICIAR',  tag_cor: 'verde',   justificativa: 'Aumento de força e recuperação. Pode ser adicionada ao shake pós-treino.' },
+        { nome: 'Whey Protein', dose: '30 g',               horario: 'Pós-treino',           status: 'JÁ USA',   tag_cor: 'verde',   justificativa: 'Recuperação muscular. Uso já estabelecido.' },
+        { nome: 'Cafeína',      dose: '3-5 mg/kg (200-300 mg)', horario: '30 min pré-treino', status: 'OPCIONAL', tag_cor: 'amarelo', justificativa: 'Performance e foco. Usar apenas se tolerada — ação de 30-60 min.' },
+        { nome: 'Magnésio',     dose: '300-400 mg',         horario: 'À noite',              status: 'INICIAR',  tag_cor: 'verde',   justificativa: 'Reduz câimbras e fadiga muscular. Auxilia o sono.' },
+        { nome: 'Melatonina',   dose: 'Conforme uso atual', horario: '30 min antes de dormir', status: 'JÁ USA', tag_cor: 'verde',   justificativa: 'Qualidade do sono. Fundamental dado histórico de privação de sono.' },
+      ]
+    },
+
+    hidratacao: {
+      meta: '3,0-3,5 L/dia (35-40 ml/kg). Manter ingestão atual de 3,5 L.',
+      timeline: [
+        { hora: '07h00', desc: 'Ao acordar — primeira hidratação do dia', qty: '300 ml' },
+        { hora: '10h00', desc: 'Entre café e almoço',                      qty: '500 ml' },
+        { hora: '14h00', desc: 'Pós-almoço',                               qty: '500 ml' },
+        { hora: 'Pré-treino',  desc: 'Hidratação antes do treino',         qty: '500 ml' },
+        { hora: 'Durante treino', desc: 'Dias de treino intenso — adicionar eletrólitos', qty: '500-700 ml' },
+        { hora: 'Pós-treino',  desc: 'Reposição imediata',                  qty: '500 ml' },
+        { hora: '20h00', desc: 'Última hidratação significativa do dia',   qty: '300 ml' },
+      ],
+      restricoes: 'Em dias de treino intenso (futebol), adicionar 500 ml com eletrólitos. Evitar grandes volumes durante as refeições.'
+    },
+
+    timing: [
+      { condicao: 'Pré-treino alimentar', detalhe: 'OBRIGATÓRIO', descricao: 'Nunca treinar em jejum. Refeição pré-treino é a principal intervenção para reduzir fadiga intra-treino. Consumir 60-90 min antes do exercício.' },
+      { condicao: 'Pós-treino',           detalhe: 'Até 60 min',  descricao: 'Janela anabólica — priorizar proteína + carboidrato de rápida absorção. Creatina pode ser adicionada ao shake.' },
+      { condicao: 'Cafeína',              detalhe: 'Após 18h evitar', descricao: 'Histórico de privação de sono. Cafeína após 18h prejudica recuperação. Limitar ao pré-treino matinal.' },
+      { condicao: 'Jantar e treino noturno', detalhe: '21h',      descricao: 'Com treino encerrado, manter carboidrato moderado no jantar — não cortar. Suporta recuperação noturna.' },
+    ],
+
+    orientacoes: {
+      manter: [
+        { texto: 'Hidratação atual de 3,5 L/dia — manter o padrão. Em dias de treino intenso, +500 ml com eletrólitos.', destaque: false },
+        { texto: 'Whey protein pós-treino — uso já estabelecido, manter.', destaque: false },
+        { texto: 'Melatonina antes de dormir — manter conforme uso atual.', destaque: false },
+        { texto: 'Exclusão de açúcar refinado — manter. Usar frutas, mel com moderação ou estévia quando necessário.', destaque: false },
+      ],
+      mudar: [
+        { texto: 'NUNCA treinar em jejum. Refeição pré-treino é obrigatória — principal intervenção contra fadiga intra-treino.', destaque: true },
+        { texto: 'Iniciar creatina (5 g/dia) para ganho de força e recuperação.', destaque: false },
+        { texto: 'Iniciar magnésio (300-400 mg à noite) para reduzir câimbras e melhorar qualidade do sono.', destaque: false },
+        { texto: 'Limitar carne vermelha a 3x/semana — priorizar frango, peixe e ovo (histórico de colesterol e ácido úrico).', destaque: true },
+        { texto: 'Priorizar azeite como principal fonte de gordura. Aumentar fibras (aveia, leguminosas).', destaque: false },
+        { texto: 'Evitar carboidratos simples e cafeína após 18h (histórico de privação de sono).', destaque: false },
+      ],
+      atencao: [
+        { texto: 'Histórico familiar de colesterol e ácido úrico — evitar frituras e molhos industrializados.', destaque: true },
+        { texto: 'Privação de sono (4-5h) — melhora do sono é crítica para recuperação muscular e redução da fadiga.', destaque: true },
+        { texto: 'Álcool: uso social ocasional (1-2 latas/semana) é aceitável. EVITAR no dia anterior a treinos de alta intensidade — prejudica recuperação e síntese proteica.', destaque: false },
+      ],
+      exames: [
+        { texto: 'Retorno nutricional em 4 semanas — reavaliação completa.', destaque: true },
+        { texto: 'Peso corporal: pesagem quinzenal (manhã, em jejum, mesma balança).', destaque: false },
+        { texto: 'Circunferências (cintura, quadril, braço): medição mensal.', destaque: false },
+        { texto: 'Composição corporal: avaliação com adipômetro a cada 2-3 meses.', destaque: false },
+        { texto: 'Performance no treino: autopercebida (escala 1-10), registro semanal.', destaque: false },
+        { texto: 'Fadiga intra-treino: registro semanal em app ou caderno.', destaque: false },
+      ],
+      rodape: 'Este plano foi elaborado com base na avaliação nutricional completa realizada em 10/04/2026. Qualquer alteração deve ser discutida com o nutricionista responsável.'
+    }
+  }
+};
+
+// ═════════════════════════════════════════════
+// FLUXO DE IMPORTAÇÃO
+// ═════════════════════════════════════════════
+
+btn.addEventListener('click', async () => {
+  clearLog();
+  btn.disabled = true;
+  btn.textContent = 'Importando...';
+
+  const email     = document.getElementById('f-email').value.trim();
+  const nasc      = document.getElementById('f-nascimento').value;
+  const telefone  = document.getElementById('f-telefone').value.trim() || null;
+  let   senha     = document.getElementById('f-senha').value.trim();
+
+  if (!email) { log('✗ E-mail é obrigatório.', 'err'); btn.disabled=false; btn.textContent='Importar tudo'; return; }
+  if (!nasc)  { log('✗ Data de nascimento é obrigatória.', 'err'); btn.disabled=false; btn.textContent='Importar tudo'; return; }
+
+  // Senha padrão = DDMMAAAA
+  if (!senha) {
+    const [y,m,d] = nasc.split('-');
+    senha = d + m + y;
+  }
+
+  try {
+    // ── VERIFICA SESSÃO ──
+    log('→ Verificando sessão do admin...', 'step');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      log('✗ Nenhuma sessão ativa. Faça login em admin.html numa aba e volte aqui.', 'err');
+      btn.disabled = false; btn.textContent = 'Importar tudo';
+      return;
+    }
+    log('✓ Sessão ativa: ' + session.user.email, 'ok');
+
+    // ── PASSO 1: Cria paciente via Edge Function ──
+    log('\n→ [1/4] Criando acesso do paciente (Auth + patients)...', 'step');
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/criar-paciente`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          email,
+          senha,
+          nome: DADOS_MATHIAS.nome,
+          plano_url:             null,
+          data_ultima_consulta:  DADOS_MATHIAS.antropometria.data_avaliacao,
+          data_proxima_consulta: DADOS_MATHIAS.data_proxima_consulta,
+          observacoes:           DADOS_MATHIAS.observacoes,
+          metas:                 DADOS_MATHIAS.metas,
+        })
+      }
+    );
+    const result = await response.json();
+    if (!response.ok || result.error) {
+      log('✗ Erro Edge Function: ' + (result.error || response.statusText), 'err');
+      btn.disabled = false; btn.textContent = 'Importar tudo';
+      return;
+    }
+    const userId    = result.user_id;
+    const patientId = result.patient_id;
+    log(`✓ Paciente criado. user_id=${userId}`, 'ok');
+    log(`  patient_id=${patientId}`, 'dim');
+
+    // ── PASSO 2: UPDATE patients com nascimento/telefone/sexo ──
+    log('\n→ [2/4] Complementando perfil (nascimento, sexo, telefone)...', 'step');
+    const { error: errUpd } = await supabase
+      .from('patients')
+      .update({
+        data_nascimento: nasc,
+        telefone:        telefone,
+        sexo:            DADOS_MATHIAS.sexo,
+      })
+      .eq('user_id', userId);
+    if (errUpd) { log('✗ Erro UPDATE patients: ' + errUpd.message, 'err'); btn.disabled=false; btn.textContent='Importar tudo'; return; }
+    log('✓ Perfil atualizado.', 'ok');
+
+    // ── PASSO 3: INSERT antropometria ──
+    log('\n→ [3/4] Inserindo antropometria...', 'step');
+    const antroPayload = {
+      patient_id: patientId,
+      user_id:    userId,
+      ...DADOS_MATHIAS.antropometria,
+    };
+    const { error: errAntro } = await supabase.from('antropometria').insert(antroPayload);
+    if (errAntro) { log('✗ Erro antropometria: ' + errAntro.message, 'err'); btn.disabled=false; btn.textContent='Importar tudo'; return; }
+    log('✓ Antropometria salva: peso 83,6kg · IMC 25,8 · MM 73,9kg · TMB 1.966.', 'ok');
+
+    // ── PASSO 4: INSERT planos_alimentares ──
+    log('\n→ [4/4] Inserindo plano alimentar (7 refeições + 5 suplementos + orientações)...', 'step');
+    const planoPayload = {
+      patient_id: patientId,
+      user_id:    userId,
+      ...DADOS_MATHIAS.plano,
+    };
+    const { error: errPlano } = await supabase.from('planos_alimentares').insert(planoPayload);
+    if (errPlano) { log('✗ Erro plano: ' + errPlano.message, 'err'); btn.disabled=false; btn.textContent='Importar tudo'; return; }
+    log('✓ Plano alimentar salvo: 2.900 kcal · 167 PTN · 375 CHO · 83 LIP.', 'ok');
+
+    // ── Final ──
+    log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+    log('✓ IMPORTAÇÃO CONCLUÍDA COM SUCESSO', 'ok');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+    log(`\nCredenciais do paciente:`, 'step');
+    log(`  E-mail: ${email}`);
+    log(`  Senha:  ${senha}`);
+    log(`\n→ Abra admin.html → Pacientes → Mathias para conferir.`, 'dim');
+
+    btn.textContent = '✓ Importado — pronto';
+  } catch (err) {
+    log('✗ Exceção inesperada: ' + err.message, 'err');
+    console.error(err);
+    btn.disabled = false; btn.textContent = 'Importar tudo';
+  }
+});
+</script>
+</body>
+</html>
