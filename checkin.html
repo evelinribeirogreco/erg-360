@@ -362,6 +362,41 @@ body {
 }
 
 /* ── Tela intro ── */
+/* Botão fixo "Voltar ao início" — canto superior esquerdo */
+.ci-home-btn {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(76,184,160,0.3));
+  border-radius: 100px;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-light, #6B6659);
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 0.18s;
+}
+.ci-home-btn:hover {
+  background: var(--accent-dim, rgba(76,184,160,0.12));
+  border-color: var(--accent, #2D6A56);
+  color: var(--accent, #2D6A56);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45,106,86,0.12);
+}
+.ci-home-btn:active { transform: translateY(0); }
+@media (max-width: 600px) {
+  .ci-home-btn { top: 12px; left: 12px; padding: 7px 12px; font-size: 0.68rem; }
+  .ci-home-btn span { display: none; }
+}
+
 .ci-intro {
   text-align: center;
   padding: 60px 24px 40px;
@@ -403,6 +438,11 @@ body {
 </style>
 </head>
 <body>
+
+<a href="dashboard.html" class="ci-home-btn" aria-label="Voltar à página inicial" title="Voltar ao dashboard">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="15 18 9 12 15 6"/></svg>
+  <span>Voltar ao início</span>
+</a>
 
 <div class="ci-progress-bar">
   <div class="ci-progress-fill" id="ci-progress" style="width:0%;"></div>
