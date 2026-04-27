@@ -80,7 +80,35 @@ function initToggleButtons() {
 function calcularIMC() {
   const peso   = parseFloat(document.getElementById('peso')?.value);
   const altura = parseFloat(document.getElementById('altura')?.value);
-  if (!peso || !altura || altura === 0) return;
+  if (!altura || altura === 0) return;
+
+  // ── 1. Peso ideal — sempre calcula se altura existe ─────────
+  // Usa IMC alvo de 22 (meio do range saudável 18.5-24.9 kg/m²)
+  // Range saudável: 18.5×alt² (mínimo) a 24.9×alt² (máximo)
+  const pesoIdeal      = 22  * altura * altura;
+  const pesoIdealMin   = 18.5 * altura * altura;
+  const pesoIdealMax   = 24.9 * altura * altura;
+
+  const piEl = document.getElementById('peso_ideal');
+  if (piEl) {
+    // Só sobrescreve se o usuário ainda não digitou nada (campo vazio)
+    // ou se foi calculado por nós antes (data-auto="1")
+    if (!piEl.value || piEl.dataset.auto === '1') {
+      piEl.value = pesoIdeal.toFixed(1);
+      piEl.dataset.auto = '1';
+    }
+    // Adiciona hint com range saudável
+    let piHint = piEl.parentElement?.querySelector('.peso-ideal-hint');
+    if (!piHint) {
+      piHint = document.createElement('p');
+      piHint.className = 'field-hint peso-ideal-hint';
+      piEl.parentElement?.appendChild(piHint);
+    }
+    piHint.textContent = `Faixa saudável: ${pesoIdealMin.toFixed(1)} – ${pesoIdealMax.toFixed(1)} kg (IMC 18,5–24,9)`;
+  }
+
+  // ── 2. IMC — só calcula se peso existir ─────────────────────
+  if (!peso) return;
 
   const imc = peso / (altura * altura);
   const imcEl = document.getElementById('imc');
@@ -100,6 +128,12 @@ function calcularIMC() {
   }
 
   atualizarResultado();
+}
+
+// Permite editar peso ideal manualmente (desativa auto-fill)
+function _onPesoIdealManual() {
+  const piEl = document.getElementById('peso_ideal');
+  if (piEl) piEl.dataset.auto = '0';
 }
 
 function calcularComposicao() {
@@ -243,6 +277,7 @@ function showMetodo(tipo) {
 }
 window.showMetodo      = showMetodo;
 window.calcularIMC     = calcularIMC;
+window._onPesoIdealManual = _onPesoIdealManual;
 window.calcularComposicao = calcularComposicao;
 window.calcularIndices = calcularIndices;
 window.calcularPregas  = calcularPregas;
