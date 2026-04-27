@@ -79,8 +79,18 @@ function initToggleButtons() {
 
 function calcularIMC() {
   const peso   = parseFloat(document.getElementById('peso')?.value);
-  const altura = parseFloat(document.getElementById('altura')?.value);
+  let   altura = parseFloat(document.getElementById('altura')?.value);
   if (!altura || altura === 0) return;
+
+  // ── Normaliza altura — se digitou em cm (>3), converte pra m ──
+  // Ex: 165 → 1.65 ; 1.65 mantém ; 2.5 mantém (limite máx humano)
+  if (altura > 3) {
+    altura = altura / 100;
+    const altEl = document.getElementById('altura');
+    if (altEl) altEl.value = altura.toFixed(2); // corrige no input
+  }
+  // Validação: altura fisiologicamente razoável (0.5 – 2.5 m)
+  if (altura < 0.5 || altura > 2.5) return;
 
   // ── 1. Peso ideal — sempre calcula se altura existe ─────────
   // Usa IMC alvo de 22 (meio do range saudável 18.5-24.9 kg/m²)
@@ -341,11 +351,41 @@ async function salvarAvaliacao() {
     return;
   }
 
+  // Limites por tipo de campo (previne overflow no Supabase NUMERIC)
+  const LIMITES = {
+    altura:           { min: 0.5,  max: 2.5,    auto_div_se_maior: 3 }, // metros
+    peso:             { min: 1,    max: 999.9 },
+    peso_ideal:       { min: 1,    max: 999.9 },
+    peso_usual:       { min: 1,    max: 999.9 },
+    peso_meta:        { min: 1,    max: 999.9 },
+    imc:              { min: 5,    max: 99.99 },
+    pct_gordura:      { min: 0,    max: 99.9 },
+    pct_magra:        { min: 0,    max: 99.9 },
+    massa_gorda:      { min: 0,    max: 999.9 },
+    massa_magra:      { min: 0,    max: 999.9 },
+    massa_muscular:   { min: 0,    max: 999.9 },
+    massa_ossea:      { min: 0,    max: 99.9 },
+    agua_corporal:    { min: 0,    max: 99.9 },
+    gordura_visceral: { min: 0,    max: 99 },
+    metabolismo_basal:{ min: 0,    max: 9999 },
+    soma_dobras:      { min: 0,    max: 999 },
+    rcq:              { min: 0,    max: 9.99 },
+    rcest:            { min: 0,    max: 9.99 },
+    // Padrão pra circunferências e dobras: 0–999.9
+    _default:         { min: 0,    max: 999.9 },
+  };
   const vNum = (id) => {
     const el = document.getElementById(id);
     if (!el) return null;
-    const v = parseFloat(el.value);
-    return isNaN(v) ? null : v;
+    let v = parseFloat(el.value);
+    if (isNaN(v)) return null;
+    const lim = LIMITES[id] || LIMITES._default;
+    // Auto-correção: se altura > 3, divide por 100 (digitou em cm)
+    if (lim.auto_div_se_maior && v > lim.auto_div_se_maior) v = v / 100;
+    // Clamp dentro do range
+    if (lim.min != null && v < lim.min) v = lim.min;
+    if (lim.max != null && v > lim.max) v = lim.max;
+    return v;
   };
   const vStr = (id) => {
     const el = document.getElementById(id);
