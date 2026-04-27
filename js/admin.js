@@ -792,11 +792,11 @@ function resetForm() {
   document.getElementById('form-mode-title').textContent = 'Nova Paciente';
   document.getElementById('submit-btn').textContent = 'Salvar Paciente';
   document.getElementById('form-message').className = 'form-message';
-  document.getElementById('file-label').textContent = 'Clique para selecionar o PDF';
-  document.getElementById('file-drop-area').className = 'file-drop-area';
+  const flEl = document.getElementById('file-label');     if (flEl) flEl.textContent = 'Clique para selecionar o PDF';
+  const fdEl = document.getElementById('file-drop-area'); if (fdEl) fdEl.className = 'file-drop-area';
   const paiEl = document.getElementById('plano-atual-info'); if(paiEl) paiEl.style.display = 'none';
   const sgEl = document.getElementById('senha-group'); if(sgEl) sgEl.style.display = '';
-  document.getElementById('email-hint').textContent = 'Será usado para o login da paciente';
+  const ehEl = document.getElementById('email-hint'); if (ehEl) ehEl.textContent = 'Será usado para o login da paciente';
 
   // Limpa o input de arquivo
   document.getElementById('f-plano').value = '';
@@ -837,9 +837,9 @@ function editPatient(id) {
   // Mostra plano atual se houver
   if (p.plano_url) {
     const nome = p.plano_url.split('/').pop();
-    document.getElementById('plano-atual-nome').textContent = nome;
-    const paiEl = document.getElementById('plano-atual-info'); if(paiEl) paiEl.style.display = '';
-    document.getElementById('file-label').textContent = 'Novo PDF (substitui o atual)';
+    const panEl = document.getElementById('plano-atual-nome'); if (panEl) panEl.textContent = nome;
+    const paiEl = document.getElementById('plano-atual-info'); if (paiEl) paiEl.style.display = '';
+    const flEl  = document.getElementById('file-label');       if (flEl)  flEl.textContent = 'Novo PDF (substitui o atual)';
   }
 }
 
@@ -1141,23 +1141,23 @@ async function uploadPlano(file, userId) {
   const fill     = document.getElementById('progress-fill');
   const label    = document.getElementById('progress-label');
 
-  progress.style.display = '';
-  fill.style.width       = '10%';
-  label.textContent      = 'Enviando arquivo...';
+  if (progress) progress.style.display = '';
+  if (fill)     fill.style.width       = '10%';
+  if (label)    label.textContent      = 'Enviando arquivo...';
 
   const { data, error } = await supabase.storage
     .from('planos')
     .upload(path, file, { upsert: true, contentType: 'application/pdf' });
 
   if (error) {
-    progress.style.display = 'none';
+    if (progress) progress.style.display = 'none';
     return null;
   }
 
-  fill.style.width  = '100%';
-  label.textContent = 'Arquivo enviado.';
+  if (fill)  fill.style.width  = '100%';
+  if (label) label.textContent = 'Arquivo enviado.';
 
-  setTimeout(() => { progress.style.display = 'none'; }, 1200);
+  setTimeout(() => { if (progress) progress.style.display = 'none'; }, 1200);
 
   // Retorna o path (não a URL pública — usamos signed URL no dashboard)
   return data.path;
@@ -1208,6 +1208,9 @@ function initFileUpload() {
   const area  = document.getElementById('file-drop-area');
   const input = document.getElementById('f-plano');
   const label = document.getElementById('file-label');
+
+  // Guard: se algum elemento não existir (ex: form sem upload de PDF), não quebra
+  if (!area || !input || !label) return;
 
   input.addEventListener('change', () => {
     if (input.files[0]) {
