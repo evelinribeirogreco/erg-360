@@ -3,7 +3,7 @@
 // Cache das páginas e assets para funcionamento offline
 // ============================================================
 
-const CACHE_NAME = 'erg-v1';
+const CACHE_NAME = 'erg-v3-20260427';
 
 // Assets para cachear no install
 const ASSETS = [
