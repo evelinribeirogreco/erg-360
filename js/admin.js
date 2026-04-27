@@ -936,10 +936,19 @@ async function handleFormSubmit(e) {
 
   const btn = document.getElementById('submit-btn');
   const msg = document.getElementById('form-message');
+  if (!btn || !msg) return;
   btn.disabled    = true;
   btn.textContent = 'Salvando...';
   msg.className   = 'form-message';
 
+  // Helper para resetar o botão sempre — chamado em qualquer erro
+  const resetButton = () => {
+    btn.disabled = false;
+    const wasEdit = !!document.getElementById('edit-patient-id')?.value;
+    btn.textContent = wasEdit ? 'Salvar Alterações' : 'Salvar Paciente';
+  };
+
+  try {
   const isEdit    = !!document.getElementById('edit-patient-id').value;
   const patientId = document.getElementById('edit-patient-id').value;
   const userId    = document.getElementById('edit-user-id').value;
@@ -962,7 +971,8 @@ async function handleFormSubmit(e) {
   const proxima = document.getElementById('f-proxima').value || null;
   const obs     = document.getElementById('f-obs').value.trim() || null;
   const metas   = document.getElementById('f-metas').value.trim() || null;
-  const arquivo = document.getElementById('f-plano').files[0];
+  const fpEl    = document.getElementById('f-plano');
+  const arquivo = (fpEl && fpEl.files && fpEl.files[0]) || null;
   // Perfil nutricional completo (7 camadas)
   const perfilNutr = (typeof coletarPerfilNutr === 'function')
     ? coletarPerfilNutr()
@@ -1063,7 +1073,7 @@ async function handleFormSubmit(e) {
         }
       }
 
-      btn.disabled = false;
+      resetButton();
       return;
     }
 
@@ -1129,7 +1139,14 @@ async function handleFormSubmit(e) {
 
   } catch (err) {
     showFormMsg(msg, 'Erro inesperado. Tente novamente.', 'error');
-    btn.disabled = false; btn.textContent = isEdit ? 'Salvar Alterações' : 'Salvar Paciente';
+    resetButton();
+  }
+
+  } catch (errOuter) {
+    // Catch externo: pega qualquer erro antes do try interno (parsing de campos)
+    console.error('[admin] handleFormSubmit error:', errOuter);
+    showFormMsg(msg, 'Erro: ' + (errOuter.message || 'tente novamente'), 'error');
+    resetButton();
   }
 }
 
