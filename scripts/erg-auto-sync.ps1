@@ -61,6 +61,18 @@ if ($localHash -eq $remoteHash) {
     exit 0
 }
 
+# Verifica se local eh ancestor do remoto (FF possivel)
+git merge-base --is-ancestor HEAD origin/main 2>&1 | Out-Null
+$canFF = ($LASTEXITCODE -eq 0)
+
+if (-not $canFF) {
+    # Local tem commits que o remoto nao tem - precisa push manual
+    $aheadCount = (git rev-list --count origin/main..HEAD).Trim()
+    Write-SyncLog ("Local esta " + $aheadCount + " commits ah frente do remoto - push manual necessario") "WARN"
+    Trim-SyncLog
+    exit 0
+}
+
 Write-SyncLog ("Update: " + $localHash.Substring(0,7) + " -> " + $remoteHash.Substring(0,7))
 $pullOut = git pull --ff-only origin main 2>&1
 if ($LASTEXITCODE -ne 0) {
