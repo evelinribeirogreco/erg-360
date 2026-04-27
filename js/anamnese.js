@@ -559,8 +559,6 @@ function buildPayload(patientId, userId) {
     quem_compra:      v('quem_compra'),
     onde_compra:      v('onde_compra'),
     freq_compras:     vInt('freq_compras'),
-    litros_oleo:      vNum('litros_oleo'),
-    kg_sal:           vNum('kg_sal'),
     qualidade_sono:   v('qualidade_sono'),
     horas_sono:       vNum('horas_sono'),
     obs_sono:         v('obs_sono'),
