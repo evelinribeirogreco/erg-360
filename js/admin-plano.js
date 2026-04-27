@@ -1040,8 +1040,6 @@ function buildPayload() {
     lista_compras:    listaCompras.length ? listaCompras : null,
     compras_evitar:   v('f-compras-evitar'),
     orientacoes: {
-      manter:  buildOrient('manter'),
-      mudar:   buildOrient('mudar'),
       atencao: buildOrient('atencao'),
       exames:  buildOrient('exames'),
       rodape:  v('f-orient-rodape'),
@@ -1166,9 +1164,12 @@ function fillForm(data) {
   if (data.lista_compras) data.lista_compras.forEach(c => addComprasCat(c));
   set('f-compras-evitar', data.compras_evitar);
   if (data.orientacoes) {
-    ['manter','mudar','atencao','exames'].forEach(tipo => {
+    ['atencao','exames'].forEach(tipo => {
       if (data.orientacoes[tipo]) data.orientacoes[tipo].forEach(o => addOrient(tipo, o));
     });
+    // Compatibilidade: planos antigos podem ter manter/mudar — acumula em "atencao"
+    if (data.orientacoes.manter) data.orientacoes.manter.forEach(o => addOrient('atencao', o));
+    if (data.orientacoes.mudar)  data.orientacoes.mudar.forEach(o  => addOrient('atencao', o));
     set('f-orient-rodape', data.orientacoes.rodape);
   }
 }
