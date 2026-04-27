@@ -38,6 +38,9 @@ nav{grid-column:1;width:var(--nav-w);background:var(--bg2);position:sticky;top:0
 .nav-footer strong{display:block;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:0.9rem;color:var(--text);margin-bottom:2px;letter-spacing:0.04em}
 .nav-back{display:flex;align-items:center;gap:6px;margin-top:10px;font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--sub);text-decoration:none;transition:color 0.2s}
 .nav-back:hover{color:var(--text)}
+.nav-back--top{margin-top:14px;padding-top:14px;border-top:1px solid rgba(76,184,160,0.2);justify-content:flex-start}
+nav.collapsed .nav-back--top span{display:none}
+nav.collapsed .nav-back--top{justify-content:center;border-top:none;padding-top:8px}
 main{grid-column:2;min-height:100vh;padding-bottom:80px;width:100%;min-width:0;}
 .page-hero{background:var(--bg2);border-bottom:1px solid var(--detail);padding:28px 40px 24px;}
 .hero-eyebrow{font-family:'DM Sans',sans-serif;font-weight:400;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
@@ -360,6 +363,7 @@ nav.collapsed .nav-group a{padding:10px 0 !important;justify-content:center}
     <div class="nav-logo"><img src="icons/logo-80.png" alt="ERG"></div>
     <h1>Plano Alimentar</h1>
     <p id="nav-paciente">—</p>
+    <a href="dashboard.html" class="nav-back nav-back--top"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg><span>Voltar ao início</span></a>
   </div>
   <div class="nav-links">
 
@@ -404,12 +408,10 @@ nav.collapsed .nav-group a{padding:10px 0 !important;justify-content:center}
   <div class="nav-footer">
     <strong id="nav-nome-completo">—</strong>
     Plano Alimentar Personalizado
-    <a href="dashboard.html" class="nav-back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg><span>Voltar ao início</span></a>
   </div>
 </nav>
 
 <main>
-  <div class="back-bar back-bar--top" style="padding:16px 48px 0;"><a href="dashboard.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg><span>Voltar ao início</span></a></div>
   <div class="page-hero">
     <p class="hero-eyebrow">Plano Alimentar Personalizado</p>
     <h2 id="hero-nome">—</h2>
