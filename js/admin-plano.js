@@ -817,6 +817,155 @@ function addSupl(data = {}) {
 window.addSupl = addSupl;
 
 // ── Lista de compras ──────────────────────────────────────
+// ── GERA LISTA DE COMPRAS AUTOMATICAMENTE A PARTIR DO CARDÁPIO ──
+const COMPRAS_CATEGORIAS = [
+  { nome: 'Proteínas',             regex: /\b(frango|peito|cox(a|inha)|carn(e|es)|peixe|atum|salm[ãa]o|tilap|sardin|ovo|tofu|tempeh|seit[ãa]n|presunt|peito de peru|alc[aá]tra|patinho|m[uú]sculo|filé|fígado|camar[ãa]o|polvo|lula|bacalhau)\b/i },
+  { nome: 'Cereais e tubérculos',  regex: /\b(arroz|p[ãa]o|aveia|quinoa|mandioca|batata( doce| inglesa)?|inhame|macarr[ãa]o|granola|tapioca|farinha|cuscuz|polenta|farelo|cevada|centeio|millet|trigo|panqueca)\b/i },
+  { nome: 'Leguminosas',           regex: /\b(feij[ãa]o|lentilha|gr[ãa]o[ -]?de[ -]?bico|grao[ -]?de[ -]?bico|ervilha|soja|edamame|fava)\b/i },
+  { nome: 'Frutas',                regex: /\b(banana|ma[çc][ãa]|mam[ãa]o|laranja|melancia|abacaxi|uva|pera|goiaba|manga|abacate|morango|kiwi|mexerica|tangerina|caju|ac[eé]rola|frutas?|berries|coco|mel[ãa]o|figo|amora|framboesa|cereja)\b/i },
+  { nome: 'Vegetais e legumes',    regex: /\b(alface|brocolis|br[óo]colis|couve|espinafre|cenoura|tomate|pepino|abobrinha|berinj|cebola|pimenta|aboba|chuchu|beterraba|repolho|acelga|rabanete|nabo|aipo|alho[ -]?por[oó]|salsa|coentro|cebolinha|salsinha|cogumelo|chamipignon|aspargo|alcachofra|quiabo|jil[oó]|vagem)\b/i },
+  { nome: 'Laticínios',            regex: /\b(leite|queijo|iogurt|requeij|coalhada|nata|manteiga|cottage|ricota|mussarela|parmes[ãa]o|prato|minas|cremosos)\b/i },
+  { nome: 'Gorduras boas',         regex: /\b(azeite|[óo]leo|abacate|amend[ôo]a|amendoim|castanha|noz|chia|lin?ha[çc]a|gergelim|piem[ãa]o|girassol|coco|p[aá]te|pasta de amendoim|tahine|m?ct)\b/i },
+  { nome: 'Bebidas',               regex: /\b([áa]gua|ch[aá]|caf[eé]|suco|leite|kefir|kombucha)\b/i },
+];
+
+function _comprasCategorizar(nome) {
+  for (const cat of COMPRAS_CATEGORIAS) {
+    if (cat.regex.test(nome)) return cat.nome;
+  }
+  return 'Outros';
+}
+
+// Normaliza nome (case + acento) pra agrupar duplicatas
+function _comprasNormNome(nome) {
+  return nome.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+}
+
+// Faz parse da quantidade ("30g", "1 unid", "2 col. de sopa", etc)
+function _comprasParseQty(str) {
+  if (!str) return { num: null, unit: '' };
+  const s = str.trim();
+  const m = s.match(/^([\d.,]+)\s*(.*)$/);
+  if (!m) return { num: null, unit: '', raw: s };
+  const num = parseFloat(m[1].replace(',', '.'));
+  if (isNaN(num)) return { num: null, unit: '', raw: s };
+  const unit = (m[2] || '').trim().toLowerCase().replace(/\.+$/, '');
+  return { num, unit };
+}
+
+function gerarListaComprasAuto() {
+  // 1. Coleta itens de TODAS as refeições do cardápio
+  const refs = [...document.querySelectorAll('#refeicoes-container .dynamic-block')];
+  if (!refs.length) {
+    alert('Adicione pelo menos uma refeição no cardápio antes de gerar a lista de compras.');
+    return;
+  }
+
+  // 2. Pergunta o período (default: 14 dias = quinzenal — padrão do site)
+  const diasStr = prompt(
+    'Pra quantos dias gerar a lista de compras?\n\n' +
+    '7  = semanal\n' +
+    '14 = quinzenal (padrão)\n' +
+    '30 = mensal',
+    '14'
+  );
+  if (!diasStr) return; // cancelado
+  const dias = parseInt(diasStr, 10);
+  if (isNaN(dias) || dias < 1 || dias > 90) {
+    alert('Período inválido. Use entre 1 e 90 dias.');
+    return;
+  }
+
+  // 3. Acumula quantidades por nome normalizado
+  const acc = {}; // { nomeNorm: { displayName, categoria, totalPorUnit: {unit: num}, semQty: bool } }
+  let totalItens = 0;
+  for (const block of refs) {
+    const items = [...block.querySelectorAll('.refeicao-item-row')];
+    for (const row of items) {
+      const nome = row.querySelector('input[name="item-nome"]')?.value.trim();
+      const qty  = row.querySelector('input[name="item-qty"]')?.value.trim();
+      if (!nome) continue;
+      const norm = _comprasNormNome(nome);
+      if (!acc[norm]) {
+        acc[norm] = {
+          displayName: nome,
+          categoria:   _comprasCategorizar(nome),
+          totalPorUnit: {},
+          semQty:      false,
+        };
+      }
+      const parsed = _comprasParseQty(qty);
+      if (parsed.num != null) {
+        const unit = parsed.unit || 'unid';
+        acc[norm].totalPorUnit[unit] = (acc[norm].totalPorUnit[unit] || 0) + parsed.num;
+      } else {
+        acc[norm].semQty = true; // havia item sem quantidade — registra
+      }
+      totalItens++;
+    }
+  }
+
+  if (totalItens === 0) {
+    alert('Nenhum item encontrado nas refeições. Preencha pelo menos um alimento antes de gerar.');
+    return;
+  }
+
+  // 4. Multiplica por dias
+  for (const norm in acc) {
+    for (const unit in acc[norm].totalPorUnit) {
+      acc[norm].totalPorUnit[unit] *= dias;
+    }
+  }
+
+  // 5. Agrupa por categoria
+  const porCategoria = {};
+  // Ordem fixa pra exibir
+  const ordemCategorias = ['Proteínas', 'Cereais e tubérculos', 'Leguminosas',
+                           'Frutas', 'Vegetais e legumes', 'Laticínios',
+                           'Gorduras boas', 'Bebidas', 'Outros'];
+  for (const norm in acc) {
+    const item = acc[norm];
+    if (!porCategoria[item.categoria]) porCategoria[item.categoria] = [];
+    // Formata quantidade como "1500g + 6 unid"
+    const partes = Object.entries(item.totalPorUnit).map(([unit, num]) => {
+      const numFmt = num % 1 === 0 ? String(num) : num.toFixed(1);
+      // Pluraliza unidade se cabivel
+      const u = unit === 'unid' && num !== 1 ? 'unid' : unit;
+      return num > 0 ? `${numFmt}${u ? (u.length <= 3 ? u : ' ' + u) : ''}` : '';
+    }).filter(Boolean);
+    if (item.semQty && partes.length === 0) partes.push('a gosto');
+    porCategoria[item.categoria].push({
+      nome: item.displayName,
+      qty:  partes.join(' + ') || 'a gosto',
+    });
+  }
+
+  // 6. Confirma se vai sobrescrever a lista atual
+  const container = document.getElementById('compras-container');
+  if (container.children.length > 0) {
+    if (!confirm('Isso vai SUBSTITUIR a lista de compras atual. Confirmar?')) return;
+    container.innerHTML = '';
+  }
+
+  // 7. Popula a lista
+  let categoriasAdicionadas = 0;
+  let itensAdicionados = 0;
+  for (const cat of ordemCategorias) {
+    if (!porCategoria[cat] || !porCategoria[cat].length) continue;
+    addComprasCat({
+      categoria: cat,
+      sub:       `Para ${dias} dias`,
+      itens:     porCategoria[cat].sort((a, b) => a.nome.localeCompare(b.nome)),
+    });
+    categoriasAdicionadas++;
+    itensAdicionados += porCategoria[cat].length;
+  }
+
+  // 8. Toast de sucesso
+  alert(`✓ Lista de compras gerada!\n\n${itensAdicionados} itens distribuídos em ${categoriasAdicionadas} categorias para ${dias} dias.\n\nRevise os valores e ajuste se necessário.`);
+}
+window.gerarListaComprasAuto = gerarListaComprasAuto;
+
 function addComprasCat(data = {}) {
   const c = document.getElementById('compras-container');
   const catId = 'cat-' + Date.now();
