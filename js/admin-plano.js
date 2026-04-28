@@ -13,6 +13,7 @@ import {
 import {
   CARDAPIO_TEMPLATES, matchTemplates, listarTemplates, gramasMacrosDoTemplate,
 } from './cardapio-templates.js';
+import { REFEICOES_PRONTAS, TIPOS_REFEICAO_LABEL } from './refeicoes-prontas.js';
 
 let formGuard = null;
 
@@ -630,6 +631,123 @@ function addDietaSupl(data = {}) {
 window.addDietaSupl = addDietaSupl;
 
 // ── Refeições do plano ────────────────────────────────────
+// ── MODAL DE REFEIÇÕES PRONTAS ────────────────────────────
+function abrirModalRefeicoesPrototas() {
+  const modal = document.getElementById('modal-refeicoes-prontas');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  // Reset filtros
+  const busca = document.getElementById('prontas-busca');
+  const tipo  = document.getElementById('prontas-filtro-tipo');
+  if (busca) busca.value = '';
+  if (tipo)  tipo.value  = '';
+  filtrarRefeicoesProntas();
+  setTimeout(() => busca?.focus(), 50);
+}
+window.abrirModalRefeicoesPrototas = abrirModalRefeicoesPrototas;
+
+function fecharModalRefeicoesPrototas() {
+  const modal = document.getElementById('modal-refeicoes-prontas');
+  if (modal) modal.style.display = 'none';
+}
+window.fecharModalRefeicoesPrototas = fecharModalRefeicoesPrototas;
+
+function filtrarRefeicoesProntas() {
+  const lista = document.getElementById('prontas-lista');
+  if (!lista) return;
+  const q    = (document.getElementById('prontas-busca')?.value || '').toLowerCase().trim();
+  const tipo = document.getElementById('prontas-filtro-tipo')?.value || '';
+
+  const filtradas = REFEICOES_PRONTAS.filter(r => {
+    if (tipo && r.tipo !== tipo) return false;
+    if (!q) return true;
+    // Busca em nome, descrição, alimentos
+    if (r.nome.toLowerCase().includes(q)) return true;
+    if (r.descricao && r.descricao.toLowerCase().includes(q)) return true;
+    if (r.alimentos.some(a => a.nome.toLowerCase().includes(q))) return true;
+    return false;
+  });
+
+  if (filtradas.length === 0) {
+    lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-light,#6B6659);font-family:'DM Sans',sans-serif;font-size:0.85rem;">Nenhuma refeição encontrada para esses filtros.</div>`;
+    return;
+  }
+
+  // Agrupa por tipo
+  const porTipo = {};
+  for (const r of filtradas) {
+    if (!porTipo[r.tipo]) porTipo[r.tipo] = [];
+    porTipo[r.tipo].push(r);
+  }
+
+  const ordemTipos = ['cafe_manha', 'lanche_manha', 'almoco', 'lanche_tarde', 'jantar', 'ceia'];
+  const html = ordemTipos
+    .filter(t => porTipo[t])
+    .map(t => {
+      const refs = porTipo[t];
+      return `
+        <div>
+          <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle,#6B6659);margin:8px 0 6px;">
+            ${TIPOS_REFEICAO_LABEL[t] || t} <span style="color:var(--text-light,#6B6659);font-weight:400;">(${refs.length})</span>
+          </p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${refs.map(r => _cardRefeicaoPronta(r)).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+  lista.innerHTML = html;
+
+  // Bind cliques
+  lista.querySelectorAll('[data-pronta-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.prontaId;
+      const r  = REFEICOES_PRONTAS.find(x => x.id === id);
+      if (r) _importarRefeicaoPronta(r);
+    });
+  });
+}
+window.filtrarRefeicoesProntas = filtrarRefeicoesProntas;
+
+function _cardRefeicaoPronta(r) {
+  const alimentosResumo = r.alimentos.slice(0, 3).map(a => a.nome).join(', ') +
+    (r.alimentos.length > 3 ? `, +${r.alimentos.length - 3}` : '');
+  const macros = r.macros
+    ? `<span style="color:#2D6A56;font-weight:500;">${r.macros.kcal} kcal</span>
+       <span style="color:var(--text-light,#6B6659);font-size:0.7rem;"> · P ${r.macros.ptn}g · C ${r.macros.cho}g · L ${r.macros.lip}g</span>`
+    : '';
+  return `
+    <button type="button" data-pronta-id="${r.id}" style="text-align:left;background:var(--bg-card,#fff);border:1px solid var(--border,#E0DBD0);border-radius:6px;padding:12px 14px;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;width:100%;"
+      onmouseover="this.style.borderColor='#4CB8A0';this.style.background='rgba(76,184,160,0.05)'"
+      onmouseout="this.style.borderColor='var(--border,#E0DBD0)';this.style.background='var(--bg-card,#fff)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
+        <strong style="font-size:0.85rem;color:var(--text,#1A1A16);font-weight:500;">${r.nome}</strong>
+        <span style="font-size:0.7rem;white-space:nowrap;">${macros}</span>
+      </div>
+      ${r.descricao ? `<div style="font-size:0.72rem;color:var(--text-light,#6B6659);font-style:italic;margin-bottom:4px;">${r.descricao}</div>` : ''}
+      <div style="font-size:0.72rem;color:var(--text-light,#6B6659);">${alimentosResumo}</div>
+    </button>`;
+}
+
+function _importarRefeicaoPronta(r) {
+  // Adiciona uma nova refeição ao cardápio com os dados pré-preenchidos
+  addRefeicao({
+    nome:     r.nome,
+    horario:  r.horario || '',
+    alerta:   '',
+    alerta_cor: 'amarelo',
+    itens:    r.alimentos.map(a => ({ nome: a.nome, qty: a.qty || '', novo: false })),
+    macros:   r.macros || {},
+  });
+  fecharModalRefeicoesPrototas();
+  // Scroll suave até a nova refeição
+  setTimeout(() => {
+    const refs = document.querySelectorAll('#refeicoes-container .dynamic-block');
+    const ultima = refs[refs.length - 1];
+    if (ultima) ultima.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
 function addRefeicao(data = {}) {
   const c = document.getElementById('refeicoes-container');
   const refId = 'ref-' + Date.now();
