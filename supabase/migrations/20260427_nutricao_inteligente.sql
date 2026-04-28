@@ -7,43 +7,43 @@
 
 -- ────────────────────────────────────────────────────────────
 -- 1. ALIMENTOS — banco com composição nutricional completa
+-- (Idempotente: cria do zero OU adiciona colunas faltantes em tabela antiga)
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS alimentos (
   id                uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome              text          NOT NULL,
-  nome_normalizado  text,                                       -- pra busca (lowercase + sem acento)
-  categoria         text          NOT NULL,                     -- 'carboidrato' | 'proteina' | 'gordura' | 'fruta' | 'vegetal' | 'leguminosa' | 'laticinio' | 'bebida' | 'tempero' | 'misto'
-  subcategoria      text,                                       -- ex: 'cereal_integral', 'carne_vermelha_magra'
-  porcao_padrao_g   numeric(6,1)  NOT NULL DEFAULT 100.0,
-  -- Macros base (por 100g)
-  kcal              numeric(6,1),
-  ptn_g             numeric(5,1),
-  cho_g             numeric(5,1),
-  lip_g             numeric(5,1),
-  fibras_g          numeric(4,1),
-  -- Glicemia
-  ig                integer,                                    -- índice glicêmico (0-100, se aplicável)
-  cg                numeric(4,1),                               -- carga glicêmica (10g de CHO)
-  -- Micronutrientes (por 100g) — armazenados em JSONB pra extensibilidade
-  micronutrientes   jsonb         DEFAULT '{}'::jsonb,
-  --   { calcio_mg, ferro_mg, sodio_mg, potassio_mg, magnesio_mg, zinco_mg,
-  --     vit_a_mcg, vit_c_mg, vit_d_mcg, vit_e_mg, vit_b12_mcg, folato_mcg,
-  --     omega3_g?, omega6_g?, colina_mg? }
-  -- Filtros booleanos
-  vegetariano       boolean       DEFAULT true,
-  vegano            boolean       DEFAULT false,
-  sem_gluten        boolean       DEFAULT true,
-  sem_lactose       boolean       DEFAULT true,
-  industrializado   boolean       DEFAULT false,
-  -- Tags inteligentes (relacionadas via tags_nutricionais.slug)
-  tags              text[]        DEFAULT '{}',
-  -- Metadados
-  fonte_dados       text,                                       -- 'TACO_4ed' | 'USDA' | 'IBGE_POF'
-  observacoes       text,
-  ativo             boolean       NOT NULL DEFAULT true,
-  created_at        timestamptz   NOT NULL DEFAULT now(),
-  updated_at        timestamptz   NOT NULL DEFAULT now()
+  nome              text          NOT NULL
 );
+
+-- Adiciona colunas extras (idempotente — se já existem, ignora)
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS nome_normalizado  text;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS categoria         text;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS subcategoria      text;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS porcao_padrao_g   numeric(6,1) DEFAULT 100.0;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS kcal              numeric(6,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS ptn_g             numeric(5,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS cho_g             numeric(5,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS lip_g             numeric(5,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS fibras_g          numeric(4,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS ig                integer;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS cg                numeric(4,1);
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS micronutrientes   jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS vegetariano       boolean DEFAULT true;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS vegano            boolean DEFAULT false;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS sem_gluten        boolean DEFAULT true;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS sem_lactose       boolean DEFAULT true;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS industrializado   boolean DEFAULT false;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS tags              text[] DEFAULT '{}';
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS fonte_dados       text;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS observacoes       text;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS ativo             boolean NOT NULL DEFAULT true;
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS created_at        timestamptz NOT NULL DEFAULT now();
+ALTER TABLE alimentos ADD COLUMN IF NOT EXISTS updated_at        timestamptz NOT NULL DEFAULT now();
+
+-- Garante NOT NULL em categoria após backfill
+UPDATE alimentos SET categoria = 'misto' WHERE categoria IS NULL;
+DO $$ BEGIN
+  ALTER TABLE alimentos ALTER COLUMN categoria SET NOT NULL;
+EXCEPTION WHEN others THEN NULL; END $$;
 
 CREATE INDEX IF NOT EXISTS idx_alim_nome_norm  ON alimentos USING GIN (to_tsvector('portuguese', nome_normalizado));
 CREATE INDEX IF NOT EXISTS idx_alim_categoria  ON alimentos (categoria);
