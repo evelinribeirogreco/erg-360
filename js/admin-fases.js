@@ -747,8 +747,154 @@ function atualizarPreviewGerador() {
 }
 window.atualizarPreviewGerador = atualizarPreviewGerador;
 
+// ── Auto-fill do gerador (busca dados do paciente) ────────
+const _MAP_NIVEL_AF = {
+  'sedentario':           'sedentario',
+  'levemente-ativo':      'leve',
+  'leve':                 'leve',
+  'moderadamente-ativo':  'moderado',
+  'moderado':             'moderado',
+  'muito-ativo':          'intenso',
+  'extremamente-ativo':   'intenso',
+  'intenso':              'intenso',
+};
+const _MAP_OBJETIVO = {
+  'emagrecimento':    'emagrecimento',
+  'emagrecer':        'emagrecimento',
+  'perder_peso':      'emagrecimento',
+  'recomposicao':     'recomposicao',
+  'recomposicao_corporal': 'recomposicao',
+  'ganho_massa':      'ganho_massa',
+  'ganho_de_massa':   'ganho_massa',
+  'hipertrofia':      'ganho_massa',
+  'manutencao':       'manutencao',
+  'performance':      'manutencao',
+};
+
+function _calcularIdadeFases(dataNasc) {
+  if (!dataNasc) return null;
+  const hoje = new Date();
+  const nasc = new Date(dataNasc + 'T00:00:00');
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
+
+// Busca todos os dados do paciente em paralelo (patient + última antropometria + anamnese)
+async function _carregarDadosPacienteFases() {
+  if (!patientId) return null;
+  try {
+    const [pacRes, antroRes, anamRes] = await Promise.all([
+      supabase.from('patients')
+        .select('nome, sexo, data_nascimento, peso_atual, altura, objetivo')
+        .eq('id', patientId).maybeSingle(),
+      supabase.from('antropometria')
+        .select('peso, altura, peso_meta, peso_ideal, metabolismo_basal, data_avaliacao')
+        .eq('patient_id', patientId)
+        .order('data_avaliacao', { ascending: false })
+        .limit(1).maybeSingle(),
+      supabase.from('anamnese')
+        .select('nivel_af, intensidade_af, freq_af')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false })
+        .limit(1).maybeSingle(),
+    ]);
+    const pac   = pacRes.data   || {};
+    const antro = antroRes.data || {};
+    const anam  = anamRes.data  || {};
+
+    // peso atual: prioriza última antropometria, fallback patient.peso_atual
+    const pesoAtual = antro.peso || pac.peso_atual || null;
+    // peso meta: peso_meta > peso_ideal (ambos da antropometria)
+    const pesoMeta  = antro.peso_meta || antro.peso_ideal || null;
+    // altura: antropometria > patient (em metros, converte p/ cm)
+    const alturaM   = antro.altura || pac.altura || null;
+    const alturaCm  = alturaM ? (alturaM > 3 ? alturaM : alturaM * 100) : null;
+    // idade
+    const idade     = _calcularIdadeFases(pac.data_nascimento);
+    // sexo
+    const sexo      = (pac.sexo || 'feminino').toLowerCase();
+    // TMB: prioriza valor salvo na antropometria, senão calcula Mifflin-St Jeor
+    let tmb = antro.metabolismo_basal || null;
+    let tmbOrigem = tmb ? 'antropometria' : null;
+    if (!tmb && pesoAtual && alturaCm && idade) {
+      tmb = sexo.startsWith('m')
+        ? Math.round((10 * pesoAtual) + (6.25 * alturaCm) - (5 * idade) + 5)
+        : Math.round((10 * pesoAtual) + (6.25 * alturaCm) - (5 * idade) - 161);
+      tmbOrigem = 'calculado';
+    }
+    // objetivo: anamnese ou patient
+    const objetivoRaw = (pac.objetivo || '').toString().toLowerCase().trim();
+    const objetivo    = _MAP_OBJETIVO[objetivoRaw] || null;
+    // nível atividade: anamnese.nivel_af
+    const nivelRaw    = (anam.nivel_af || '').toString().toLowerCase().trim();
+    const nivelAtiv   = _MAP_NIVEL_AF[nivelRaw] || null;
+
+    return {
+      pesoAtual, pesoMeta, alturaCm, idade, sexo,
+      tmb, tmbOrigem,
+      objetivo, nivelAtiv,
+      temAntropometria: !!antroRes.data,
+      temAnamnese:      !!anamRes.data,
+    };
+  } catch (e) {
+    console.warn('[fases] erro carregando dados do paciente:', e);
+    return null;
+  }
+}
+
+// Preenche os campos do modal com os dados do paciente (não sobrescreve o que o usuário já digitou)
+async function _autoPreencherCamposGerador() {
+  const dados = await _carregarDadosPacienteFases();
+  if (!dados) return;
+
+  const setIfEmpty = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    if (val == null || val === '') return false;
+    if (el.value && el.value.trim() !== '') return false; // já preenchido pelo usuário
+    el.value = val;
+    return true;
+  };
+
+  if (dados.objetivo)    setIfEmpty('gen-objetivo',   dados.objetivo);
+  if (dados.pesoAtual)   setIfEmpty('gen-peso-atual', dados.pesoAtual);
+  if (dados.pesoMeta)    setIfEmpty('gen-peso-meta',  dados.pesoMeta);
+  if (dados.nivelAtiv)   setIfEmpty('gen-atividade',  dados.nivelAtiv);
+
+  // Salva TMB no localStorage (gerarFasesPeriodizacao usa de lá)
+  if (dados.tmb && dados.tmb > 0) {
+    localStorage.setItem('pac_tmb', String(dados.tmb));
+  }
+
+  // Atualiza o aviso de TMB com mensagem útil
+  const avisoEl = document.getElementById('gen-aviso-tmb');
+  if (avisoEl) {
+    if (dados.tmb && dados.tmbOrigem === 'antropometria') {
+      avisoEl.style.borderLeftColor = '#2D6A56';
+      avisoEl.style.background = 'rgba(45,106,86,0.06)';
+      avisoEl.style.color = '#1F4D3E';
+      avisoEl.textContent = `TMB ${dados.tmb} kcal (da última avaliação antropométrica) — cálculo preciso.`;
+      avisoEl.style.display = '';
+    } else if (dados.tmb && dados.tmbOrigem === 'calculado') {
+      avisoEl.style.borderLeftColor = '#2D6A56';
+      avisoEl.style.background = 'rgba(45,106,86,0.06)';
+      avisoEl.style.color = '#1F4D3E';
+      avisoEl.textContent = `TMB ${dados.tmb} kcal (calculada via Mifflin-St Jeor a partir de peso/altura/idade).`;
+      avisoEl.style.display = '';
+    } else {
+      avisoEl.style.borderLeftColor = '#B8860B';
+      avisoEl.style.background = 'rgba(184,134,11,0.06)';
+      avisoEl.style.color = '#7A5E00';
+      avisoEl.textContent = 'TMB não encontrada — usando estimativa de 1700 kcal. Para cálculo preciso, registre uma avaliação antropométrica primeiro.';
+      avisoEl.style.display = '';
+    }
+  }
+}
+
 // ── Modal do gerador ──────────────────────────────────────
-function mostrarGeradorPlano() {
+async function mostrarGeradorPlano() {
   let modal = document.getElementById('gerador-plano-modal');
 
   if (!modal) {
@@ -866,10 +1012,9 @@ function mostrarGeradorPlano() {
   // Seta data de hoje como padrão
   const dataEl = document.getElementById('gen-data-inicio');
   if (dataEl && !dataEl.value) dataEl.value = new Date().toISOString().split('T')[0];
-  // Avisa se não tem TMB
-  const tmb = parseInt(localStorage.getItem('pac_tmb') || '0');
-  const avisoEl = document.getElementById('gen-aviso-tmb');
-  if (avisoEl) avisoEl.style.display = tmb > 0 ? 'none' : '';
+
+  // Auto-preenche campos com dados do paciente (não sobrescreve se já tem valor)
+  await _autoPreencherCamposGerador();
 
   atualizarPreviewGerador();
 }
