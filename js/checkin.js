@@ -452,6 +452,21 @@ function onSlider(field, val) {
 
 window.onSlider = onSlider;
 
+// ── Escala 1-5 com botões (substitui slider) ─────────────────
+function onScale(field, val, btnEl) {
+  const v = parseInt(val);
+  state[field] = v;
+  // Marca apenas o botão clicado como ativo (no mesmo grupo)
+  const wrap = document.getElementById('scale-' + field);
+  if (wrap) {
+    wrap.querySelectorAll('.ci-scale-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+  }
+  // Vibração tátil sutil em mobile (se suportado)
+  if (window.navigator?.vibrate) window.navigator.vibrate(10);
+}
+window.onScale = onScale;
+
 // ══════════════════════════════════════════════════════════
 // MOTOR DE FLAGS CLÍNICAS
 // ══════════════════════════════════════════════════════════

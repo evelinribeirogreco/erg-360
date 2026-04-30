@@ -152,6 +152,62 @@ body {
 }
 .ci-opts-grid .ci-opt { flex-direction: column; align-items: flex-start; text-align: left; }
 
+/* Escala 1-5 com botões grandes (substitui slider) */
+.ci-scale-wrap {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.ci-scale-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 70px;
+  padding: 10px 4px;
+  background: var(--bg-primary);
+  border: 1.5px solid rgba(76,184,160,0.3);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+}
+.ci-scale-btn:hover {
+  border-color: var(--detail);
+  background: var(--bg-secondary);
+  transform: translateY(-1px);
+}
+.ci-scale-btn:active { transform: translateY(0); }
+.ci-scale-btn.active {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.ci-scale-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1;
+}
+.ci-scale-label {
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.85;
+  line-height: 1.2;
+}
+@media (max-width: 380px) {
+  .ci-scale-btn { min-height: 62px; padding: 8px 2px; }
+  .ci-scale-num { font-size: 1.4rem; }
+  .ci-scale-label { font-size: 0.55rem; }
+}
+
 /* ── Escala 1–5 ── */
 .ci-scale {
   display: flex;
@@ -480,35 +536,41 @@ body {
     <p class="ci-sub">Uma visão rápida do seu dia.</p>
 
     <p class="ci-sub-label">Energia</p>
-    <div class="ci-slider-wrap">
-      <div class="ci-slider-value">
-        <span class="ci-slider-value-num" id="val-energia">—</span>
-        <span class="ci-slider-value-label" id="lbl-energia">Mova o controle</span>
-      </div>
-      <div class="ci-slider-track">
-        <div class="ci-slider-bg"></div>
-        <div class="ci-slider-fill" id="fill-energia" style="width:0%"></div>
-        <input type="range" class="ci-slider" id="slider-energia"
-          min="1" max="5" step="1" value="3"
-          oninput="onSlider('energia',this.value)">
-      </div>
-      <div class="ci-slider-labels"><span>Sem energia</span><span>Ótima</span></div>
+    <div class="ci-scale-wrap" id="scale-energia">
+      <button type="button" class="ci-scale-btn" data-val="1" onclick="onScale('energia',1,this)">
+        <span class="ci-scale-num">1</span><span class="ci-scale-label">muito baixa</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="2" onclick="onScale('energia',2,this)">
+        <span class="ci-scale-num">2</span><span class="ci-scale-label">baixa</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="3" onclick="onScale('energia',3,this)">
+        <span class="ci-scale-num">3</span><span class="ci-scale-label">mediana</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="4" onclick="onScale('energia',4,this)">
+        <span class="ci-scale-num">4</span><span class="ci-scale-label">boa</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="5" onclick="onScale('energia',5,this)">
+        <span class="ci-scale-num">5</span><span class="ci-scale-label">ótima</span>
+      </button>
     </div>
 
     <p class="ci-sub-label" style="margin-top:4px;">Humor</p>
-    <div class="ci-slider-wrap">
-      <div class="ci-slider-value">
-        <span class="ci-slider-value-num" id="val-humor">—</span>
-        <span class="ci-slider-value-label" id="lbl-humor">Mova o controle</span>
-      </div>
-      <div class="ci-slider-track">
-        <div class="ci-slider-bg"></div>
-        <div class="ci-slider-fill" id="fill-humor" style="width:0%"></div>
-        <input type="range" class="ci-slider" id="slider-humor"
-          min="1" max="5" step="1" value="3"
-          oninput="onSlider('humor',this.value)">
-      </div>
-      <div class="ci-slider-labels"><span>Péssimo</span><span>Ótimo</span></div>
+    <div class="ci-scale-wrap" id="scale-humor">
+      <button type="button" class="ci-scale-btn" data-val="1" onclick="onScale('humor',1,this)">
+        <span class="ci-scale-num">1</span><span class="ci-scale-label">péssimo</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="2" onclick="onScale('humor',2,this)">
+        <span class="ci-scale-num">2</span><span class="ci-scale-label">ruim</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="3" onclick="onScale('humor',3,this)">
+        <span class="ci-scale-num">3</span><span class="ci-scale-label">normal</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="4" onclick="onScale('humor',4,this)">
+        <span class="ci-scale-num">4</span><span class="ci-scale-label">bom</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="5" onclick="onScale('humor',5,this)">
+        <span class="ci-scale-num">5</span><span class="ci-scale-label">ótimo</span>
+      </button>
     </div>
 
     <button class="ci-next" onclick="avancarStep()" id="btn-1">Continuar</button>
@@ -539,19 +601,22 @@ body {
     </div>
 
     <p class="ci-sub-label">Qualidade do sono</p>
-    <div class="ci-slider-wrap">
-      <div class="ci-slider-value">
-        <span class="ci-slider-value-num" id="val-sono_qualidade">—</span>
-        <span class="ci-slider-value-label" id="lbl-sono_qualidade">Mova o controle</span>
-      </div>
-      <div class="ci-slider-track">
-        <div class="ci-slider-bg"></div>
-        <div class="ci-slider-fill" id="fill-sono_qualidade" style="width:0%"></div>
-        <input type="range" class="ci-slider" id="slider-sono_qualidade"
-          min="1" max="5" step="1" value="3"
-          oninput="onSlider('sono_qualidade',this.value)">
-      </div>
-      <div class="ci-slider-labels"><span>Péssimo</span><span>Ótimo</span></div>
+    <div class="ci-scale-wrap" id="scale-sono_qualidade">
+      <button type="button" class="ci-scale-btn" data-val="1" onclick="onScale('sono_qualidade',1,this)">
+        <span class="ci-scale-num">1</span><span class="ci-scale-label">péssimo</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="2" onclick="onScale('sono_qualidade',2,this)">
+        <span class="ci-scale-num">2</span><span class="ci-scale-label">ruim</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="3" onclick="onScale('sono_qualidade',3,this)">
+        <span class="ci-scale-num">3</span><span class="ci-scale-label">mediano</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="4" onclick="onScale('sono_qualidade',4,this)">
+        <span class="ci-scale-num">4</span><span class="ci-scale-label">bom</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="5" onclick="onScale('sono_qualidade',5,this)">
+        <span class="ci-scale-num">5</span><span class="ci-scale-label">ótimo</span>
+      </button>
     </div>
 
     <p class="ci-sub-label">Despertares noturnos</p>
@@ -570,19 +635,22 @@ body {
     <h2 class="ci-question">Como foi sua fome hoje?</h2>
 
     <p class="ci-sub-label">Intensidade da fome</p>
-    <div class="ci-slider-wrap">
-      <div class="ci-slider-value">
-        <span class="ci-slider-value-num" id="val-fome_nivel">—</span>
-        <span class="ci-slider-value-label" id="lbl-fome_nivel">Mova o controle</span>
-      </div>
-      <div class="ci-slider-track">
-        <div class="ci-slider-bg"></div>
-        <div class="ci-slider-fill" id="fill-fome_nivel" style="width:0%"></div>
-        <input type="range" class="ci-slider" id="slider-fome_nivel"
-          min="1" max="5" step="1" value="3"
-          oninput="onSlider('fome_nivel',this.value)">
-      </div>
-      <div class="ci-slider-labels"><span>Sem fome</span><span>Incontrolável</span></div>
+    <div class="ci-scale-wrap" id="scale-fome_nivel">
+      <button type="button" class="ci-scale-btn" data-val="1" onclick="onScale('fome_nivel',1,this)">
+        <span class="ci-scale-num">1</span><span class="ci-scale-label">sem fome</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="2" onclick="onScale('fome_nivel',2,this)">
+        <span class="ci-scale-num">2</span><span class="ci-scale-label">pouca</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="3" onclick="onScale('fome_nivel',3,this)">
+        <span class="ci-scale-num">3</span><span class="ci-scale-label">normal</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="4" onclick="onScale('fome_nivel',4,this)">
+        <span class="ci-scale-num">4</span><span class="ci-scale-label">muita</span>
+      </button>
+      <button type="button" class="ci-scale-btn" data-val="5" onclick="onScale('fome_nivel',5,this)">
+        <span class="ci-scale-num">5</span><span class="ci-scale-label">incontrolável</span>
+      </button>
     </div>
 
     <p class="ci-sub-label">Episódio de descontrole alimentar</p>
