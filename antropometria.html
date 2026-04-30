@@ -36,8 +36,8 @@
       <div class="sidebar-nav">
         <p class="nav-section-label">Seções</p>
         <a class="nav-item active" onclick="goToStep(0)" id="snav-0">Dados Básicos</a>
-        <a class="nav-item" onclick="goToStep(1)" id="snav-1">Composição Corporal</a>
-        <a class="nav-item" onclick="goToStep(2)" id="snav-2">Circunferências</a>
+        <a class="nav-item" onclick="goToStep(1)" id="snav-1">Circunferências</a>
+        <a class="nav-item" onclick="goToStep(2)" id="snav-2">Composição Corporal</a>
         <a class="nav-item" onclick="goToStep(3)" id="snav-3">Resultado</a>
       </div>
       <div class="sidebar-footer">
@@ -119,10 +119,87 @@
           </section>
         </div>
 
-        <!-- ══ STEP 1: Composição Corporal ══ -->
+        <!-- ══ STEP 1: Circunferências (cm) ══ -->
         <div class="form-step" id="step-1">
           <header class="page-header fade-up">
             <p class="page-greeting">Seção 2 de 4</p>
+            <h1 class="page-title">Circunferências (cm)</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Membros Superiores</h2>
+            <div class="circ-table-wrapper">
+              <table class="circ-form-table">
+                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
+                <tbody>
+                  <tr><td>Braço relaxado</td>
+                    <td><input class="form-input" type="number" id="circ_braco_rel_d" step="0.1" oninput="calcularAreasBraco()"></td>
+                    <td><input class="form-input" type="number" id="circ_braco_rel_e" step="0.1" oninput="calcularAreasBraco()"></td></tr>
+                  <tr><td>Braço contraído</td>
+                    <td><input class="form-input" type="number" id="circ_braco_cont_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_braco_cont_e" step="0.1"></td></tr>
+                  <tr><td>Antebraço</td>
+                    <td><input class="form-input" type="number" id="circ_antebraco_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_antebraco_e" step="0.1"></td></tr>
+                  <tr><td>Punho</td>
+                    <td><input class="form-input" type="number" id="circ_punho_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_punho_e" step="0.1"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Tronco</h2>
+            <div class="admin-form-grid">
+              <div class="form-group">
+                <label class="form-label">Pescoço (cm)</label>
+                <input class="form-input" type="number" id="circ_pescoco" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tórax / Peitoral (cm)</label>
+                <input class="form-input" type="number" id="circ_torax" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cintura (cm)</label>
+                <input class="form-input" type="number" id="circ_cintura" step="0.1" oninput="calcularIndices()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Abdômen (cm)</label>
+                <input class="form-input" type="number" id="circ_abdominal" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quadril (cm)</label>
+                <input class="form-input" type="number" id="circ_quadril" step="0.1" oninput="calcularIndices()">
+              </div>
+            </div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-3">
+            <h2 class="section-title">Membros Inferiores</h2>
+            <div class="circ-table-wrapper">
+              <table class="circ-form-table">
+                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
+                <tbody>
+                  <tr><td>Coxa proximal</td>
+                    <td><input class="form-input" type="number" id="circ_coxa_prox_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_coxa_prox_e" step="0.1"></td></tr>
+                  <tr><td>Coxa medial</td>
+                    <td><input class="form-input" type="number" id="circ_coxa_med_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_coxa_med_e" step="0.1"></td></tr>
+                  <tr><td>Panturrilha</td>
+                    <td><input class="form-input" type="number" id="circ_panturrilha_d" step="0.1"></td>
+                    <td><input class="form-input" type="number" id="circ_panturrilha_e" step="0.1"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══ STEP 2: Composição Corporal ══ -->
+        <div class="form-step" id="step-2">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 3 de 4</p>
             <h1 class="page-title">Composição Corporal</h1>
           </header>
 
@@ -207,7 +284,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Tríceps</label>
-                  <input class="form-input" type="number" id="dobra_triceps" step="0.1" oninput="calcularPregas()">
+                  <input class="form-input" type="number" id="dobra_triceps" step="0.1" oninput="calcularPregas(); calcularAreasBraco();">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Subescapular</label>
@@ -263,68 +340,6 @@
               </div>
             </section>
           </div>
-        </div>
-
-        <!-- ══ STEP 2: Circunferências ══ -->
-        <div class="form-step" id="step-2">
-          <header class="page-header fade-up">
-            <p class="page-greeting">Seção 3 de 4</p>
-            <h1 class="page-title">Circunferências</h1>
-          </header>
-
-          <section class="section fade-up fade-up-delay-1">
-            <h2 class="section-title">Tronco</h2>
-            <div class="admin-form-grid">
-              <div class="form-group">
-                <label class="form-label">Pescoço (cm)</label>
-                <input class="form-input" type="number" id="circ_pescoco" step="0.1">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Tórax (cm)</label>
-                <input class="form-input" type="number" id="circ_torax" step="0.1">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Cintura (cm)</label>
-                <input class="form-input" type="number" id="circ_cintura" step="0.1" oninput="calcularIndices()">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Abdominal (cm)</label>
-                <input class="form-input" type="number" id="circ_abdominal" step="0.1">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Quadril (cm)</label>
-                <input class="form-input" type="number" id="circ_quadril" step="0.1" oninput="calcularIndices()">
-              </div>
-            </div>
-          </section>
-
-          <section class="section fade-up fade-up-delay-2">
-            <h2 class="section-title">Membros Superiores (cm)</h2>
-            <div class="circ-table-wrapper">
-              <table class="circ-form-table">
-                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
-                <tbody>
-                  <tr><td>Braço relaxado</td><td><input class="form-input" type="number" id="circ_braco_rel_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_braco_rel_e" step="0.1"></td></tr>
-                  <tr><td>Braço contraído</td><td><input class="form-input" type="number" id="circ_braco_cont_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_braco_cont_e" step="0.1"></td></tr>
-                  <tr><td>Antebraço</td><td><input class="form-input" type="number" id="circ_antebraco_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_antebraco_e" step="0.1"></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="section fade-up fade-up-delay-3">
-            <h2 class="section-title">Membros Inferiores (cm)</h2>
-            <div class="circ-table-wrapper">
-              <table class="circ-form-table">
-                <thead><tr><th>Medida</th><th>Direito</th><th>Esquerdo</th></tr></thead>
-                <tbody>
-                  <tr><td>Coxa proximal</td><td><input class="form-input" type="number" id="circ_coxa_prox_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_coxa_prox_e" step="0.1"></td></tr>
-                  <tr><td>Coxa medial</td><td><input class="form-input" type="number" id="circ_coxa_med_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_coxa_med_e" step="0.1"></td></tr>
-                  <tr><td>Panturrilha</td><td><input class="form-input" type="number" id="circ_panturrilha_d" step="0.1"></td><td><input class="form-input" type="number" id="circ_panturrilha_e" step="0.1"></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
         </div>
 
         <!-- ══ STEP 3: Resultado ══ -->
@@ -385,6 +400,21 @@
                 <p class="resultado-card-label">C/Estatura</p>
                 <p class="resultado-card-value" id="rf-rcest">—</p>
                 <p class="resultado-card-class" id="rf-rcest-class"></p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">Densidade Corporal</p>
+                <p class="resultado-card-value" id="rf-densidade">—</p>
+                <p class="resultado-card-class" style="font-size:0.6rem;">g/cm³</p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">AMB corrigida</p>
+                <p class="resultado-card-value" id="rf-amb">—</p>
+                <p class="resultado-card-class" id="rf-amb-class">cm² · área muscular do braço</p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">AGB</p>
+                <p class="resultado-card-value" id="rf-agb">—</p>
+                <p class="resultado-card-class" style="font-size:0.6rem;">cm² · área de gordura do braço</p>
               </div>
             </div>
           </section>

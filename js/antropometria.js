@@ -22,6 +22,10 @@ const supabase    = createClient(SUPABASE_URL, SUPABASE_ANON);
 const TOTAL_STEPS = 4;
 let currentStep   = 0;
 
+// Dados do paciente (sexo e idade) — usados nos cálculos de pregas e AMB
+let pacienteSexo  = 'feminino'; // fallback
+let pacienteIdade = 30;          // fallback
+
 // ── Inicialização ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAdmin();
@@ -31,7 +35,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   initForm();
   initSidebarMobile();
   updateProgress();
+  await carregarDadosPaciente(); // sexo + idade pra cálculos precisos
 });
+
+// Busca sexo + data_nascimento do paciente p/ usar nos cálculos
+async function carregarDadosPaciente() {
+  const patientId = document.getElementById('patient-id')?.value;
+  if (!patientId) return;
+  try {
+    const { data } = await supabase
+      .from('patients')
+      .select('sexo, data_nascimento')
+      .eq('id', patientId)
+      .maybeSingle();
+    if (data) {
+      if (data.sexo) {
+        pacienteSexo = data.sexo.toLowerCase().startsWith('m') ? 'masculino' : 'feminino';
+      }
+      if (data.data_nascimento) {
+        const hoje = new Date();
+        const nasc = new Date(data.data_nascimento + 'T00:00:00');
+        let idade  = hoje.getFullYear() - nasc.getFullYear();
+        const m    = hoje.getMonth() - nasc.getMonth();
+        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+        if (idade > 0 && idade < 120) pacienteIdade = idade;
+      }
+    }
+  } catch (e) { console.warn('[antro] erro carregando dados do paciente:', e); }
+}
 
 async function checkAdmin() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -95,9 +126,18 @@ function calcularIMC() {
   // ── 1. Peso ideal — sempre calcula se altura existe ─────────
   // Usa IMC alvo de 22 (meio do range saudável 18.5-24.9 kg/m²)
   // Range saudável: 18.5×alt² (mínimo) a 24.9×alt² (máximo)
+  const alturaCm       = altura * 100;
   const pesoIdeal      = 22  * altura * altura;
   const pesoIdealMin   = 18.5 * altura * altura;
   const pesoIdealMax   = 24.9 * altura * altura;
+  // Lorentz (1929) — clássica em nutrição clínica
+  const pesoIdealLorentz = pacienteSexo === 'masculino'
+    ? alturaCm - 100 - ((alturaCm - 150) / 4)
+    : alturaCm - 100 - ((alturaCm - 150) / 2.5);
+  // Devine (1974) — usada em cálculo de medicamentos / nutrição clínica
+  const pesoIdealDevine = pacienteSexo === 'masculino'
+    ? 50   + 0.91 * (alturaCm - 152.4)
+    : 45.5 + 0.91 * (alturaCm - 152.4);
 
   const piEl = document.getElementById('peso_ideal');
   if (piEl) {
@@ -107,14 +147,19 @@ function calcularIMC() {
       piEl.value = pesoIdeal.toFixed(1);
       piEl.dataset.auto = '1';
     }
-    // Adiciona hint com range saudável
+    // Adiciona hint com range saudável + alternativas
     let piHint = piEl.parentElement?.querySelector('.peso-ideal-hint');
     if (!piHint) {
       piHint = document.createElement('p');
       piHint.className = 'field-hint peso-ideal-hint';
+      piHint.style.lineHeight = '1.5';
       piEl.parentElement?.appendChild(piHint);
     }
-    piHint.textContent = `Faixa saudável: ${pesoIdealMin.toFixed(1)} – ${pesoIdealMax.toFixed(1)} kg (IMC 18,5–24,9)`;
+    piHint.innerHTML =
+      `IMC 22: <strong>${pesoIdeal.toFixed(1)} kg</strong> · ` +
+      `Lorentz: ${pesoIdealLorentz.toFixed(1)} kg · ` +
+      `Devine: ${pesoIdealDevine.toFixed(1)} kg<br>` +
+      `Faixa IMC saudável: ${pesoIdealMin.toFixed(1)}–${pesoIdealMax.toFixed(1)} kg`;
   }
 
   // ── 2. IMC — só calcula se peso existir ─────────────────────
@@ -180,47 +225,86 @@ function calcularIndices() {
   atualizarResultado();
 }
 
-// Cálculo de pregas cutâneas — Jackson Pollock 7 pregas
+// ════════════════════════════════════════════════════════════
+// Cálculo de pregas cutâneas — equações por sexo + idade
+//
+// Referências:
+// • Pollock 7 (Jackson-Pollock-Ward 1980): mulheres / Jackson-Pollock 1978: homens
+// • Pollock 3: idem (mulheres: tríc+supra+coxa / homens: peit+abd+coxa)
+// • Guedes 1985: mulheres (subesc+supra+coxa) / homens (tríc+subesc+supra)
+// • Faulkner 1968: ΣST4 (tríc+subesc+supra+abd) — independente de sexo
+// • Conversão densidade→%G: Siri (1961) — % G = (4.95/D − 4.50) × 100
+// ════════════════════════════════════════════════════════════
+let _ultimaDensidade = null; // exposto pra atualizarResultado()
+
 function calcularPregas() {
   const protocolo = document.getElementById('protocolo')?.value;
   if (!protocolo) return;
 
   const peso  = parseFloat(document.getElementById('peso')?.value) || 0;
-  const sexo  = 'feminino'; // padrão; idealmente viria do cadastro da paciente
-  const idade = 30; // padrão
+  const sexo  = pacienteSexo;   // dinâmico (carregado do paciente)
+  const idade = pacienteIdade;  // dinâmico
 
+  const d = (id) => parseFloat(document.getElementById(id)?.value) || 0;
   const dobras = {
-    biceps:       parseFloat(document.getElementById('dobra_biceps')?.value)       || 0,
-    triceps:      parseFloat(document.getElementById('dobra_triceps')?.value)      || 0,
-    subescapular: parseFloat(document.getElementById('dobra_subescapular')?.value) || 0,
-    suprailiaca:  parseFloat(document.getElementById('dobra_suprailiaca')?.value)  || 0,
-    abdominal:    parseFloat(document.getElementById('dobra_abdominal')?.value)    || 0,
-    axilar:       parseFloat(document.getElementById('dobra_axilar')?.value)       || 0,
-    peitoral:     parseFloat(document.getElementById('dobra_peitoral')?.value)     || 0,
-    coxa:         parseFloat(document.getElementById('dobra_coxa')?.value)         || 0,
-    panturrilha:  parseFloat(document.getElementById('dobra_panturrilha')?.value)  || 0,
+    biceps:       d('dobra_biceps'),
+    triceps:      d('dobra_triceps'),
+    subescapular: d('dobra_subescapular'),
+    suprailiaca:  d('dobra_suprailiaca'),
+    abdominal:    d('dobra_abdominal'),
+    axilar:       d('dobra_axilar'),
+    peitoral:     d('dobra_peitoral'),
+    coxa:         d('dobra_coxa'),
+    panturrilha:  d('dobra_panturrilha'),
   };
 
   let soma = 0, densidade = 0, pctGord = 0;
 
   if (protocolo === 'pollock7') {
-    soma = dobras.triceps + dobras.subescapular + dobras.suprailiaca +
-           dobras.abdominal + dobras.axilar + dobras.peitoral + dobras.coxa;
-    // Jackson Pollock 7 — feminino
-    densidade = 1.097 - (0.00046971 * soma) + (0.00000056 * soma * soma) - (0.00012828 * idade);
-    pctGord   = ((4.95 / densidade) - 4.50) * 100;
+    // Σ7 = peitoral + axilar + tríceps + subescapular + abdominal + suprailíaca + coxa
+    soma = dobras.peitoral + dobras.axilar + dobras.triceps + dobras.subescapular +
+           dobras.abdominal + dobras.suprailiaca + dobras.coxa;
+    if (sexo === 'masculino') {
+      // Jackson-Pollock (1978) homens
+      densidade = 1.112 - (0.00043499 * soma) + (0.00000055 * soma * soma) - (0.00028826 * idade);
+    } else {
+      // Jackson-Pollock-Ward (1980) mulheres
+      densidade = 1.097 - (0.00046971 * soma) + (0.00000056 * soma * soma) - (0.00012828 * idade);
+    }
+    pctGord = ((4.95 / densidade) - 4.50) * 100;
+
   } else if (protocolo === 'pollock3') {
-    soma = dobras.triceps + dobras.suprailiaca + dobras.coxa;
-    densidade = 1.0994921 - (0.0009929 * soma) + (0.0000023 * soma * soma) - (0.0001392 * idade);
-    pctGord   = ((4.95 / densidade) - 4.50) * 100;
+    if (sexo === 'masculino') {
+      // Homens: peitoral + abdominal + coxa
+      soma = dobras.peitoral + dobras.abdominal + dobras.coxa;
+      densidade = 1.10938 - (0.0008267 * soma) + (0.0000016 * soma * soma) - (0.0002574 * idade);
+    } else {
+      // Mulheres: tríceps + suprailíaca + coxa
+      soma = dobras.triceps + dobras.suprailiaca + dobras.coxa;
+      densidade = 1.0994921 - (0.0009929 * soma) + (0.0000023 * soma * soma) - (0.0001392 * idade);
+    }
+    pctGord = ((4.95 / densidade) - 4.50) * 100;
+
   } else if (protocolo === 'guedes') {
-    soma = dobras.triceps + dobras.suprailiaca + dobras.abdominal;
-    densidade = 1.1665 - (0.0706 * Math.log10(soma));
-    pctGord   = ((4.95 / densidade) - 4.50) * 100;
+    if (sexo === 'masculino') {
+      // Homens: tríceps + subescapular + suprailíaca
+      soma = dobras.triceps + dobras.subescapular + dobras.suprailiaca;
+      densidade = 1.17136 - (0.06706 * Math.log10(soma));
+    } else {
+      // Mulheres: subescapular + suprailíaca + coxa
+      soma = dobras.subescapular + dobras.suprailiaca + dobras.coxa;
+      densidade = 1.16650 - (0.07063 * Math.log10(soma));
+    }
+    pctGord = ((4.95 / densidade) - 4.50) * 100;
+
   } else if (protocolo === 'faulkner') {
+    // Σ4 = tríceps + subescapular + suprailíaca + abdominal
     soma = dobras.triceps + dobras.subescapular + dobras.suprailiaca + dobras.abdominal;
     pctGord = (soma * 0.153) + 5.783;
+    densidade = 0; // Faulkner não usa densidade
   }
+
+  _ultimaDensidade = densidade > 0 ? densidade : null;
 
   setVal('soma_dobras', soma.toFixed(1));
   setVal('pct_gordura', pctGord.toFixed(1));
@@ -245,6 +329,72 @@ function calcularPregas() {
   }
 
   atualizarResultado();
+}
+
+// ════════════════════════════════════════════════════════════
+// Área Muscular do Braço (AMB) e Área de Gordura do Braço (AGB)
+//
+// Referências:
+// • AMB = ((CB − π·DT/10)²) / (4π)        [Frisancho 1981]
+// • AMB corrigida (Heymsfield 1982): mulher AMB − 6.5 ; homem AMB − 10
+// • AB (área total do braço) = CB² / (4π)
+// • AGB = AB − AMB
+// CB em cm, DT em mm (por isso /10 pra converter pra cm)
+// Usa média D+E quando ambos estão preenchidos; senão usa o que tiver.
+// ════════════════════════════════════════════════════════════
+function calcularAreasBraco() {
+  const cbD = parseFloat(document.getElementById('circ_braco_rel_d')?.value) || 0;
+  const cbE = parseFloat(document.getElementById('circ_braco_rel_e')?.value) || 0;
+  const dt  = parseFloat(document.getElementById('dobra_triceps')?.value)    || 0;
+
+  // Média de D+E quando ambos preenchidos; fallback pro lado que tem
+  let cb = 0;
+  if (cbD > 0 && cbE > 0)      cb = (cbD + cbE) / 2;
+  else if (cbD > 0)            cb = cbD;
+  else if (cbE > 0)            cb = cbE;
+
+  const ambEl = document.getElementById('rf-amb');
+  const agbEl = document.getElementById('rf-agb');
+
+  if (!cb || !dt) {
+    if (ambEl) ambEl.textContent = '—';
+    if (agbEl) agbEl.textContent = '—';
+    return;
+  }
+
+  const PI = Math.PI;
+  const dtCm   = dt / 10; // mm → cm
+  const amb    = Math.pow(cb - (PI * dtCm), 2) / (4 * PI);
+  const ambCorr = pacienteSexo === 'masculino' ? amb - 10 : amb - 6.5;
+  const ab     = (cb * cb) / (4 * PI);
+  const agb    = ab - amb;
+
+  if (ambEl) ambEl.textContent = ambCorr.toFixed(2) + ' cm²';
+  if (agbEl) agbEl.textContent = agb.toFixed(2)    + ' cm²';
+}
+
+// Versão "snapshot" usada no save — retorna número, não atualiza DOM
+function _calcAreasBracoSnapshot() {
+  const cbD = parseFloat(document.getElementById('circ_braco_rel_d')?.value) || 0;
+  const cbE = parseFloat(document.getElementById('circ_braco_rel_e')?.value) || 0;
+  const dt  = parseFloat(document.getElementById('dobra_triceps')?.value)    || 0;
+  let cb = 0;
+  if (cbD > 0 && cbE > 0)      cb = (cbD + cbE) / 2;
+  else if (cbD > 0)            cb = cbD;
+  else if (cbE > 0)            cb = cbE;
+  if (!cb || !dt) return null;
+  const PI = Math.PI;
+  const dtCm = dt / 10;
+  const amb  = Math.pow(cb - (PI * dtCm), 2) / (4 * PI);
+  const ambCorr = pacienteSexo === 'masculino' ? amb - 10 : amb - 6.5;
+  const ab   = (cb * cb) / (4 * PI);
+  const agb  = ab - amb;
+  return {
+    amb: +amb.toFixed(2),
+    amb_corrigida: +ambCorr.toFixed(2),
+    ab: +ab.toFixed(2),
+    agb: +agb.toFixed(2),
+  };
 }
 
 function atualizarResultado() {
@@ -274,6 +424,10 @@ function atualizarResultado() {
   setResText('rf-mm',     mm     ? mm.toFixed(2) + ' kg': '—');
   setResText('rf-rcq',    rcq    ? rcq.toFixed(3): '—');
   setResText('rf-rcest',  rcest  ? rcest.toFixed(3): '—');
+  setResText('rf-densidade', _ultimaDensidade ? _ultimaDensidade.toFixed(4) : '—');
+
+  // Recalcula áreas do braço (caso tenha valores no momento)
+  calcularAreasBraco();
 
   if (imc) {
     const cl = document.getElementById('rf-imc-class');
@@ -291,6 +445,7 @@ window._onPesoIdealManual = _onPesoIdealManual;
 window.calcularComposicao = calcularComposicao;
 window.calcularIndices = calcularIndices;
 window.calcularPregas  = calcularPregas;
+window.calcularAreasBraco = calcularAreasBraco;
 
 // ── Navegação ─────────────────────────────────────────────
 function goToStep(n) {
@@ -371,6 +526,9 @@ async function salvarAvaliacao() {
     soma_dobras:      { min: 0,    max: 999 },
     rcq:              { min: 0,    max: 9.99 },
     rcest:            { min: 0,    max: 9.99 },
+    densidade_corporal:    { min: 0.5, max: 1.2  },
+    area_muscular_braco:   { min: 0,   max: 999.9 },
+    area_gordura_braco:    { min: 0,   max: 999.9 },
     // Padrão pra circunferências e dobras: 0–999.9
     _default:         { min: 0,    max: 999.9 },
   };
@@ -442,10 +600,20 @@ async function salvarAvaliacao() {
     circ_coxa_med_e:  vNum('circ_coxa_med_e'),
     circ_panturrilha_d:vNum('circ_panturrilha_d'),
     circ_panturrilha_e:vNum('circ_panturrilha_e'),
+    circ_punho_d:     vNum('circ_punho_d'),
+    circ_punho_e:     vNum('circ_punho_e'),
     rcq:              vNum('rcq'),
     rcest:            vNum('rcest'),
+    densidade_corporal: _ultimaDensidade,
     obs:              vStr('obs'),
   };
+
+  // AMB e AGB calculadas (recomputa pra garantir o valor mais recente no save)
+  const _amb = _calcAreasBracoSnapshot();
+  if (_amb) {
+    payload.area_muscular_braco = _amb.amb_corrigida;
+    payload.area_gordura_braco  = _amb.agb;
+  }
 
   const { error } = await supabase.from('antropometria').insert(payload);
 
