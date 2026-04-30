@@ -5,7 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { installFormGuard } from './form-guard.js';
 import { renderSparkChart } from './sparkchart.js';
-import { safeInsert, installOnlineHook, mountPendingBanner } from './safe-save.js';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 
 let formGuard = null;
 let evolucaoData = [];      // cache das avaliações para re-render do gráfico
@@ -85,12 +85,59 @@ function loadPatientFromUrl() {
   const patientId = params.get('patient_id') || params.get('patient');
   const userId    = params.get('user_id')    || params.get('user');
   const nome      = params.get('nome');
+  // Modo edição: ?edit=<antropometria_id> carrega uma específica pra UPDATE
+  const editId    = params.get('edit');
   if (patientId) document.getElementById('patient-id').value = patientId;
   if (userId)    document.getElementById('user-id').value    = userId;
   if (nome) {
     document.getElementById('patient-name-sidebar').textContent = nome.split(' ')[0];
     document.title = `Antropometria — ${nome}`;
   }
+  // Sempre cria NOVA avaliação por padrão. Só carrega existente se ?edit=ID
+  if (editId && patientId) loadAntropometriaById(patientId, editId);
+}
+
+// Carrega avaliação específica pra edição (UPDATE) — só com ?edit=ID
+async function loadAntropometriaById(patientId, antroId) {
+  const { data, error } = await supabase
+    .from('antropometria')
+    .select('*')
+    .eq('id', antroId)
+    .eq('patient_id', patientId)
+    .single();
+  if (error || !data) {
+    console.warn('[antro] não conseguiu carregar avaliação para edição:', error);
+    return;
+  }
+  // Guarda ID em hidden field para o save virar UPDATE
+  let hiddenId = document.getElementById('antro-id');
+  if (!hiddenId) {
+    hiddenId = document.createElement('input');
+    hiddenId.type = 'hidden';
+    hiddenId.id = 'antro-id';
+    document.getElementById('antro-form')?.appendChild(hiddenId);
+  }
+  hiddenId.value = antroId;
+  // Preenche todos os campos cujos IDs batem com colunas
+  for (const [key, val] of Object.entries(data)) {
+    if (val == null) continue;
+    const el = document.getElementById(key);
+    if (!el) continue;
+    if (el.type === 'date' && typeof val === 'string') {
+      el.value = val.slice(0, 10);
+    } else {
+      el.value = val;
+    }
+  }
+  // Recalcula tudo automaticamente
+  if (typeof calcularIMC === 'function')      calcularIMC();
+  if (typeof calcularComposicao === 'function') calcularComposicao();
+  if (typeof calcularIndices === 'function')  calcularIndices();
+  if (typeof calcularPregas === 'function')   calcularPregas();
+  if (typeof atualizarResultado === 'function') atualizarResultado();
+  // Sinaliza visualmente que está em modo edição
+  const titleEl = document.querySelector('.page-title');
+  if (titleEl) titleEl.textContent += ' (editando)';
 }
 
 function setDefaultDate() {
@@ -843,11 +890,13 @@ async function salvarAvaliacao() {
   const _sm = calcularMMEsqueletica();
   if (_sm) payload.massa_muscular_esqueletica = _sm;
 
-  // safeInsert: backup local imediato + retry inteligente +
-  // remove campos que não existem no banco automaticamente
-  const result = await safeInsert(supabase, 'antropometria', payload, {
-    label: 'Avaliação antropométrica',
-  });
+  // Se tem antro-id, é edição (UPDATE); senão, nova avaliação (INSERT)
+  const editandoId = document.getElementById('antro-id')?.value;
+  const result = editandoId
+    ? await safeUpdate(supabase, 'antropometria', payload, { id: editandoId },
+                        { label: 'Avaliação antropométrica (edição)' })
+    : await safeInsert(supabase, 'antropometria', payload,
+                        { label: 'Avaliação antropométrica' });
 
   if (!result.ok) {
     const errMsg = result.error?.message || 'Erro desconhecido';

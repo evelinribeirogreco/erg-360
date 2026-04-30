@@ -3,7 +3,7 @@
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { safeInsert, installOnlineHook, mountPendingBanner } from './safe-save.js';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 import {
   MODULES,
   detectarModulos,
@@ -80,6 +80,8 @@ function loadPatientFromUrl() {
   const patientId = params.get('patient')    || params.get('patient_id');
   const userId    = params.get('user')       || params.get('user_id');
   const nome      = params.get('nome');
+  // Modo edição: ?edit=<anamnese_id> carrega uma específica pra UPDATE
+  const editId    = params.get('edit');
 
   if (patientId) document.getElementById('patient-id').value = patientId;
   if (userId)    document.getElementById('user-id').value    = userId;
@@ -88,21 +90,32 @@ function loadPatientFromUrl() {
     document.title = `Anamnese — ${nome}`;
   }
 
-  // Verifica se tem anamnese existente para editar
-  if (patientId) loadExistingAnamnese(patientId);
+  // Sempre cria NOVA anamnese por padrão. Só carrega existente se ?edit=ID.
+  if (editId && patientId) loadAnamneseById(patientId, editId);
 }
 
-async function loadExistingAnamnese(patientId) {
+async function loadAnamneseById(patientId, anamneseId) {
   const { data } = await supabase
     .from('anamnese')
     .select('*')
+    .eq('id', anamneseId)
     .eq('patient_id', patientId)
-    .order('data_avaliacao', { ascending: false })
-    .limit(1)
     .single();
 
   if (data) {
     fillForm(data);
+    // Guarda ID em hidden field para o save virar UPDATE
+    let hiddenId = document.getElementById('anamnese-id');
+    if (!hiddenId) {
+      hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.id = 'anamnese-id';
+      document.querySelector('form, body')?.appendChild(hiddenId);
+    }
+    hiddenId.value = anamneseId;
+    // Sinaliza visualmente que está em modo edição
+    const titleEl = document.querySelector('.page-title');
+    if (titleEl) titleEl.textContent += ' (editando)';
 
     // Carrega e re-injeta módulos dinâmicos da anamnese anterior
     const slugsAtivos = await carregarModulosAtivos(supabase, patientId);
@@ -476,11 +489,13 @@ async function saveAnamnese() {
 
   // ── 1. Salva anamnese base (com proteção total contra perda) ──
   const payload = buildPayload(patientId, userId);
-  const result = await safeInsert(supabase, 'anamnese', payload, {
-    label: 'Anamnese',
-    select: 'id',
-    single: true,
-  });
+  // Modo edição: ?edit=ID setou anamnese-id → UPDATE; senão, nova entrada (INSERT)
+  const editandoId = document.getElementById('anamnese-id')?.value;
+  const result = editandoId
+    ? await safeUpdate(supabase, 'anamnese', payload, { id: editandoId },
+                        { label: 'Anamnese (edição)', select: 'id', single: true })
+    : await safeInsert(supabase, 'anamnese', payload,
+                        { label: 'Anamnese', select: 'id', single: true });
 
   if (!result.ok) {
     showMsg(msg,

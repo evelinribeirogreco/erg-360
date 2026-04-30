@@ -58,13 +58,26 @@ function loadFromUrl() {
   patientId     = params.get('patient_id') || params.get('patient');
   patientUserId = params.get('user_id')    || params.get('user');
   const nome    = decodeURIComponent(params.get('nome') || '');
+  // Modo edição: ?edit=<plano_id> carrega plano específico p/ UPDATE
+  const editId  = params.get('edit');
 
   document.getElementById('patient-id').value        = patientId || '';
   document.getElementById('user-id').value           = patientUserId || '';
   document.getElementById('patient-nome-sidebar').textContent = nome.split(' ')[0] || '—';
 
-  if (patientId) loadExistingPlano(patientId);
-  if (patientId) loadPatientPreferencia(patientId);
+  // Sempre cria NOVO plano por padrão. Só carrega o existente se ?edit=ID
+  if (editId)        loadPlanoById(editId);
+  if (patientId)     loadPatientPreferencia(patientId);
+}
+
+// Carrega plano específico pra edição (UPDATE) — só usado com ?edit=ID
+async function loadPlanoById(planoId) {
+  const { data } = await supabase
+    .from('planos_alimentares')
+    .select('*')
+    .eq('id', planoId)
+    .single();
+  if (data) fillForm(data);
 }
 
 // ── Badge do perfil nutricional (7 camadas) ───────────────

@@ -768,15 +768,118 @@ function showPacTab(tab, btn) {
         <p style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.3rem;color:var(--text);margin-bottom:8px;">${a.label}</p>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text-light);margin-bottom:20px;">${a.sub}</p>
         <a href="${a.href}" class="btn-primary" style="width:auto;display:inline-flex;padding:14px 32px;">
-          Abrir ${a.label}
+          + Nova ${a.label}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
       </div>
+
+      <div id="pac-historico-${tab}" style="margin-top:24px;"></div>
+    </div>
+  `;
+
+  // Carrega histórico de avaliações em background (async)
+  setTimeout(() => carregarHistoricoTab(tab, id, userId, nome), 100);
+}
+
+window.verPaciente  = verPaciente;
+
+// ════════════════════════════════════════════════════════════
+// HISTÓRICO de avaliações (anamnese / antropometria / plano alimentar)
+// ════════════════════════════════════════════════════════════
+const HISTORICO_CONFIG = {
+  anamnese: {
+    table: 'anamnese',
+    dateField: 'data_avaliacao',
+    labelFields: ['descricao'],
+    editPage: 'anamnese.html',
+    titulo: 'Anamneses anteriores',
+  },
+  antro: {
+    table: 'antropometria',
+    dateField: 'data_avaliacao',
+    labelFields: ['descricao', 'peso', 'imc'],
+    editPage: 'antropometria.html',
+    titulo: 'Avaliações antropométricas anteriores',
+  },
+  plano: {
+    table: 'planos_alimentares',
+    dateField: 'data_elaboracao',
+    labelFields: ['descricao', 'sub_titulo', 'kcal_alvo'],
+    editPage: 'admin-plano.html',
+    titulo: 'Planos alimentares anteriores',
+  },
+};
+
+async function carregarHistoricoTab(tab, patientId, userId, nome) {
+  const cfg = HISTORICO_CONFIG[tab];
+  const wrap = document.getElementById(`pac-historico-${tab}`);
+  if (!cfg || !wrap) return;
+
+  const { data, error } = await supabase
+    .from(cfg.table)
+    .select(`id, ${cfg.dateField}, created_at, ${cfg.labelFields.join(', ')}`)
+    .eq('patient_id', patientId)
+    .order(cfg.dateField, { ascending: false })
+    .limit(50);
+
+  if (error) {
+    wrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);text-align:center;">Erro ao carregar histórico: ${error.message}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    wrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);text-align:center;font-style:italic;">Nenhuma ${cfg.titulo.toLowerCase().replace(' anteriores','').replace(' anteriores','')} registrada ainda.</p>`;
+    return;
+  }
+
+  const nomeEnc = encodeURIComponent(nome || '');
+  const fmtData = (s) => s ? new Date(s + (s.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  const labelOf = (row, idx) => {
+    const partes = cfg.labelFields.map(f => row[f]).filter(v => v != null && v !== '');
+    if (tab === 'antro' && row.peso)  partes.push(`${row.peso} kg`);
+    if (tab === 'antro' && row.imc)   partes.push(`IMC ${row.imc}`);
+    if (tab === 'plano' && row.kcal_alvo) partes.push(`${row.kcal_alvo} kcal`);
+    return partes.length ? partes.join(' · ') : `${cfg.titulo.split(' ')[0]} #${data.length - idx}`;
+  };
+
+  wrap.innerHTML = `
+    <h3 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.1rem;color:var(--text);margin-bottom:12px;border-bottom:1px solid var(--detail);padding-bottom:8px;">
+      ${cfg.titulo} <span style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--subtitle);">(${data.length})</span>
+    </h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${data.map((row, idx) => {
+        const editHref = `${cfg.editPage}?patient_id=${patientId}&user_id=${userId}&nome=${nomeEnc}&edit=${row.id}`;
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--detail);background:var(--bg-primary);">
+            <div style="flex:1;">
+              <div style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.78rem;color:var(--text);">
+                ${idx === 0 ? '<span style="background:var(--detail);color:var(--bg-primary);padding:2px 6px;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;margin-right:8px;">Atual</span>' : `<span style="color:var(--subtitle);font-weight:400;margin-right:8px;">#${data.length - idx}</span>`}
+                ${fmtData(row[cfg.dateField] || row.created_at)}
+              </div>
+              <div style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--text-light);margin-top:2px;">
+                ${labelOf(row, idx)}
+              </div>
+            </div>
+            <a href="${editHref}" style="font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);border:1px solid var(--detail);padding:8px 14px;text-decoration:none;">
+              Editar
+            </a>
+            <button onclick="excluirHistorico('${cfg.table}','${row.id}','${tab}','${patientId}','${userId}','${nomeEnc}')" style="margin-left:6px;background:transparent;border:1px solid var(--error,#a04030);color:var(--error,#a04030);padding:8px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;" title="Excluir">
+              ✕
+            </button>
+          </div>`;
+      }).join('')}
     </div>
   `;
 }
 
-window.verPaciente  = verPaciente;
+async function excluirHistorico(table, id, tab, patientId, userId, nomeEnc) {
+  if (!confirm('Tem certeza que deseja excluir este registro permanentemente? Esta ação não pode ser desfeita.')) return;
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) { alert('Erro ao excluir: ' + error.message); return; }
+  // Recarrega
+  carregarHistoricoTab(tab, patientId, userId, decodeURIComponent(nomeEnc));
+}
+window.excluirHistorico = excluirHistorico;
 
 // ── Abre check-in retroativo (admin preenche pra paciente) ──────
 function abrirCheckinRetroativo() {
