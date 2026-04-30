@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gastos Energéticos — ERG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F7F6F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ERG 360º">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/theme-nutri.css">
+</head>
+<body id="admin-root">
+
+  <header class="mobile-header">
+    <span class="mobile-brand">Gastos Energéticos</span>
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+  </header>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="icons/logo-80.png" alt="ERG" class="sidebar-logo">
+        <p class="sidebar-brand-name">ERG</p>
+        <p class="sidebar-brand-specialty">Gastos Energéticos</p>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <p class="sidebar-user-name" id="patient-name-sidebar">—</p>
+          <p class="sidebar-user-label">Paciente</p>
+        </div>
+        <button class="logout-btn" onclick="window.location.href='admin.html'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="admin-back-top"><a href="admin.html" class="back-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar ao painel</a></div>
+
+      <form id="ge-form" novalidate>
+        <input type="hidden" id="patient-id">
+        <input type="hidden" id="user-id">
+        <input type="hidden" id="ge-id">
+
+        <header class="page-header fade-up">
+          <p class="page-greeting">Cálculo de gasto energético</p>
+          <h1 class="page-title">Gastos Energéticos</h1>
+        </header>
+
+        <!-- ══ Identificação ══ -->
+        <section class="section fade-up fade-up-delay-1">
+          <h2 class="section-title">Identificação</h2>
+          <div class="admin-form-grid">
+            <div class="form-group">
+              <label class="form-label">Tipo</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn active" data-field="tipo" data-value="adulto">Adulto</button>
+                <button type="button" class="toggle-btn" data-field="tipo" data-value="atleta">Atleta</button>
+                <button type="button" class="toggle-btn" data-field="tipo" data-value="gestante">Gestante</button>
+                <button type="button" class="toggle-btn" data-field="tipo" data-value="idoso">Idoso</button>
+              </div>
+              <input type="hidden" id="tipo" value="adulto">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do cálculo</label>
+              <input class="form-input" type="date" id="data_calculo">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Descrição</label>
+              <input class="form-input" type="text" id="descricao" placeholder="Ex: 1º Cálculo de Gastos Energéticos">
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Dados antropométricos (auto-fill) ══ -->
+        <section class="section fade-up fade-up-delay-2">
+          <h2 class="section-title">Dados antropométricos</h2>
+          <p class="field-hint" style="margin-bottom:14px;">
+            Carregados da última avaliação antropométrica. Pode editar se quiser usar valores diferentes.
+            <button type="button" id="btn-recarregar-antro" style="margin-left:8px;background:none;border:1px solid var(--detail);color:var(--text-light);padding:4px 10px;font-size:0.7rem;cursor:pointer;">↻ Recarregar</button>
+          </p>
+          <div class="admin-form-grid">
+            <div class="form-group">
+              <label class="form-label">Peso (kg)</label>
+              <input class="form-input" type="number" id="peso" step="0.1" oninput="recalcular()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Altura (m)</label>
+              <input class="form-input" type="number" id="altura" step="0.01" oninput="recalcular()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Idade (anos)</label>
+              <input class="form-input" type="number" id="idade" step="1" oninput="recalcular()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sexo</label>
+              <div class="btn-group">
+                <button type="button" class="toggle-btn active" data-field="sexo" data-value="feminino" onclick="setTimeout(recalcular,50)">Feminino</button>
+                <button type="button" class="toggle-btn" data-field="sexo" data-value="masculino" onclick="setTimeout(recalcular,50)">Masculino</button>
+              </div>
+              <input type="hidden" id="sexo" value="feminino">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Massa magra (kg)</label>
+              <input class="form-input" type="number" id="massa_magra" step="0.1" oninput="recalcular()" placeholder="Para Katch-McArdle/Cunningham">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fator de injúria</label>
+              <input class="form-input" type="number" id="fator_injuria" step="0.01" placeholder="Opcional (ex: 1.2)" oninput="recalcular()">
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Protocolo ══ -->
+        <section class="section fade-up fade-up-delay-3">
+          <h2 class="section-title">Protocolo de cálculo</h2>
+          <div class="admin-form-grid">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Equação para TMB / RDEE</label>
+              <select class="form-input" id="protocolo" onchange="onProtocoloChange()">
+                <option value="mifflin">Mifflin-St Jeor (1990) — Padrão para adultos</option>
+                <option value="harris_benedict">Harris-Benedict revisada (1984)</option>
+                <option value="katch_mcardle">Katch-McArdle (1996) — Atletas / baixa gordura</option>
+                <option value="cunningham">Cunningham (1980) — Atletas com %G muito baixo</option>
+                <option value="tinsley">Tinsley (2019) — Atletas resistidos</option>
+              </select>
+              <p class="field-hint" id="protocolo-hint" style="margin-top:6px;"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Nível de atividade ══ -->
+        <section class="section fade-up fade-up-delay-4">
+          <h2 class="section-title">Nível de atividade</h2>
+          <div class="admin-form-grid">
+            <div class="form-group">
+              <label class="form-label">Fator de atividade</label>
+              <select class="form-input" id="nivel_atividade" onchange="onNivelChange()">
+                <option value="sedentario">Sedentário (1,20)</option>
+                <option value="leve">Leve — 1-3x/sem (1,375)</option>
+                <option value="moderado">Moderado — 3-5x/sem (1,55)</option>
+                <option value="ativo">Ativo — 6-7x/sem (1,725)</option>
+                <option value="muito_ativo" selected>Muito ativo — 2x/dia (1,90)</option>
+                <option value="custom">Personalizado…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fator (multiplicador)</label>
+              <input class="form-input" type="number" id="fator_atividade" step="0.01" value="1.90" oninput="recalcular()">
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Atividades físicas extras ══ -->
+        <section class="section fade-up fade-up-delay-5">
+          <h2 class="section-title">Atividades físicas (kcal/dia)</h2>
+          <p class="field-hint" style="margin-bottom:14px;">
+            Atividades adicionais somadas ao GET (separadas do fator de atividade básico).
+          </p>
+          <div id="atividades-lista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+          <button type="button" id="btn-add-atividade" style="background:none;border:1px dashed var(--detail);color:var(--text);padding:10px 16px;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;font-size:0.78rem;">
+            + Adicionar atividade
+          </button>
+          <p style="margin-top:10px;font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--text-light);text-align:right;">
+            Total atividades: <strong id="atividades-total">0 kcal</strong>
+          </p>
+        </section>
+
+        <!-- ══ Resultado ══ -->
+        <section class="section fade-up fade-up-delay-6">
+          <h2 class="section-title">Resultado</h2>
+
+          <div class="resultado-composicao" style="margin-bottom:18px;">
+            <div class="resultado-card">
+              <p class="resultado-card-label">RDEE / TMB</p>
+              <p class="resultado-card-value" id="r-rdee">—</p>
+              <p class="resultado-card-class" id="r-rdee-sub" style="font-size:0.62rem;">kcal/dia · taxa metabólica basal</p>
+            </div>
+            <div class="resultado-card">
+              <p class="resultado-card-label">RDEE Total / GET</p>
+              <p class="resultado-card-value" id="r-get">—</p>
+              <p class="resultado-card-class" style="font-size:0.62rem;">kcal/dia · gasto energético total</p>
+            </div>
+            <div class="resultado-card">
+              <p class="resultado-card-label">Manutenção</p>
+              <p class="resultado-card-value" id="r-manutencao">—</p>
+              <p class="resultado-card-class" style="font-size:0.62rem;">kcal/dia (regra de bolso)</p>
+            </div>
+          </div>
+
+          <h3 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.05rem;color:var(--text);margin-bottom:8px;border-bottom:1px solid var(--detail);padding-bottom:6px;">Cenários — regra de bolso</h3>
+          <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--text-light);margin-bottom:10px;">
+            Faixas baseadas em kcal/kg de peso atual: perda 20-25 · manutenção 25-30 · ganho 30-35.
+          </p>
+          <div class="resultado-composicao">
+            <div class="resultado-card">
+              <p class="resultado-card-label">Perda de peso</p>
+              <p class="resultado-card-value" id="r-perda">—</p>
+              <p class="resultado-card-class" style="font-size:0.62rem;">kcal/dia · 20-25 × peso</p>
+            </div>
+            <div class="resultado-card">
+              <p class="resultado-card-label">Ganho de peso</p>
+              <p class="resultado-card-value" id="r-ganho">—</p>
+              <p class="resultado-card-class" style="font-size:0.62rem;">kcal/dia · 30-35 × peso</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Observações ══ -->
+        <section class="section fade-up fade-up-delay-7">
+          <h2 class="section-title">Observações</h2>
+          <div class="form-group">
+            <textarea class="form-input form-textarea" id="obs" rows="3" placeholder="Notas adicionais, contexto da consulta..."></textarea>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="btn-salvar">Salvar Cálculo</button>
+        </div>
+        <p id="form-message" class="form-message"></p>
+      </form>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/gastos-energeticos.js"></script>
+</body>
+</html>

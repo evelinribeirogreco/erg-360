@@ -722,11 +722,12 @@ function showPacTab(tab, btn) {
   };
 
   const actions = {
-    plano:     { label: 'Plano Alimentar',  sub: 'Editar cardápio e macros',        href: `admin-plano.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
-    anamnese:  { label: 'Anamnese',         sub: 'Histórico clínico completo',       href: `anamnese.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
-    antro:     { label: 'Antropometria',    sub: 'Medidas e composição corporal',    href: `antropometria.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}&nascimento=${nascEnc}&sexo=${sexoEnc}` },
-    checkins:  { label: 'Check-ins',        sub: 'Acompanhamento semanal',           href: `admin-checkins.html?patient_id=${id}&nome=${encodeURIComponent(nome)}` },
-    fases:     { label: 'Fases',            sub: 'Plano de tratamento por etapas',   href: `admin-fases.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
+    plano:     { label: 'Plano Alimentar',     sub: 'Editar cardápio e macros',        href: `admin-plano.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
+    anamnese:  { label: 'Anamnese',            sub: 'Histórico clínico completo',       href: `anamnese.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
+    antro:     { label: 'Antropometria',       sub: 'Medidas e composição corporal',    href: `antropometria.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}&nascimento=${nascEnc}&sexo=${sexoEnc}` },
+    gastos:    { label: 'Gastos Energéticos',  sub: 'TMB, GET e cenários calóricos',    href: `gastos-energeticos.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
+    checkins:  { label: 'Check-ins',           sub: 'Acompanhamento semanal',           href: `admin-checkins.html?patient_id=${id}&nome=${encodeURIComponent(nome)}` },
+    fases:     { label: 'Fases',               sub: 'Plano de tratamento por etapas',   href: `admin-fases.html?patient_id=${id}&user_id=${userId}&nome=${encodeURIComponent(nome)}` },
   };
 
   const a = actions[tab];
@@ -813,6 +814,13 @@ const HISTORICO_CONFIG = {
     editPage: 'admin-plano.html',
     titulo: 'Planos alimentares anteriores',
   },
+  gastos: {
+    table: 'gastos_energeticos',
+    dateField: 'data_calculo',
+    labelFields: ['descricao', 'protocolo', 'rdee', 'rdee_total'],
+    editPage: 'gastos-energeticos.html',
+    titulo: 'Cálculos de gastos energéticos anteriores',
+  },
 };
 
 async function carregarHistoricoTab(tab, patientId, userId, nome) {
@@ -847,10 +855,23 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
   const nomeEnc = encodeURIComponent(nome || '');
   const fmtData = (s) => s ? new Date(s + (s.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   const labelOf = (row, idx) => {
-    const partes = cfg.labelFields.map(f => row[f]).filter(v => v != null && v !== '');
-    if (tab === 'antro' && row.peso)  partes.push(`${row.peso} kg`);
-    if (tab === 'antro' && row.imc)   partes.push(`IMC ${row.imc}`);
-    if (tab === 'plano' && row.kcal_alvo) partes.push(`${row.kcal_alvo} kcal`);
+    const partes = [];
+    if (row.descricao) partes.push(row.descricao);
+    if (tab === 'antro') {
+      if (row.peso) partes.push(`${row.peso} kg`);
+      if (row.imc)  partes.push(`IMC ${row.imc}`);
+    }
+    if (tab === 'plano') {
+      if (row.sub_titulo) partes.push(row.sub_titulo);
+      if (row.kcal_alvo)  partes.push(`${row.kcal_alvo} kcal`);
+    }
+    if (tab === 'gastos') {
+      const protoLabel = ({mifflin:'Mifflin',harris_benedict:'Harris-Benedict',
+        katch_mcardle:'Katch-McArdle',cunningham:'Cunningham',tinsley:'Tinsley'})[row.protocolo] || row.protocolo;
+      if (protoLabel) partes.push(protoLabel);
+      if (row.rdee)       partes.push(`RDEE ${row.rdee} kcal`);
+      if (row.rdee_total) partes.push(`GET ${row.rdee_total} kcal`);
+    }
     return partes.length ? partes.join(' · ') : `${cfg.titulo.split(' ')[0]} #${data.length - idx}`;
   };
 
