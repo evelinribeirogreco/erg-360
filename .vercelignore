@@ -1,0 +1,27 @@
+# Pastas dev / build / cache
+.git
+.github
+.vscode
+.idea
+.claude
+node_modules
+memory
+versions
+scripts
+
+# Backend / migrations (rodam fora do Vercel)
+supabase
+
+# Snapshots / backups
+*.zip
+*.bak
+*.orig
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docs internos
+MEMORY.md

@@ -33,3 +33,9 @@ memory/
 
 # Snapshots do sistema de versionamento (ver versions/README.md)
 versions/
+
+# Deploys (zips locais)
+erg-deploy-*.zip
+
+# Vercel CLI
+.vercel
