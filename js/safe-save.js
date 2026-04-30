@@ -1,6 +1,7 @@
 // ============================================================
 // safe-save.js — Camada de proteção contra perda de dados
 // ============================================================
+console.info('%c[safe-save] camada de proteção ATIVA', 'color:#2D6A56;font-weight:600');
 // Garante que NENHUM salvamento se perca em caso de:
 //   1. Coluna ausente no banco (migration não rodada)        → remove campo + retenta
 //   2. Erro de rede ou timeout                               → enfileira e retenta
