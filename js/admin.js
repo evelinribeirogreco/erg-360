@@ -9,6 +9,7 @@ import {
   resumoPerfilPaciente, resumoPreferencia,
   CONDICOES_GRUPOS,
 } from './preferencias-alimentares.js';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 
 const SUPABASE_URL  = 'https://gqnlrhmriufepzpustna.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo';
@@ -47,6 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
+  // Backup global de saves + banner de pendências
+  window._supabase = supabase;
+  installOnlineHook(supabase);
+  mountPendingBanner();
 });
 
 // ── Verifica sessão e se é administradora ─────────────────
@@ -1123,23 +1128,16 @@ async function handleFormSubmit(e) {
       fase_da_vida:           perfilNutr.fase_da_vida,
     };
 
-    let dbError;
+    const result = isEdit
+      ? await safeUpdate(supabase, 'patients', payload, { id: patientId },
+                          { label: `Paciente ${payload.nome || ''}` })
+      : await safeInsert(supabase, 'patients', payload,
+                          { label: `Paciente ${payload.nome || ''}` });
 
-    if (isEdit) {
-      const { error } = await supabase
-        .from('patients')
-        .update(payload)
-        .eq('id', patientId);
-      dbError = error;
-    } else {
-      const { error } = await supabase
-        .from('patients')
-        .insert(payload);
-      dbError = error;
-    }
-
-    if (dbError) {
-      showFormMsg(msg, 'Erro ao salvar dados: ' + dbError.message, 'error');
+    if (!result.ok) {
+      showFormMsg(msg,
+        `Erro ao salvar: ${result.error?.message}. Dados guardados localmente — clique no banner pra retentar.`,
+        'error');
       btn.disabled = false; btn.textContent = isEdit ? 'Salvar Alterações' : 'Salvar Paciente';
       return;
     }

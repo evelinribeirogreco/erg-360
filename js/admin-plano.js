@@ -5,6 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { installFormGuard } from './form-guard.js';
 import { exportPlanoPDF } from './plano-pdf-export.js';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 import {
   getPreferenciaInfo, getEstiloInfo,
   resumoPreferencia, resumoPerfilPaciente,
@@ -41,6 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setDefaultDate();
   updateProgress();
   updateNavBtns();
+  window._supabase = supabase;
+  installOnlineHook(supabase);
+  mountPendingBanner();
 });
 
 async function checkAdmin() {
@@ -1365,16 +1369,14 @@ function initForm() {
     if (pdfUrl) payload.plano_pdf_url = pdfUrl;
 
     const planoId = document.getElementById('plano-id').value;
-    let error;
+    const result = planoId
+      ? await safeUpdate(supabase, 'planos_alimentares', payload, { id: planoId },
+                          { label: 'Plano alimentar' })
+      : await safeInsert(supabase, 'planos_alimentares', payload,
+                          { label: 'Plano alimentar' });
 
-    if (planoId) {
-      ({ error } = await supabase.from('planos_alimentares').update(payload).eq('id', planoId));
-    } else {
-      ({ error } = await supabase.from('planos_alimentares').insert(payload));
-    }
-
-    if (error) {
-      msg.textContent = 'Erro ao salvar: ' + error.message;
+    if (!result.ok) {
+      msg.textContent = `Erro ao salvar: ${result.error?.message}. Dados guardados localmente — clique no banner pra retentar.`;
       msg.className = 'form-message error visible';
       btn.disabled = false; btn.textContent = 'Salvar Plano';
       return;

@@ -5,6 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { installFormGuard } from './form-guard.js';
 import { renderSparkChart } from './sparkchart.js';
+import { safeInsert, installOnlineHook, mountPendingBanner } from './safe-save.js';
 
 let formGuard = null;
 let evolucaoData = [];      // cache das avaliações para re-render do gráfico
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSidebarMobile();
   updateProgress();
   await carregarDadosPaciente(); // sexo + idade pra cálculos precisos
+  // Hook de reenvio automático + banner de pendências
+  installOnlineHook(supabase);
+  mountPendingBanner();
 });
 
 // Busca sexo + data_nascimento do paciente p/ usar nos cálculos
@@ -839,16 +843,30 @@ async function salvarAvaliacao() {
   const _sm = calcularMMEsqueletica();
   if (_sm) payload.massa_muscular_esqueletica = _sm;
 
-  const { error } = await supabase.from('antropometria').insert(payload);
+  // safeInsert: backup local imediato + retry inteligente +
+  // remove campos que não existem no banco automaticamente
+  const result = await safeInsert(supabase, 'antropometria', payload, {
+    label: 'Avaliação antropométrica',
+  });
 
-  if (error) {
-    showMsg(msg, 'Erro ao salvar: ' + error.message, 'error');
+  if (!result.ok) {
+    const errMsg = result.error?.message || 'Erro desconhecido';
+    showMsg(msg,
+      `Erro ao salvar: ${errMsg}. Os dados ficam guardados localmente — ` +
+      `clique no banner inferior pra tentar novamente.`,
+      'error');
     btn.disabled = false; btn.textContent = 'Salvar Avaliação';
     return;
   }
 
+  // Sucesso — avisa se algumas colunas foram ignoradas (migration faltando)
+  if (result.columnsRemoved?.length) {
+    console.warn('Colunas ignoradas no save (rodar migration):', result.columnsRemoved);
+    showToast(`Salvo (${result.columnsRemoved.length} campos novos ignorados — rode a migration).`);
+  } else {
+    showToast('Avaliação salva com sucesso.');
+  }
   formGuard?.markSaved();
-  showToast('Avaliação salva com sucesso.');
   setTimeout(() => window.location.href = 'admin.html', 1500);
 }
 

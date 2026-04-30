@@ -3,11 +3,15 @@
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 
 const SUPABASE_URL  = 'https://gqnlrhmriufepzpustna.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+window._supabase = supabase;
+installOnlineHook(supabase);
+document.addEventListener('DOMContentLoaded', mountPendingBanner);
 let userId    = null;
 let patientId = null;
 let currentDate = new Date().toISOString().split('T')[0];
@@ -164,24 +168,33 @@ function initForm() {
     };
 
     const diarioId = v('diario-id');
-    let error;
-
-    if (diarioId) {
-      ({ error } = await supabase.from('diario_alimentar').update(payload).eq('id', diarioId));
-    } else {
-      const { data, error: insertError } = await supabase.from('diario_alimentar').insert(payload).select().single();
-      error = insertError;
-      if (data) document.getElementById('diario-id').value = data.id;
-    }
+    const result = diarioId
+      ? await safeUpdate(supabase, 'diario_alimentar', payload, { id: diarioId },
+                          { label: 'Diário alimentar' })
+      : await safeInsert(supabase, 'diario_alimentar', payload,
+                          { label: 'Diário alimentar', select: '*', single: true });
 
     btn.disabled = false;
     btn.textContent = 'Salvar diário';
 
-    if (!error) {
+    if (result.ok) {
+      // Em caso de insert, guarda o ID retornado para futuras edições
+      if (!diarioId && result.data?.id) {
+        document.getElementById('diario-id').value = result.data.id;
+      }
       const msg = document.getElementById('diario-saved-msg');
-      msg.style.display = 'block';
-      setTimeout(() => msg.style.display = 'none', 3000);
+      if (msg) {
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', 3000);
+      }
       loadHistorico();
+    } else {
+      const msg = document.getElementById('diario-saved-msg');
+      if (msg) {
+        msg.style.color = '#a04030';
+        msg.textContent = `Erro: ${result.error?.message}. Salvo localmente — clique no banner pra retentar.`;
+        msg.style.display = 'block';
+      }
     }
   });
 }

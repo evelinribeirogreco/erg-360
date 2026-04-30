@@ -3,6 +3,7 @@
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { safeInsert, installOnlineHook, mountPendingBanner } from './safe-save.js';
 import {
   MODULES,
   detectarModulos,
@@ -53,6 +54,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSidebarMobile();
   initForm();
   updateProgress();
+  // Backup global de saves + banner de pendências
+  window._supabase = supabase;
+  installOnlineHook(supabase);
+  mountPendingBanner();
 });
 
 async function checkAdmin() {
@@ -469,21 +474,27 @@ async function saveAnamnese() {
     return;
   }
 
-  // ── 1. Salva anamnese base ──
+  // ── 1. Salva anamnese base (com proteção total contra perda) ──
   const payload = buildPayload(patientId, userId);
-  const { data: anamneseData, error } = await supabase
-    .from('anamnese')
-    .insert(payload)
-    .select('id')
-    .single();
+  const result = await safeInsert(supabase, 'anamnese', payload, {
+    label: 'Anamnese',
+    select: 'id',
+    single: true,
+  });
 
-  if (error) {
-    showMsg(msg, 'Erro ao salvar: ' + error.message, 'error');
+  if (!result.ok) {
+    showMsg(msg,
+      `Erro ao salvar: ${result.error?.message || 'desconhecido'}. ` +
+      `Os dados ficam guardados localmente — clique no banner inferior pra tentar novamente.`,
+      'error');
     btn.disabled = false; btn.textContent = 'Salvar Anamnese';
     return;
   }
+  if (result.columnsRemoved?.length) {
+    console.warn('Anamnese: campos ignorados (rodar migration):', result.columnsRemoved);
+  }
 
-  const anamneseId = anamneseData?.id || null;
+  const anamneseId = result.data?.id || null;
 
   // ── 2. Salva respostas dos módulos dinâmicos ──
   if (modulosAtivos.length) {

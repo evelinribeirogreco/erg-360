@@ -3,6 +3,7 @@
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
 
 const SUPABASE_URL  = 'https://gqnlrhmriufepzpustna.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo';
@@ -23,6 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadFromUrl();
   initForm();
   initSidebar();
+  window._supabase = supabase;
+  installOnlineHook(supabase);
+  mountPendingBanner();
 });
 
 async function checkAdmin() {
@@ -275,16 +279,19 @@ function initForm() {
     };
 
     const faseId = v('fase-id');
-    let error;
+    let result;
 
     if (faseId) {
-      ({ error } = await supabase.from('fases').update(payload).eq('id', faseId));
+      result = await safeUpdate(supabase, 'fases', payload, { id: faseId },
+                                 { label: `Fase ${payload.nome || ''}` });
     } else {
-      ({ error } = await supabase.from('fases').insert(payload));
+      result = await safeInsert(supabase, 'fases', payload,
+                                 { label: `Fase ${payload.nome || ''}` });
     }
+    const error = result.ok ? null : result.error;
 
     if (error) {
-      msg.textContent = 'Erro: ' + error.message;
+      msg.textContent = `Erro: ${error.message}. Dados guardados localmente — clique no banner pra retentar.`;
       msg.className   = 'form-message error visible';
       btn.disabled = false; btn.textContent = faseId ? 'Salvar Alterações' : 'Salvar Fase';
       return;
@@ -1055,10 +1062,11 @@ async function confirmarGerarPlano() {
     user_id:    patientUserId,
   }));
 
-  const { error } = await supabase.from('fases').insert(payload);
+  const result = await safeInsert(supabase, 'fases', payload,
+                                    { label: 'Fases do plano (geração automática)' });
 
-  if (error) {
-    msg.textContent = 'Erro ao criar fases: ' + error.message;
+  if (!result.ok) {
+    msg.textContent = `Erro ao criar fases: ${result.error?.message}. Dados guardados localmente — clique no banner pra retentar.`;
     msg.style.color = 'var(--error)'; msg.style.display = '';
     btn.disabled = false; btn.textContent = 'Criar fases automaticamente';
     return;
