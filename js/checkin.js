@@ -39,6 +39,10 @@ const state = {
   obs:                null,
 };
 
+// ── Estado de check-in retroativo ────────────────────────
+let dataAlvo  = null; // null = hoje. Se setado, usa essa data no save
+let modoRetroativo = false;
+
 // ── Init ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -46,20 +50,131 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   userId = session.user.id;
 
-  const { data: p } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
-  patientId = p?.id || null;
+  // ── Modo retroativo (admin) ──
+  // URL: checkin.html?retro=1&patient=<patient_id>&user=<user_id>&data=YYYY-MM-DD
+  const params = new URLSearchParams(window.location.search);
+  const retroPatient = params.get('patient');
+  const retroUser    = params.get('user');
+  const retroData    = params.get('data');
 
-  // Data de hoje
-  const hoje = new Date();
+  // Verifica se é admin
+  const ADMIN_EMAIL = 'evelinbeatrizrb@outlook.com';
+  const isAdmin = session.user.email === ADMIN_EMAIL;
+
+  if (isAdmin && retroPatient && retroUser) {
+    // Modo retroativo: admin preenchendo pra outra paciente
+    modoRetroativo = true;
+    patientId = retroPatient;
+    userId    = retroUser;
+    dataAlvo  = retroData || null;
+    mostrarBannerRetroativo();
+  } else {
+    // Modo normal: paciente preenche pra ela mesma
+    const { data: p } = await supabase
+      .from('patients')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    patientId = p?.id || null;
+  }
+
+  // Renderiza data na intro
+  const dataExibida = dataAlvo ? new Date(dataAlvo + 'T12:00:00') : new Date();
   const el = document.getElementById('ci-data-hoje');
-  if (el) el.textContent = hoje.toLocaleDateString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long'
+  if (el) el.textContent = dataExibida.toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
 });
+
+// ── Banner visual no modo retroativo ─────────────────────
+function mostrarBannerRetroativo() {
+  document.body.classList.add('modo-retroativo');
+  const banner = document.createElement('div');
+  banner.id = 'banner-retroativo';
+  banner.style.cssText = `
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: rgba(201,168,76,0.18);
+    border-bottom: 2px solid #C9A84C;
+    padding: 10px 16px 10px 60px;
+    font-family: 'DM Sans', 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #6B5A20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  `;
+  banner.innerHTML = `
+    <span style="font-size:1.1rem;">📋</span>
+    <span><strong>Modo retroativo</strong> · preenchendo check-in da data
+      <strong id="retro-data-label">${dataAlvo || 'a definir'}</strong>
+    </span>
+    <button type="button" onclick="window._abrirSeletorData && window._abrirSeletorData()"
+      style="margin-left:auto;padding:5px 10px;background:#C9A84C;color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:0.72rem;cursor:pointer;font-weight:500;">
+      Mudar data
+    </button>
+  `;
+  document.body.insertBefore(banner, document.body.firstChild);
+
+  // Se data ainda não foi escolhida, abre seletor automaticamente
+  if (!dataAlvo) setTimeout(() => window._abrirSeletorData?.(), 200);
+}
+
+// ── Seletor de data (modal simples) ──────────────────────
+window._abrirSeletorData = function() {
+  const hojeStr = new Date().toISOString().split('T')[0];
+  const ontem   = new Date(); ontem.setDate(ontem.getDate() - 1);
+  const ontemStr = ontem.toISOString().split('T')[0];
+
+  // Cria modal se não existir
+  let modal = document.getElementById('modal-data-retro');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-data-retro';
+    modal.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:3000;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+      font-family:'DM Sans',sans-serif;
+    `;
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:100%;box-shadow:0 6px 28px rgba(0,0,0,0.18);">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.3rem;margin:0 0 8px;">
+          Data do check-in
+        </h3>
+        <p style="font-size:0.82rem;color:#6B6659;margin:0 0 18px;line-height:1.5;">
+          Escolha a data que a paciente fez (ou deveria ter feito) o check-in:
+        </p>
+        <input type="date" id="input-data-retro" value="${dataAlvo || ontemStr}" max="${hojeStr}"
+          style="width:100%;padding:12px;border:1px solid #D4D0C5;border-radius:6px;font-family:inherit;font-size:1rem;margin-bottom:18px;">
+        <div style="display:flex;gap:8px;">
+          <button type="button" id="btn-data-cancelar"
+            style="flex:1;padding:11px;background:transparent;border:1px solid #D4D0C5;border-radius:6px;font-family:inherit;cursor:pointer;font-size:0.82rem;color:#6B6659;">
+            Cancelar
+          </button>
+          <button type="button" id="btn-data-confirmar"
+            style="flex:1;padding:11px;background:#2D6A56;color:#fff;border:none;border-radius:6px;font-family:inherit;cursor:pointer;font-size:0.82rem;font-weight:500;">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('#btn-data-cancelar').onclick = () => modal.style.display = 'none';
+    modal.querySelector('#btn-data-confirmar').onclick = () => {
+      const novaData = modal.querySelector('#input-data-retro').value;
+      if (novaData) {
+        dataAlvo = novaData;
+        const lbl = document.getElementById('retro-data-label');
+        if (lbl) lbl.textContent = new Date(novaData + 'T12:00:00').toLocaleDateString('pt-BR');
+      }
+      modal.style.display = 'none';
+    };
+  }
+  modal.style.display = 'flex';
+};
 
 // ══════════════════════════════════════════════════════════
 // NAVEGAÇÃO
@@ -353,12 +468,22 @@ async function salvarCheckin() {
   calcularFlags();
   const score = calcularScore();
 
-  const hoje = new Date().toISOString().split('T')[0];
+  // Modo normal usa hoje; modo retroativo usa dataAlvo (escolhida pelo admin)
+  const dataCheckin = (modoRetroativo && dataAlvo)
+    ? dataAlvo
+    : new Date().toISOString().split('T')[0];
+
+  // Validação do modo retroativo: precisa ter data escolhida
+  if (modoRetroativo && !dataAlvo) {
+    alert('Escolha a data do check-in retroativo antes de salvar.');
+    window._abrirSeletorData?.();
+    return;
+  }
 
   const payload = {
     patient_id:          patientId,
     user_id:             userId,
-    data:                hoje,
+    data:                dataCheckin,
     energia:             state.energia,
     humor:               state.humor,
     sono_horas:          state.sono_horas,

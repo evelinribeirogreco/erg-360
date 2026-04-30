@@ -772,6 +772,17 @@ function showPacTab(tab, btn) {
 }
 
 window.verPaciente  = verPaciente;
+
+// ── Abre check-in retroativo (admin preenche pra paciente) ──────
+function abrirCheckinRetroativo() {
+  if (!currentPatientId || !currentPatientUserId) {
+    alert('Selecione uma paciente antes.');
+    return;
+  }
+  const url = `checkin.html?patient=${encodeURIComponent(currentPatientId)}&user=${encodeURIComponent(currentPatientUserId)}&retro=1`;
+  window.open(url, '_blank');
+}
+window.abrirCheckinRetroativo = abrirCheckinRetroativo;
 window.showPacTab   = showPacTab;
 
 // ============================================================
