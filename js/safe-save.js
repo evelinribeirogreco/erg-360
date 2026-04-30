@@ -81,12 +81,36 @@ const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // ════════════════════════════════════════════════════════════
 // CORE — tenta executar a operação até 5x, removendo colunas
 // inexistentes automaticamente. Mantém backup local entre tentativas.
+// SUPORTA payload array (insert em lote) e payload objeto.
 // ════════════════════════════════════════════════════════════
 async function _tryOperation(supabase, op /* 'insert'|'update'|'upsert' */,
                               table, payload, where, opts = {}) {
-  let workingPayload = { ...payload };
+  // Preserva o tipo: array clona como array, objeto clona como objeto
+  let workingPayload = Array.isArray(payload)
+    ? payload.map(item => ({ ...item }))
+    : { ...payload };
   let columnsRemoved = [];
   let lastError = null;
+
+  // Helper: confirma que a chave "missing" existe no payload (suporta array + obj)
+  const _hasKey = (pl, key) => {
+    if (Array.isArray(pl)) {
+      return pl.some(item => item && typeof item === 'object' && key in item);
+    }
+    return pl && typeof pl === 'object' && key in pl;
+  };
+  // Helper: remove coluna do payload (suporta array + obj)
+  const _removeKey = (pl, key) => {
+    if (Array.isArray(pl)) {
+      return pl.map(item => {
+        if (!item || typeof item !== 'object') return item;
+        const { [key]: _drop, ...rest } = item;
+        return rest;
+      });
+    }
+    const { [key]: _drop, ...rest } = pl;
+    return rest;
+  };
 
   for (let attempt = 0; attempt < MAX_AUTO_RETRIES; attempt++) {
     try {
@@ -115,12 +139,17 @@ async function _tryOperation(supabase, op /* 'insert'|'update'|'upsert' */,
       }
       lastError = error;
 
-      // Coluna ausente — remove e tenta de novo
+      // Coluna ausente — remove e tenta de novo (suporta array + obj)
       const missing = _extractMissingColumn(error.message);
-      if (missing && missing in workingPayload) {
+      // Defesa: ignora "missing" puramente numérico (provável índice de array mal interpretado)
+      if (missing && /^\d+$/.test(missing)) {
+        console.error(`[safe-save] erro suspeito: extraído chave numérica "${missing}". Abortando para evitar loop.`, error);
+        return { ok: false, error, payload: workingPayload, columnsRemoved };
+      }
+      if (missing && _hasKey(workingPayload, missing)) {
         console.warn(`[safe-save] coluna ausente "${missing}" — removendo e retentando`);
         columnsRemoved.push(missing);
-        delete workingPayload[missing];
+        workingPayload = _removeKey(workingPayload, missing);
         continue; // sem backoff, é instantâneo
       }
 
