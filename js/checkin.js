@@ -40,8 +40,9 @@ const state = {
 };
 
 // ── Estado de check-in retroativo ────────────────────────
-let dataAlvo  = null; // null = hoje. Se setado, usa essa data no save
-let modoRetroativo = false;
+let dataAlvo  = null;       // null = hoje. Se setado, usa essa data no save
+let modoRetroativo = false; // true = data != hoje
+let modoAdmin = false;      // true = admin preenchendo pra outra paciente
 
 // ── Init ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -62,8 +63,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isAdmin = session.user.email === ADMIN_EMAIL;
 
   if (isAdmin && retroPatient && retroUser) {
-    // Modo retroativo: admin preenchendo pra outra paciente
+    // Modo retroativo: admin preenchendo pra outra paciente (sem limite de data)
     modoRetroativo = true;
+    modoAdmin      = true;
     patientId = retroPatient;
     userId    = retroUser;
     dataAlvo  = retroData || null;
@@ -76,6 +78,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       .eq('user_id', userId)
       .single();
     patientId = p?.id || null;
+
+    // Paciente pode optar por preencher retroativo (até 2 dias atrás)
+    // Botão é injetado na tela inicial (screen-0) — se param ?data= veio na URL, ativa direto
+    if (retroData && _validarDataRetroativaPaciente(retroData)) {
+      modoRetroativo = true;
+      modoAdmin      = false;
+      dataAlvo       = retroData;
+      mostrarBannerRetroativo();
+    } else {
+      // Adiciona botão "Preencher de outro dia" na intro (sem ativar nada ainda)
+      setTimeout(_injetarBotaoRetroativoPaciente, 100);
+    }
   }
 
   // Renderiza data na intro
@@ -85,6 +99,108 @@ document.addEventListener('DOMContentLoaded', async () => {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
 });
+
+// ── Valida se a data é elegível pra paciente (até 2 dias atrás) ─
+function _validarDataRetroativaPaciente(dataStr) {
+  if (!dataStr || !/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) return false;
+  const escolhida = new Date(dataStr + 'T12:00:00');
+  const hoje = new Date(); hoje.setHours(12,0,0,0);
+  const diffDias = Math.round((hoje - escolhida) / 86400000);
+  return diffDias >= 0 && diffDias <= 2;  // hoje, ontem ou anteontem
+}
+
+// ── Injeta botão "Preencher de outro dia" na intro (paciente) ───
+function _injetarBotaoRetroativoPaciente() {
+  const intro = document.querySelector('.ci-intro');
+  if (!intro || intro.querySelector('.ci-retro-btn')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ci-retro-btn';
+  btn.style.cssText = `
+    margin-top:14px;padding:10px 18px;background:transparent;
+    border:1px dashed rgba(201,168,76,0.6);border-radius:6px;
+    color:#6B5A20;font-family:'DM Sans','Outfit',sans-serif;
+    font-size:0.74rem;font-weight:500;letter-spacing:0.04em;
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  `;
+  btn.innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9c-2.39 0-4.68.94-6.36 2.64L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+    Esqueci ontem — preencher de outro dia
+  `;
+  btn.addEventListener('click', _abrirModalRetroPaciente);
+  intro.appendChild(btn);
+}
+
+// ── Modal do paciente: só permite hoje, ontem ou anteontem ──────
+function _abrirModalRetroPaciente() {
+  const hoje = new Date();
+  const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
+  const anteontem = new Date(hoje); anteontem.setDate(anteontem.getDate() - 2);
+  const fmt = (d) => d.toISOString().split('T')[0];
+  const lbl = (d) => d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
+
+  let modal = document.getElementById('modal-retro-paciente');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-retro-paciente';
+    modal.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:3000;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+      font-family:'DM Sans','Outfit',sans-serif;
+    `;
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:28px;max-width:380px;width:100%;box-shadow:0 6px 28px rgba(0,0,0,0.18);">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.3rem;margin:0 0 8px;">
+          Qual dia você quer preencher?
+        </h3>
+        <p style="font-size:0.78rem;color:#6B6659;margin:0 0 16px;line-height:1.5;">
+          Por questão de precisão clínica, você pode preencher até <strong>2 dias atrás</strong>. Para datas mais antigas, fale com a Dra. Evelin.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+          <button type="button" data-dia="${fmt(hoje)}" class="ci-retro-opt" style="padding:12px 16px;text-align:left;background:rgba(76,184,160,0.08);border:1px solid rgba(76,184,160,0.4);border-radius:6px;cursor:pointer;font-family:inherit;">
+            <strong>Hoje</strong> — ${lbl(hoje)}
+          </button>
+          <button type="button" data-dia="${fmt(ontem)}" class="ci-retro-opt" style="padding:12px 16px;text-align:left;background:#fff;border:1px solid #D4D0C5;border-radius:6px;cursor:pointer;font-family:inherit;">
+            <strong>Ontem</strong> — ${lbl(ontem)}
+          </button>
+          <button type="button" data-dia="${fmt(anteontem)}" class="ci-retro-opt" style="padding:12px 16px;text-align:left;background:#fff;border:1px solid #D4D0C5;border-radius:6px;cursor:pointer;font-family:inherit;">
+            <strong>Anteontem</strong> — ${lbl(anteontem)}
+          </button>
+        </div>
+        <button type="button" id="btn-retro-cancelar" style="width:100%;padding:10px;background:transparent;border:1px solid #D4D0C5;border-radius:6px;font-family:inherit;cursor:pointer;font-size:0.82rem;color:#6B6659;">
+          Cancelar
+        </button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelectorAll('.ci-retro-opt').forEach(b => {
+      b.addEventListener('click', () => {
+        const dia = b.dataset.dia;
+        const hojeStr = fmt(new Date());
+        if (dia === hojeStr) {
+          // Escolheu hoje — apenas fecha, segue fluxo normal
+          modal.style.display = 'none';
+          return;
+        }
+        // Escolheu ontem ou anteontem — ativa modo retroativo
+        modoRetroativo = true;
+        modoAdmin      = false;
+        dataAlvo       = dia;
+        modal.style.display = 'none';
+        mostrarBannerRetroativo();
+        // Atualiza data exibida na intro
+        const el = document.getElementById('ci-data-hoje');
+        if (el) {
+          el.textContent = new Date(dia + 'T12:00:00').toLocaleDateString('pt-BR', {
+            weekday: 'long', day: '2-digit', month: 'long'
+          });
+        }
+      });
+    });
+    modal.querySelector('#btn-retro-cancelar').onclick = () => modal.style.display = 'none';
+  }
+  modal.style.display = 'flex';
+}
 
 // ── Banner visual no modo retroativo ─────────────────────
 function mostrarBannerRetroativo() {
@@ -480,10 +596,13 @@ async function salvarCheckin() {
     return;
   }
 
+  const hojeStr = new Date().toISOString().split('T')[0];
   const payload = {
     patient_id:          patientId,
     user_id:             userId,
     data:                dataCheckin,
+    is_retroativo:       dataCheckin !== hojeStr,   // true se data != hoje
+    feito_em:            new Date().toISOString(),  // timestamp REAL do save
     energia:             state.energia,
     humor:               state.humor,
     sono_horas:          state.sono_horas,

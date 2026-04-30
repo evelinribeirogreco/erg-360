@@ -336,9 +336,20 @@ function renderTabela(checkins) {
         <tbody>
           ${[...checkins].reverse().map(c => {
             const data = new Date(c.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            // Etiqueta amarela se foi preenchido retroativamente
+            let retroBadge = '';
+            if (c.is_retroativo) {
+              const feitoEm = c.feito_em
+                ? new Date(c.feito_em).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })
+                : null;
+              const tooltip = feitoEm
+                ? `Preenchido retroativamente em ${feitoEm}`
+                : 'Preenchido retroativamente';
+              retroBadge = `<span title="${tooltip}" style="display:inline-block;margin-left:4px;padding:1px 6px;background:rgba(201,168,76,0.18);color:#6B5A20;border:1px solid #C9A84C;border-radius:8px;font-size:0.55rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;vertical-align:middle;">retro</span>`;
+            }
             return `
-              <tr>
-                <td style="font-weight:400;white-space:nowrap;">${data}</td>
+              <tr${c.is_retroativo ? ' style="background:rgba(201,168,76,0.04);"' : ''}>
+                <td style="font-weight:400;white-space:nowrap;">${data}${retroBadge}</td>
                 <td>${c.sono_horas ? c.sono_horas + 'h' : '—'}</td>
                 <td>${c.sono_qualidade ? c.sono_qualidade + '/5' : '—'}</td>
                 <td>${c.energia ? badge(c.energia, 5) : '—'}</td>
