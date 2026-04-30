@@ -60,24 +60,71 @@ function loadFromUrl() {
   const nome    = decodeURIComponent(params.get('nome') || '');
   // Modo edição: ?edit=<plano_id> carrega plano específico p/ UPDATE
   const editId  = params.get('edit');
+  // Modo visualização: ?view=<plano_id> readonly
+  const viewId  = params.get('view');
 
   document.getElementById('patient-id').value        = patientId || '';
   document.getElementById('user-id').value           = patientUserId || '';
   document.getElementById('patient-nome-sidebar').textContent = nome.split(' ')[0] || '—';
 
-  // Sempre cria NOVO plano por padrão. Só carrega o existente se ?edit=ID
-  if (editId)        loadPlanoById(editId);
+  // Sempre cria NOVO plano por padrão.
+  if (editId)        loadPlanoById(editId, false);
+  if (viewId)        loadPlanoById(viewId, true);
   if (patientId)     loadPatientPreferencia(patientId);
 }
 
-// Carrega plano específico pra edição (UPDATE) — só usado com ?edit=ID
-async function loadPlanoById(planoId) {
+// Carrega plano específico
+//   readonly=false → modo edição (UPDATE no save)
+//   readonly=true  → modo visualização (sem botão salvar)
+async function loadPlanoById(planoId, readonly = false) {
   const { data } = await supabase
     .from('planos_alimentares')
     .select('*')
     .eq('id', planoId)
     .single();
-  if (data) fillForm(data);
+  if (!data) return;
+  fillForm(data);
+  // No modo view, limpa o plano-id pra não virar UPDATE caso clique em algo
+  if (readonly) {
+    const planoIdEl = document.getElementById('plano-id');
+    if (planoIdEl) planoIdEl.value = '';
+    _aplicarModoVisualizacaoPlano();
+  }
+  const titleEl = document.querySelector('.page-title, h1');
+  if (titleEl) titleEl.textContent += readonly ? ' (visualização)' : ' (editando)';
+}
+
+function _aplicarModoVisualizacaoPlano() {
+  const aplicar = () => {
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'hidden') return;
+      el.readOnly = true;
+      if (el.tagName === 'SELECT' || el.type === 'date' || el.type === 'checkbox') el.disabled = true;
+      el.style.background = 'var(--bg-secondary, #f7f3ed)';
+      el.style.cursor = 'not-allowed';
+    });
+    document.querySelectorAll('button[type="submit"]').forEach(btn => btn.style.display = 'none');
+    // Trava botões customizados
+    document.querySelectorAll('.toggle-btn, .nav-btn-add, .nav-btn-remove').forEach(b => {
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '0.6';
+    });
+  };
+  aplicar();
+  new MutationObserver(aplicar).observe(document.body, { childList: true, subtree: true });
+  const banner = document.createElement('div');
+  banner.style.cssText =
+    'position:sticky;top:0;z-index:99;padding:12px 18px;background:#2D6A56;color:#fff;' +
+    'font-family:"DM Sans",sans-serif;font-size:0.78rem;display:flex;align-items:center;' +
+    'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
+  const editUrl = window.location.href.replace('view=', 'edit=');
+  banner.innerHTML = `
+    <span>👁 Modo visualização — campos travados</span>
+    <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
+      text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
+      Editar este registro
+    </a>`;
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 // ── Badge do perfil nutricional (7 camadas) ───────────────

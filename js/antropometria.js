@@ -87,18 +87,25 @@ function loadPatientFromUrl() {
   const nome      = params.get('nome');
   // Modo edição: ?edit=<antropometria_id> carrega uma específica pra UPDATE
   const editId    = params.get('edit');
+  // Modo visualização: ?view=<antropometria_id> só lê, não permite salvar
+  const viewId  = params.get('view');
   if (patientId) document.getElementById('patient-id').value = patientId;
   if (userId)    document.getElementById('user-id').value    = userId;
   if (nome) {
     document.getElementById('patient-name-sidebar').textContent = nome.split(' ')[0];
     document.title = `Antropometria — ${nome}`;
   }
-  // Sempre cria NOVA avaliação por padrão. Só carrega existente se ?edit=ID
-  if (editId && patientId) loadAntropometriaById(patientId, editId);
+  // Sempre cria NOVA avaliação por padrão.
+  // ?edit=ID  -> carrega + UPDATE
+  // ?view=ID  -> carrega + readonly
+  if (editId && patientId) loadAntropometriaById(patientId, editId, false);
+  if (viewId && patientId) loadAntropometriaById(patientId, viewId, true);
 }
 
-// Carrega avaliação específica pra edição (UPDATE) — só com ?edit=ID
-async function loadAntropometriaById(patientId, antroId) {
+// Carrega avaliação específica
+//   readonly=false → modo edição (UPDATE no save)
+//   readonly=true  → modo visualização (sem botão salvar)
+async function loadAntropometriaById(patientId, antroId, readonly = false) {
   const { data, error } = await supabase
     .from('antropometria')
     .select('*')
@@ -106,18 +113,20 @@ async function loadAntropometriaById(patientId, antroId) {
     .eq('patient_id', patientId)
     .single();
   if (error || !data) {
-    console.warn('[antro] não conseguiu carregar avaliação para edição:', error);
+    console.warn('[antro] não conseguiu carregar avaliação:', error);
     return;
   }
-  // Guarda ID em hidden field para o save virar UPDATE
-  let hiddenId = document.getElementById('antro-id');
-  if (!hiddenId) {
-    hiddenId = document.createElement('input');
-    hiddenId.type = 'hidden';
-    hiddenId.id = 'antro-id';
-    document.getElementById('antro-form')?.appendChild(hiddenId);
+  // Guarda ID em hidden field para o save virar UPDATE (modo edit)
+  if (!readonly) {
+    let hiddenId = document.getElementById('antro-id');
+    if (!hiddenId) {
+      hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.id = 'antro-id';
+      document.getElementById('antro-form')?.appendChild(hiddenId);
+    }
+    hiddenId.value = antroId;
   }
-  hiddenId.value = antroId;
   // Preenche todos os campos cujos IDs batem com colunas
   for (const [key, val] of Object.entries(data)) {
     if (val == null) continue;
@@ -135,9 +144,39 @@ async function loadAntropometriaById(patientId, antroId) {
   if (typeof calcularIndices === 'function')  calcularIndices();
   if (typeof calcularPregas === 'function')   calcularPregas();
   if (typeof atualizarResultado === 'function') atualizarResultado();
-  // Sinaliza visualmente que está em modo edição
+  // Sinaliza visualmente o modo
   const titleEl = document.querySelector('.page-title');
-  if (titleEl) titleEl.textContent += ' (editando)';
+  if (titleEl) titleEl.textContent += readonly ? ' (visualização)' : ' (editando)';
+  if (readonly) _aplicarModoVisualizacaoAntro(antroId);
+}
+
+// Modo visualização: trava inputs + esconde Salvar + mostra "Editar"
+function _aplicarModoVisualizacaoAntro(antroId) {
+  // Trava todos os inputs/selects/textareas
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'hidden') return;
+    el.readOnly = true;
+    if (el.tagName === 'SELECT' || el.type === 'date') el.disabled = true;
+    el.style.background = 'var(--bg-secondary, #f7f3ed)';
+    el.style.cursor = 'not-allowed';
+  });
+  // Esconde botão Salvar
+  const btn = document.querySelector('button[type="submit"]');
+  if (btn) btn.style.display = 'none';
+  // Banner de visualização + botão pra alternar pra edição
+  const banner = document.createElement('div');
+  banner.style.cssText =
+    'position:sticky;top:0;z-index:99;padding:12px 18px;background:#2D6A56;color:#fff;' +
+    'font-family:"DM Sans",sans-serif;font-size:0.78rem;display:flex;align-items:center;' +
+    'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
+  const editUrl = window.location.href.replace('view=', 'edit=');
+  banner.innerHTML = `
+    <span>👁 Modo visualização — campos travados</span>
+    <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
+      text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
+      Editar este registro
+    </a>`;
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 function setDefaultDate() {

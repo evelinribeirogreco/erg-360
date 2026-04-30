@@ -767,10 +767,15 @@ function showPacTab(tab, btn) {
       <div style="border:1px solid var(--detail);padding:28px;background:var(--bg-secondary);text-align:center;">
         <p style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.3rem;color:var(--text);margin-bottom:8px;">${a.label}</p>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text-light);margin-bottom:20px;">${a.sub}</p>
-        <a href="${a.href}" class="btn-primary" style="width:auto;display:inline-flex;padding:14px 32px;">
-          + Nova ${a.label}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </a>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <a href="${a.href}" class="btn-primary" style="width:auto;display:inline-flex;padding:14px 28px;">
+            + Nova ${a.label}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+          <button id="pac-ver-ultima-${tab}" onclick="verUltimaEntrada('${tab}','${id}','${userId}','${encodeURIComponent(nome)}')" style="display:none;padding:14px 28px;background:transparent;border:1px solid var(--detail);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;">
+            👁 Ver última
+          </button>
+        </div>
       </div>
 
       <div id="pac-historico-${tab}" style="margin-top:24px;"></div>
@@ -832,6 +837,13 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
     return;
   }
 
+  // Habilita botão "Ver última" no topo (a primeira é a mais recente)
+  const btnVerUltima = document.getElementById(`pac-ver-ultima-${tab}`);
+  if (btnVerUltima) {
+    btnVerUltima.style.display = 'inline-flex';
+    btnVerUltima.dataset.lastId = data[0].id;
+  }
+
   const nomeEnc = encodeURIComponent(nome || '');
   const fmtData = (s) => s ? new Date(s + (s.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   const labelOf = (row, idx) => {
@@ -842,16 +854,20 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
     return partes.length ? partes.join(' · ') : `${cfg.titulo.split(' ')[0]} #${data.length - idx}`;
   };
 
+  const btnStyle = 'font-family:\'DM Sans\',sans-serif;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;';
+
   wrap.innerHTML = `
     <h3 style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.1rem;color:var(--text);margin-bottom:12px;border-bottom:1px solid var(--detail);padding-bottom:8px;">
       ${cfg.titulo} <span style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--subtitle);">(${data.length})</span>
     </h3>
     <div style="display:flex;flex-direction:column;gap:8px;">
       ${data.map((row, idx) => {
-        const editHref = `${cfg.editPage}?patient_id=${patientId}&user_id=${userId}&nome=${nomeEnc}&edit=${row.id}`;
+        const baseUrl = `${cfg.editPage}?patient_id=${patientId}&user_id=${userId}&nome=${nomeEnc}`;
+        const viewHref = `${baseUrl}&view=${row.id}`;
+        const editHref = `${baseUrl}&edit=${row.id}`;
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--detail);background:var(--bg-primary);">
-            <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--detail);background:var(--bg-primary);gap:6px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
               <div style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.78rem;color:var(--text);">
                 ${idx === 0 ? '<span style="background:var(--detail);color:var(--bg-primary);padding:2px 6px;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;margin-right:8px;">Atual</span>' : `<span style="color:var(--subtitle);font-weight:400;margin-right:8px;">#${data.length - idx}</span>`}
                 ${fmtData(row[cfg.dateField] || row.created_at)}
@@ -860,17 +876,33 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
                 ${labelOf(row, idx)}
               </div>
             </div>
-            <a href="${editHref}" style="font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);border:1px solid var(--detail);padding:8px 14px;text-decoration:none;">
-              Editar
-            </a>
-            <button onclick="excluirHistorico('${cfg.table}','${row.id}','${tab}','${patientId}','${userId}','${nomeEnc}')" style="margin-left:6px;background:transparent;border:1px solid var(--error,#a04030);color:var(--error,#a04030);padding:8px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;" title="Excluir">
-              ✕
-            </button>
+            <div style="display:flex;gap:6px;">
+              <a href="${viewHref}" style="${btnStyle}color:#2D6A56;border:1px solid #2D6A56;background:transparent;" title="Visualizar (somente leitura)">
+                👁 Ver
+              </a>
+              <a href="${editHref}" style="${btnStyle}color:var(--text);border:1px solid var(--detail);background:transparent;" title="Editar este registro">
+                Editar
+              </a>
+              <button onclick="excluirHistorico('${cfg.table}','${row.id}','${tab}','${patientId}','${userId}','${nomeEnc}')" style="${btnStyle}background:transparent;border:1px solid var(--error,#a04030);color:var(--error,#a04030);" title="Excluir">
+                ✕
+              </button>
+            </div>
           </div>`;
       }).join('')}
     </div>
   `;
 }
+
+// Abre a última entrada (mais recente) em modo visualização
+function verUltimaEntrada(tab, patientId, userId, nomeEnc) {
+  const btn = document.getElementById(`pac-ver-ultima-${tab}`);
+  const lastId = btn?.dataset.lastId;
+  if (!lastId) { alert('Nenhuma entrada encontrada.'); return; }
+  const cfg = HISTORICO_CONFIG[tab];
+  if (!cfg) return;
+  window.location.href = `${cfg.editPage}?patient_id=${patientId}&user_id=${userId}&nome=${nomeEnc}&view=${lastId}`;
+}
+window.verUltimaEntrada = verUltimaEntrada;
 
 async function excluirHistorico(table, id, tab, patientId, userId, nomeEnc) {
   if (!confirm('Tem certeza que deseja excluir este registro permanentemente? Esta ação não pode ser desfeita.')) return;

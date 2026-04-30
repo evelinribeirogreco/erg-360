@@ -82,6 +82,8 @@ function loadPatientFromUrl() {
   const nome      = params.get('nome');
   // Modo edição: ?edit=<anamnese_id> carrega uma específica pra UPDATE
   const editId    = params.get('edit');
+  // Modo visualização: ?view=<anamnese_id> só lê
+  const viewId    = params.get('view');
 
   if (patientId) document.getElementById('patient-id').value = patientId;
   if (userId)    document.getElementById('user-id').value    = userId;
@@ -90,11 +92,12 @@ function loadPatientFromUrl() {
     document.title = `Anamnese — ${nome}`;
   }
 
-  // Sempre cria NOVA anamnese por padrão. Só carrega existente se ?edit=ID.
-  if (editId && patientId) loadAnamneseById(patientId, editId);
+  // Sempre cria NOVA anamnese por padrão.
+  if (editId && patientId) loadAnamneseById(patientId, editId, false);
+  if (viewId && patientId) loadAnamneseById(patientId, viewId, true);
 }
 
-async function loadAnamneseById(patientId, anamneseId) {
+async function loadAnamneseById(patientId, anamneseId, readonly = false) {
   const { data } = await supabase
     .from('anamnese')
     .select('*')
@@ -104,18 +107,21 @@ async function loadAnamneseById(patientId, anamneseId) {
 
   if (data) {
     fillForm(data);
-    // Guarda ID em hidden field para o save virar UPDATE
-    let hiddenId = document.getElementById('anamnese-id');
-    if (!hiddenId) {
-      hiddenId = document.createElement('input');
-      hiddenId.type = 'hidden';
-      hiddenId.id = 'anamnese-id';
-      document.querySelector('form, body')?.appendChild(hiddenId);
+    // Guarda ID em hidden field só em modo edição (UPDATE no save)
+    if (!readonly) {
+      let hiddenId = document.getElementById('anamnese-id');
+      if (!hiddenId) {
+        hiddenId = document.createElement('input');
+        hiddenId.type = 'hidden';
+        hiddenId.id = 'anamnese-id';
+        document.querySelector('form, body')?.appendChild(hiddenId);
+      }
+      hiddenId.value = anamneseId;
     }
-    hiddenId.value = anamneseId;
-    // Sinaliza visualmente que está em modo edição
+    // Sinaliza visualmente o modo
     const titleEl = document.querySelector('.page-title');
-    if (titleEl) titleEl.textContent += ' (editando)';
+    if (titleEl) titleEl.textContent += readonly ? ' (visualização)' : ' (editando)';
+    if (readonly) _aplicarModoVisualizacaoAnamnese();
 
     // Carrega e re-injeta módulos dinâmicos da anamnese anterior
     const slugsAtivos = await carregarModulosAtivos(supabase, patientId);
@@ -191,6 +197,45 @@ function preencherRespostasModulos(respostas) {
   }
   // Re-checa condicionais
   for (const slug of modulosAtivos) initModuleConditionals(slug);
+}
+
+// Modo visualização (readonly) — trava inputs + esconde Salvar + banner
+function _aplicarModoVisualizacaoAnamnese() {
+  const aplicar = () => {
+    document.querySelectorAll('form input, form select, form textarea').forEach(el => {
+      if (el.type === 'hidden') return;
+      el.readOnly = true;
+      if (el.tagName === 'SELECT') el.disabled = true;
+      if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'date') el.disabled = true;
+      el.style.background = 'var(--bg-secondary, #f7f3ed)';
+      el.style.cursor = 'not-allowed';
+    });
+    // Trava botões toggle/patologia/multiselect
+    document.querySelectorAll('.toggle-btn, .patologia-btn').forEach(b => {
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '0.7';
+    });
+    // Esconde botão Salvar
+    document.querySelectorAll('button[type="submit"]').forEach(btn => btn.style.display = 'none');
+  };
+  aplicar();
+  // Re-aplica quando novos campos aparecerem (módulos dinâmicos, navegação entre steps)
+  const observer = new MutationObserver(aplicar);
+  observer.observe(document.body, { childList: true, subtree: true });
+  // Banner sticky
+  const banner = document.createElement('div');
+  banner.style.cssText =
+    'position:sticky;top:0;z-index:99;padding:12px 18px;background:#2D6A56;color:#fff;' +
+    'font-family:"DM Sans",sans-serif;font-size:0.78rem;display:flex;align-items:center;' +
+    'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
+  const editUrl = window.location.href.replace('view=', 'edit=');
+  banner.innerHTML = `
+    <span>👁 Modo visualização — campos travados</span>
+    <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
+      text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
+      Editar este registro
+    </a>`;
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 function setDefaultDate() {
