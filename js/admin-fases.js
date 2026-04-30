@@ -408,37 +408,115 @@ function aplicarTemplate(tipo) {
 }
 window.aplicarTemplate = aplicarTemplate;
 
-// Sugestão automática de macros por tipo
-function sugerirMacros() {
+// Sugestão automática de macros por tipo + dados do paciente
+// - Busca TMB/GET do banco (gastos_energeticos > antropometria > localStorage)
+// - Calcula proteína e gordura por peso × g/kg (mais preciso que valores fixos)
+// - Usa kcal já preenchido no form se houver (respeita ajuste manual)
+async function sugerirMacros() {
   const tipo = document.getElementById('f-tipo')?.value;
-  if (!tipo) return;
+  if (!tipo) {
+    alert('Selecione primeiro o tipo da fase no dropdown acima ("Tipo da fase").');
+    return;
+  }
 
-  // Busca TMB do paciente (se disponível)
-  const tmb = parseInt(localStorage.getItem('pac_tmb') || '0') || 0;
-  const get  = parseFloat(tmb > 0 ? tmb * 1.4 : 1800); // estimativa
+  // 1. Calorias: prioriza o que já está no campo, senão busca do banco
+  let kcalBase = parseFloat(document.getElementById('f-calorias')?.value) || 0;
+  let pesoAtual = 0;
 
-  const sugestoes = {
-    deficit_leve:     { kcal: Math.round(get - 250), ptn: 140, cho: 180, lip: 60 },
-    deficit_moderado: { kcal: Math.round(get - 500), ptn: 145, cho: 160, lip: 55 },
-    deficit_intenso:  { kcal: Math.round(get - 750), ptn: 150, cho: 130, lip: 50 },
-    recomposicao:     { kcal: Math.round(get),       ptn: 165, cho: 175, lip: 65 },
-    manutencao:       { kcal: Math.round(get),       ptn: 120, cho: 200, lip: 70 },
-    ganho_massa:      { kcal: Math.round(get + 300), ptn: 160, cho: 240, lip: 75 },
-    adaptacao:        { kcal: Math.round(get - 200), ptn: 120, cho: 190, lip: 65 },
-    ajuste_metabolico:{ kcal: Math.round(get - 300), ptn: 130, cho: 160, lip: 60 },
+  if (!patientId && !kcalBase) {
+    alert('Não foi possível identificar o paciente. Recarregue a página.');
+    return;
+  }
+
+  if (patientId) {
+    try {
+      // Tenta último gasto energético (mais preciso — já tem fator de atividade)
+      const { data: ge } = await supabase.from('gastos_energeticos')
+        .select('rdee_total, peso')
+        .eq('patient_id', patientId)
+        .order('data_calculo', { ascending: false })
+        .limit(1).maybeSingle();
+      if (ge?.peso) pesoAtual = ge.peso;
+      if (!kcalBase && ge?.rdee_total) kcalBase = ge.rdee_total;
+
+      // Fallback: TMB da antropometria × 1.55 (moderado)
+      if (!kcalBase || !pesoAtual) {
+        const { data: antro } = await supabase.from('antropometria')
+          .select('metabolismo_basal, peso')
+          .eq('patient_id', patientId)
+          .order('data_avaliacao', { ascending: false })
+          .limit(1).maybeSingle();
+        if (antro?.peso && !pesoAtual) pesoAtual = antro.peso;
+        if (!kcalBase && antro?.metabolismo_basal) {
+          kcalBase = Math.round(antro.metabolismo_basal * 1.55);
+        }
+      }
+    } catch (e) { console.warn('[fases] erro buscando dados:', e); }
+  }
+
+  // Último fallback: localStorage ou estimativa
+  if (!kcalBase) {
+    const tmbLocal = parseInt(localStorage.getItem('pac_tmb') || '0') || 0;
+    kcalBase = tmbLocal > 0 ? Math.round(tmbLocal * 1.55) : 2000;
+  }
+
+  // 2. Ajuste calórico por tipo da fase
+  const ajustes = {
+    deficit_leve:      -250,
+    deficit_moderado:  -500,
+    deficit_intenso:   -750,
+    recomposicao:        0,
+    manutencao:          0,
+    ganho_massa:       +300,
+    adaptacao:         -200,
+    ajuste_metabolico: -300,
+    definicao:         -400,
+    bulking:           +500,
   };
+  const ajuste = ajustes[tipo] != null ? ajustes[tipo] : 0;
+  // Só aplica ajuste se f-calorias estava vazio (respeita ajuste manual)
+  const kcalAlvo = parseFloat(document.getElementById('f-calorias')?.value) > 0
+    ? kcalBase
+    : Math.max(1200, Math.round(kcalBase + ajuste));
 
-  const s = sugestoes[tipo];
-  if (!s) return;
+  // 3. Macros por peso × g/kg (quando temos peso) ou % das calorias
+  // Diretrizes (ISSN, ACSM):
+  //   • Proteína: 1.6 g/kg (manutenção) → 2.0-2.4 g/kg (déficit ou ganho)
+  //   • Gordura : 0.8-1.0 g/kg (mínimo) → ajustar pra completar 25-30% kcal
+  //   • Carbo   : completa o que sobra
+  const ptnGkg = ({
+    deficit_leve: 2.0, deficit_moderado: 2.2, deficit_intenso: 2.4,
+    recomposicao: 2.2, manutencao: 1.6, ganho_massa: 2.0,
+    adaptacao: 1.6, ajuste_metabolico: 1.8, definicao: 2.4, bulking: 1.8,
+  })[tipo] || 1.8;
+  const lipGkg = 1.0;
 
+  let ptn, lip, cho;
+  if (pesoAtual > 0) {
+    ptn = Math.round(pesoAtual * ptnGkg);
+    lip = Math.round(pesoAtual * lipGkg);
+    const kcalCho = kcalAlvo - (ptn * 4) - (lip * 9);
+    cho = Math.max(50, Math.round(kcalCho / 4));
+  } else {
+    // Sem peso — distribui por % de macros
+    ptn = Math.round(kcalAlvo * 0.27 / 4);
+    lip = Math.round(kcalAlvo * 0.28 / 9);
+    cho = Math.round(kcalAlvo * 0.45 / 4);
+  }
+
+  // 4. Aplica nos campos
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  set('f-calorias',    s.kcal);
-  set('f-proteina',    s.ptn);
-  set('f-carboidrato', s.cho);
-  set('f-gordura',     s.lip);
+  set('f-calorias',    kcalAlvo);
+  set('f-proteina',    ptn);
+  set('f-carboidrato', cho);
+  set('f-gordura',     lip);
 
-  calcularProporcaoMacros();
-  showToast('Macros sugeridos automaticamente. Ajuste conforme necessário.');
+  if (typeof calcularProporcaoMacros === 'function') calcularProporcaoMacros();
+
+  const origem = pesoAtual > 0
+    ? `peso ${pesoAtual} kg × ${ptnGkg.toFixed(1)} g/kg ptn`
+    : 'estimativa por % calórico';
+  showToast(`Macros: ${kcalAlvo} kcal · ${ptn}g P / ${cho}g C / ${lip}g G (${origem})`);
 }
 window.sugerirMacros = sugerirMacros;
 
