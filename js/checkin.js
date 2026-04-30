@@ -381,23 +381,158 @@ async function salvarCheckin() {
     flags:               flags.map(f => f.key),
   };
 
-  // Salva no Supabase (não bloqueia a UI se falhar)
-  supabase.from('checkins').insert(payload).then(({ error }) => {
-    if (error) console.error('Erro ao salvar checkin:', error);
-  });
+  // ── 1. BACKUP LOCAL IMEDIATO (failsafe contra perda de dados) ──
+  // Mesmo se a rede falhar/o app fechar, fica salvo até o próximo sync
+  try {
+    const queueKey = 'erg_checkin_queue';
+    const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
+    queue.push({ payload, timestamp: Date.now(), tentativas: 0 });
+    localStorage.setItem(queueKey, JSON.stringify(queue));
+  } catch (_) {}
 
-  // Vai para tela final
+  // ── 2. INDICADOR VISUAL (mostra que está salvando) ──
+  const finalBtn = document.querySelector('.ci-final-btn, [onclick*="salvarCheckin"]');
+  if (finalBtn) {
+    finalBtn.disabled = true;
+    finalBtn.dataset.originalText = finalBtn.textContent;
+    finalBtn.textContent = 'Salvando...';
+  }
+
+  // ── 3. SALVA NO SUPABASE COM AWAIT + RETRY ──
+  let salvouOk = false;
+  let ultimoErro = null;
+  const MAX_TENTATIVAS = 3;
+
+  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    try {
+      const { error } = await supabase.from('checkins').upsert(payload, {
+        onConflict: 'patient_id,data',  // se já existe checkin do dia, atualiza
+      });
+      if (!error) {
+        salvouOk = true;
+        break;
+      }
+      ultimoErro = error;
+      console.warn(`[checkin] tentativa ${tentativa} falhou:`, error.message);
+      // Espera incremental: 0.5s, 1.5s, 3s
+      await new Promise(r => setTimeout(r, 500 * tentativa * tentativa));
+    } catch (err) {
+      ultimoErro = err;
+      console.warn(`[checkin] erro na tentativa ${tentativa}:`, err);
+      await new Promise(r => setTimeout(r, 500 * tentativa * tentativa));
+    }
+  }
+
+  // ── 4. SE SALVOU: limpa queue e mostra sucesso ──
+  if (salvouOk) {
+    try {
+      const queueKey = 'erg_checkin_queue';
+      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
+      // Remove o que acabou de salvar (tem o mesmo timestamp aproximado)
+      const filtered = queue.filter(item =>
+        !(item.payload.patient_id === payload.patient_id && item.payload.data === payload.data)
+      );
+      localStorage.setItem(queueKey, JSON.stringify(filtered));
+    } catch (_) {}
+  } else {
+    // Falhou nas 3 tentativas — alerta a paciente
+    console.error('[checkin] FALHA AO SALVAR após 3 tentativas:', ultimoErro);
+    showSaveErrorBanner(ultimoErro);
+  }
+
+  // ── 5. RESTAURA BOTÃO ──
+  if (finalBtn) {
+    finalBtn.disabled = false;
+    if (finalBtn.dataset.originalText) finalBtn.textContent = finalBtn.dataset.originalText;
+  }
+
+  // ── 6. VAI PRA TELA FINAL (só se salvou OU se quiser permitir mesmo com erro) ──
+  // Comportamento: vai pra final em qualquer caso, mas mostra banner se falhou
+  // (assim a paciente não fica travada — dados estão na queue local)
   const current = document.querySelector('.ci-screen.active');
   if (current) current.classList.remove('active');
   document.getElementById('screen-done').classList.add('active');
 
   const bar = document.getElementById('ci-progress');
   if (bar) bar.style.width = '100%';
-  document.getElementById('ci-header').style.display = 'none';
+  const ciHeader = document.getElementById('ci-header');
+  if (ciHeader) ciHeader.style.display = 'none';
 
   renderScore(score);
   renderFlags(flags);
 }
+
+// ── Helper: mostra banner de erro persistente ──
+function showSaveErrorBanner(err) {
+  const tela = document.getElementById('screen-done');
+  if (!tela) return;
+  // Remove banner antigo se houver
+  tela.querySelector('.ci-save-error-banner')?.remove();
+  const banner = document.createElement('div');
+  banner.className = 'ci-save-error-banner';
+  banner.style.cssText = `
+    background: rgba(224,82,82,0.10);
+    border: 1px solid rgba(224,82,82,0.4);
+    border-left: 4px solid #E05252;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px auto;
+    max-width: 480px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: #7A2E2E;
+    line-height: 1.5;
+  `;
+  banner.innerHTML = `
+    <strong style="display:block;font-weight:600;margin-bottom:4px;">⚠ Atenção: check-in não enviado ao servidor</strong>
+    Suas respostas foram salvas localmente no aparelho e serão enviadas automaticamente quando a conexão melhorar. Você pode fechar este check-in.
+    <button type="button" onclick="window._tentarReenviarCheckin && window._tentarReenviarCheckin()" style="display:block;margin-top:10px;padding:8px 16px;background:#7A2E2E;color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:0.78rem;cursor:pointer;">
+      Tentar enviar agora
+    </button>
+  `;
+  tela.insertBefore(banner, tela.firstChild?.nextSibling || null);
+}
+
+// ── Sincroniza queue local quando estiver online ──
+async function sincronizarFilaCheckins() {
+  const queueKey = 'erg_checkin_queue';
+  let queue;
+  try { queue = JSON.parse(localStorage.getItem(queueKey) || '[]'); }
+  catch (_) { return; }
+  if (!queue.length) return;
+  console.log(`[checkin] tentando sincronizar ${queue.length} checkin(s) pendente(s)...`);
+  const novos = [];
+  for (const item of queue) {
+    try {
+      const { error } = await supabase.from('checkins').upsert(item.payload, {
+        onConflict: 'patient_id,data',
+      });
+      if (error) {
+        item.tentativas = (item.tentativas || 0) + 1;
+        if (item.tentativas < 10) novos.push(item); // mantém pra retry futuro
+        console.warn('[checkin] sync falhou:', error.message);
+      } else {
+        console.log('[checkin] ✓ checkin sincronizado:', item.payload.data);
+      }
+    } catch (err) {
+      item.tentativas = (item.tentativas || 0) + 1;
+      if (item.tentativas < 10) novos.push(item);
+      console.warn('[checkin] sync erro:', err);
+    }
+  }
+  localStorage.setItem(queueKey, JSON.stringify(novos));
+  if (novos.length === 0) {
+    // Esconde banner se houver
+    document.querySelector('.ci-save-error-banner')?.remove();
+  }
+}
+window._tentarReenviarCheckin = sincronizarFilaCheckins;
+
+// Sincroniza ao voltar online + ao carregar a página
+window.addEventListener('online', sincronizarFilaCheckins);
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(sincronizarFilaCheckins, 2000); // tenta 2s após carregar (rede já estabelecida)
+});
 
 function renderScore(score) {
   const num   = document.getElementById('score-num');
