@@ -1290,16 +1290,32 @@ function getSexoPaciente() {
 async function carregarEvolucao(patientId) {
   if (!patientId || !window._supabase) return;
 
-  // Busca campos amplos para alimentar tabela + gráfico de série temporal
-  const { data } = await window._supabase
-    .from('antropometria')
-    .select('data_avaliacao,peso,imc,pct_gordura,massa_magra,massa_gorda,circ_cintura,' +
-            'circ_quadril,circ_abdominal,rcq,rcest,' +
-            'densidade_corporal,area_muscular_braco,area_gordura_braco,' +
-            'massa_muscular_esqueletica,frame_size_index')
+  // Busca defensiva: tenta com todos os campos; se falhar (coluna nova ainda
+  // não existe), reverte para os campos garantidos. Evita perder o histórico.
+  const camposCompletos =
+    'data_avaliacao,peso,imc,pct_gordura,massa_magra,massa_gorda,circ_cintura,' +
+    'circ_quadril,circ_abdominal,rcq,rcest,' +
+    'densidade_corporal,area_muscular_braco,area_gordura_braco,' +
+    'massa_muscular_esqueletica,frame_size_index';
+  const camposBasicos =
+    'data_avaliacao,peso,imc,pct_gordura,massa_magra,massa_gorda,circ_cintura,' +
+    'circ_quadril,circ_abdominal,rcq,rcest';
+
+  let { data, error } = await window._supabase
+    .from('antropometria').select(camposCompletos)
     .eq('patient_id', patientId)
     .order('data_avaliacao', { ascending: false })
     .limit(12);
+
+  if (error) {
+    console.warn('[antro] colunas novas indisponíveis, fallback para campos básicos:', error.message);
+    ({ data, error } = await window._supabase
+      .from('antropometria').select(camposBasicos)
+      .eq('patient_id', patientId)
+      .order('data_avaliacao', { ascending: false })
+      .limit(12));
+    if (error) { console.error('[antro] erro:', error); return; }
+  }
 
   if (!data || data.length < 2) return;
 

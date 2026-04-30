@@ -70,13 +70,23 @@ export async function coletarDadosRelatorio(patientId) {
       .order('data_avaliacao', { ascending: false })
       .limit(1),
 
-    supabase.from('antropometria')
-      .select('data_avaliacao, peso, altura, imc, pct_gordura, massa_magra, circ_cintura, ' +
-              'densidade_corporal, area_muscular_braco, area_gordura_braco, ' +
-              'massa_muscular_esqueletica, frame_size_index, peso_meta, peso_ideal, rcq')
-      .eq('patient_id', patientId)
-      .order('data_avaliacao', { ascending: false })
-      .limit(5),
+    // Antropometria — query defensiva que faz fallback se colunas novas não existirem
+    (async () => {
+      const camposCompletos =
+        'data_avaliacao, peso, altura, imc, pct_gordura, massa_magra, circ_cintura, ' +
+        'densidade_corporal, area_muscular_braco, area_gordura_braco, ' +
+        'massa_muscular_esqueletica, frame_size_index, peso_meta, peso_ideal, rcq';
+      const camposBasicos =
+        'data_avaliacao, peso, altura, imc, pct_gordura, massa_magra, circ_cintura, peso_meta, peso_ideal, rcq';
+      let r = await supabase.from('antropometria').select(camposCompletos)
+        .eq('patient_id', patientId).order('data_avaliacao', { ascending: false }).limit(5);
+      if (r.error) {
+        console.warn('[relatorio] fallback campos básicos:', r.error.message);
+        r = await supabase.from('antropometria').select(camposBasicos)
+          .eq('patient_id', patientId).order('data_avaliacao', { ascending: false }).limit(5);
+      }
+      return r;
+    })(),
 
     supabase.from('patients')
       .select('nome, email, data_nascimento, sexo, data_proxima_consulta, plano_url')

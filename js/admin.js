@@ -828,16 +828,37 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
   const wrap = document.getElementById(`pac-historico-${tab}`);
   if (!cfg || !wrap) return;
 
-  const { data, error } = await supabase
+  // Query defensiva: tenta com label fields, faz fallback p/ campos básicos se falhar
+  const fields = `id, ${cfg.dateField}, created_at, ${cfg.labelFields.join(', ')}`;
+  let { data, error } = await supabase
     .from(cfg.table)
-    .select(`id, ${cfg.dateField}, created_at, ${cfg.labelFields.join(', ')}`)
+    .select(fields)
     .eq('patient_id', patientId)
     .order(cfg.dateField, { ascending: false })
     .limit(50);
 
   if (error) {
-    wrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);text-align:center;">Erro ao carregar histórico: ${error.message}</p>`;
-    return;
+    console.warn(`[historico ${tab}] erro com campos completos, fallback:`, error.message);
+    // Se a tabela não existir (ex: gastos_energeticos sem migration)
+    if (error.code === '42P01' || /does not exist/i.test(error.message || '')) {
+      wrap.innerHTML = `
+        <div style="padding:14px 16px;border:1px solid #B8860B;background:rgba(184,134,11,0.06);font-family:'DM Sans',sans-serif;font-size:0.75rem;color:#7A5E00;line-height:1.5;">
+          ⚠️ Tabela <code>${cfg.table}</code> ainda não existe no banco.
+          Rode a migration SQL no Supabase SQL Editor para habilitar este histórico.
+        </div>`;
+      return;
+    }
+    // Fallback: tenta só com id + data
+    ({ data, error } = await supabase
+      .from(cfg.table)
+      .select(`id, ${cfg.dateField}, created_at`)
+      .eq('patient_id', patientId)
+      .order(cfg.dateField, { ascending: false })
+      .limit(50));
+    if (error) {
+      wrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text-light);text-align:center;">Erro ao carregar histórico: ${error.message}</p>`;
+      return;
+    }
   }
 
   if (!data || data.length === 0) {
