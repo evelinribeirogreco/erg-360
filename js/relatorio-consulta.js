@@ -71,7 +71,9 @@ export async function coletarDadosRelatorio(patientId) {
       .limit(1),
 
     supabase.from('antropometria')
-      .select('data_avaliacao, peso, altura, imc, pct_gordura, massa_magra, circunferencia_cintura')
+      .select('data_avaliacao, peso, altura, imc, pct_gordura, massa_magra, circ_cintura, ' +
+              'densidade_corporal, area_muscular_braco, area_gordura_braco, ' +
+              'massa_muscular_esqueletica, frame_size_index, peso_meta, peso_ideal, rcq')
       .eq('patient_id', patientId)
       .order('data_avaliacao', { ascending: false })
       .limit(5),
@@ -165,7 +167,15 @@ function calcularEvolucaoPeso(antro) {
     imc:             atual.imc,
     gordura:         atual.pct_gordura,
     massaMagra:      atual.massa_magra,
-    circAbdominal:   atual.circunferencia_cintura,
+    circAbdominal:   atual.circ_cintura,
+    densidade:       atual.densidade_corporal,
+    amb:             atual.area_muscular_braco,
+    agb:             atual.area_gordura_braco,
+    smEsqueletica:   atual.massa_muscular_esqueletica,
+    frameSize:       atual.frame_size_index,
+    pesoMeta:        atual.peso_meta,
+    pesoIdeal:       atual.peso_ideal,
+    rcq:             atual.rcq,
     deltaPeriodo,
     deltaTotal,
     semanasDecorridas,
@@ -173,6 +183,10 @@ function calcularEvolucaoPeso(antro) {
       data:    a.data_avaliacao,
       peso:    a.peso,
       gordura: a.pct_gordura,
+      mm:      a.massa_magra,
+      amb:     a.area_muscular_braco,
+      agb:     a.area_gordura_braco,
+      densidade: a.densidade_corporal,
     })),
   };
 }
@@ -506,6 +520,34 @@ function renderEvolucaoPeso(evol) {
     ${evol.circAbdominal ? `<div class="rel-kv">
       <span class="rel-k">Circ. abdominal</span>
       <span class="rel-v">${evol.circAbdominal} cm</span>
+    </div>` : ''}
+    ${evol.rcq ? `<div class="rel-kv">
+      <span class="rel-k">RCQ</span>
+      <span class="rel-v">${(+evol.rcq).toFixed(2)}</span>
+    </div>` : ''}
+    ${evol.massaMagra ? `<div class="rel-kv">
+      <span class="rel-k">Massa magra</span>
+      <span class="rel-v">${(+evol.massaMagra).toFixed(1)} kg</span>
+    </div>` : ''}
+    ${evol.smEsqueletica ? `<div class="rel-kv">
+      <span class="rel-k">MM esquelética (Lee)</span>
+      <span class="rel-v">${(+evol.smEsqueletica).toFixed(1)} kg</span>
+    </div>` : ''}
+    ${evol.amb ? `<div class="rel-kv">
+      <span class="rel-k">AMB corrigida</span>
+      <span class="rel-v">${(+evol.amb).toFixed(1)} cm²</span>
+    </div>` : ''}
+    ${evol.agb ? `<div class="rel-kv">
+      <span class="rel-k">AGB</span>
+      <span class="rel-v">${(+evol.agb).toFixed(1)} cm²</span>
+    </div>` : ''}
+    ${evol.densidade ? `<div class="rel-kv">
+      <span class="rel-k">Densidade corporal</span>
+      <span class="rel-v">${(+evol.densidade).toFixed(4)} g/cm³</span>
+    </div>` : ''}
+    ${evol.frameSize ? `<div class="rel-kv">
+      <span class="rel-k">Compleição (alt÷punho)</span>
+      <span class="rel-v">${(+evol.frameSize).toFixed(2)}</span>
     </div>` : ''}
 
     ${evol.historico.length > 1 ? `<div style="margin-top:14px;">

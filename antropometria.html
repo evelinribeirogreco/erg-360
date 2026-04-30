@@ -142,8 +142,8 @@
                     <td><input class="form-input" type="number" id="circ_antebraco_d" step="0.1"></td>
                     <td><input class="form-input" type="number" id="circ_antebraco_e" step="0.1"></td></tr>
                   <tr><td>Punho</td>
-                    <td><input class="form-input" type="number" id="circ_punho_d" step="0.1"></td>
-                    <td><input class="form-input" type="number" id="circ_punho_e" step="0.1"></td></tr>
+                    <td><input class="form-input" type="number" id="circ_punho_d" step="0.1" oninput="calcularFrameSize()"></td>
+                    <td><input class="form-input" type="number" id="circ_punho_e" step="0.1" oninput="calcularFrameSize()"></td></tr>
                 </tbody>
               </table>
             </div>
@@ -266,13 +266,16 @@
               <h2 class="section-title">Protocolo</h2>
               <div class="form-group">
                 <label class="form-label">Protocolo de dobras</label>
-                <select class="form-input" id="protocolo" onchange="calcularPregas()">
+                <select class="form-input" id="protocolo" onchange="calcularPregas(); validarProtocolo();">
                   <option value="">Selecione...</option>
                   <option value="pollock7">7 Pregas — Jackson, Pollock & Ward</option>
                   <option value="pollock3">3 Pregas — Pollock</option>
                   <option value="guedes">Guedes</option>
                   <option value="faulkner">Faulkner</option>
                 </select>
+                <p id="protocolo-aviso" style="display:none;margin-top:8px;padding:10px 14px;
+                  border-left:3px solid #B8860B;background:rgba(184,134,11,0.06);
+                  font-family:'DM Sans',sans-serif;font-size:0.72rem;color:#7A5E00;line-height:1.5;"></p>
               </div>
             </section>
             <section class="section fade-up fade-up-delay-3">
@@ -416,6 +419,16 @@
                 <p class="resultado-card-value" id="rf-agb">—</p>
                 <p class="resultado-card-class" style="font-size:0.6rem;">cm² · área de gordura do braço</p>
               </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">Compleição</p>
+                <p class="resultado-card-value" id="rf-compleicao">—</p>
+                <p class="resultado-card-class" id="rf-compleicao-class" style="font-size:0.6rem;">altura ÷ punho</p>
+              </div>
+              <div class="resultado-card">
+                <p class="resultado-card-label">MM Esquelética</p>
+                <p class="resultado-card-value" id="rf-mm-esq">—</p>
+                <p class="resultado-card-class" style="font-size:0.6rem;">kg · Lee 2000</p>
+              </div>
             </div>
           </section>
 
@@ -471,6 +484,9 @@
                   <button type="button" class="evol-tab" data-metric="imc">IMC</button>
                   <button type="button" class="evol-tab" data-metric="pct_gordura">% Gordura</button>
                   <button type="button" class="evol-tab" data-metric="massa_magra">Massa magra</button>
+                  <button type="button" class="evol-tab" data-metric="area_muscular_braco">AMB</button>
+                  <button type="button" class="evol-tab" data-metric="area_gordura_braco">AGB</button>
+                  <button type="button" class="evol-tab" data-metric="densidade_corporal">Densidade</button>
                   <button type="button" class="evol-tab" data-metric="circ_cintura">Cintura</button>
                   <button type="button" class="evol-tab" data-metric="circ_quadril">Quadril</button>
                   <button type="button" class="evol-tab" data-metric="todas">Todas</button>

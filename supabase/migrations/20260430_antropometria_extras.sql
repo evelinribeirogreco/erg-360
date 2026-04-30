@@ -20,10 +20,19 @@ ALTER TABLE antropometria
 ALTER TABLE antropometria
   ADD COLUMN IF NOT EXISTS area_gordura_braco numeric;
 
+-- Frame Size Index / Compleição corporal (Grant 1980): altura_cm ÷ punho_cm
+ALTER TABLE antropometria
+  ADD COLUMN IF NOT EXISTS frame_size_index numeric;
+
+-- Massa Muscular Esquelética (kg) — Lee 2000 antropométrica simples
+ALTER TABLE antropometria
+  ADD COLUMN IF NOT EXISTS massa_muscular_esqueletica numeric;
+
 -- Validação: confere se as colunas foram criadas
 SELECT column_name, data_type
   FROM information_schema.columns
  WHERE table_name = 'antropometria'
    AND column_name IN ('circ_punho_d','circ_punho_e','densidade_corporal',
-                       'area_muscular_braco','area_gordura_braco')
+                       'area_muscular_braco','area_gordura_braco',
+                       'frame_size_index','massa_muscular_esqueletica')
  ORDER BY column_name;

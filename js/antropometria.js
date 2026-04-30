@@ -19,6 +19,7 @@ function isAdminUser(user) {
 }
 
 const supabase    = createClient(SUPABASE_URL, SUPABASE_ANON);
+window._supabase  = supabase;  // expõe pra carregarEvolucao() e outros módulos
 const TOTAL_STEPS = 4;
 let currentStep   = 0;
 
@@ -239,6 +240,7 @@ let _ultimaDensidade = null; // exposto pra atualizarResultado()
 
 function calcularPregas() {
   const protocolo = document.getElementById('protocolo')?.value;
+  validarProtocolo(); // sempre revalida (avisa dobras faltantes)
   if (!protocolo) return;
 
   const peso  = parseFloat(document.getElementById('peso')?.value) || 0;
@@ -397,6 +399,201 @@ function _calcAreasBracoSnapshot() {
   };
 }
 
+// ════════════════════════════════════════════════════════════
+// CLASSIFICAÇÃO DE % GORDURA (ACSM / Pollock-Wilmore)
+// Tabela por idade × sexo. Retorna { texto, classe } pra colorir o card.
+// ════════════════════════════════════════════════════════════
+function classificarPctGordura(pctG, sexo, idade) {
+  if (!pctG || !sexo || !idade) return null;
+  // Faixa etária
+  let faixa;
+  if (idade < 30)      faixa = 0;
+  else if (idade < 40) faixa = 1;
+  else if (idade < 50) faixa = 2;
+  else if (idade < 60) faixa = 3;
+  else                 faixa = 4;
+
+  // Limites por categoria (excelente, bom, acima_media, media, abaixo_media, ruim)
+  // Mulher (Pollock-Wilmore)
+  const TAB_F = [
+    { exc:16, bom:19, acima:22, media:25, abaixo:28, ruim:32 }, // 20-29
+    { exc:17, bom:20, acima:23, media:26, abaixo:29, ruim:33 }, // 30-39
+    { exc:18, bom:23, acima:26, media:29, abaixo:32, ruim:36 }, // 40-49
+    { exc:19, bom:24, acima:27, media:30, abaixo:33, ruim:37 }, // 50-59
+    { exc:20, bom:25, acima:28, media:31, abaixo:34, ruim:38 }, // 60+
+  ];
+  // Homem
+  const TAB_M = [
+    { exc:11, bom:13, acima:16, media:19, abaixo:22, ruim:26 }, // 20-29
+    { exc:12, bom:15, acima:18, media:21, abaixo:24, ruim:27 }, // 30-39
+    { exc:14, bom:17, acima:20, media:23, abaixo:26, ruim:29 }, // 40-49
+    { exc:15, bom:19, acima:22, media:25, abaixo:28, ruim:31 }, // 50-59
+    { exc:16, bom:20, acima:23, media:26, abaixo:29, ruim:32 }, // 60+
+  ];
+  const t = (sexo === 'masculino' ? TAB_M : TAB_F)[faixa];
+  if (pctG <  t.exc)    return { texto: 'Excelente',       classe: 'class-baixo' };
+  if (pctG <= t.bom)    return { texto: 'Bom',             classe: 'class-baixo' };
+  if (pctG <= t.acima)  return { texto: 'Acima da média',  classe: 'class-normal' };
+  if (pctG <= t.media)  return { texto: 'Média',           classe: 'class-normal' };
+  if (pctG <= t.abaixo) return { texto: 'Abaixo da média', classe: 'class-atencao' };
+  if (pctG <= t.ruim)   return { texto: 'Ruim',            classe: 'class-atencao' };
+  return                       { texto: 'Muito ruim',      classe: 'class-elevado' };
+}
+
+// ════════════════════════════════════════════════════════════
+// FRAME SIZE / COMPLEIÇÃO CORPORAL — Grant (1980)
+// R = altura_cm / circ_punho_cm
+// ════════════════════════════════════════════════════════════
+function calcularFrameSize() {
+  const altura = parseFloat(document.getElementById('altura')?.value) || 0;
+  const pD     = parseFloat(document.getElementById('circ_punho_d')?.value) || 0;
+  const pE     = parseFloat(document.getElementById('circ_punho_e')?.value) || 0;
+  let p = 0;
+  if (pD > 0 && pE > 0) p = (pD + pE) / 2;
+  else                  p = pD || pE;
+
+  const compEl  = document.getElementById('rf-compleicao');
+  const compCls = document.getElementById('rf-compleicao-class');
+  if (!altura || !p) {
+    if (compEl)  compEl.textContent = '—';
+    if (compCls) compCls.textContent = 'altura ÷ punho';
+    return null;
+  }
+  const alturaCm = altura > 3 ? altura : altura * 100;
+  const r = alturaCm / p;
+  // Limites Grant 1980 (sexo)
+  const lim = pacienteSexo === 'masculino'
+    ? { grande: 9.6,  pequena: 10.4 }
+    : { grande: 10.1, pequena: 11.0 };
+  let cat;
+  if (r < lim.grande)       cat = 'Grande';
+  else if (r > lim.pequena) cat = 'Pequena';
+  else                      cat = 'Média';
+  if (compEl)  compEl.textContent = cat;
+  if (compCls) compCls.textContent = `R=${r.toFixed(2)} · altura ÷ punho`;
+  return { r: +r.toFixed(2), categoria: cat };
+}
+
+// ════════════════════════════════════════════════════════════
+// MASSA MUSCULAR ESQUELÉTICA — Lee (2000) antropométrica simples
+// SM = (peso × 0.244) + (altura_m × 7.80) − (idade × 0.098)
+//    + (6.6 × sexo) − 3.3
+// sexo = 1 (M) | 0 (F)
+// ════════════════════════════════════════════════════════════
+function calcularMMEsqueletica() {
+  const peso   = parseFloat(document.getElementById('peso')?.value) || 0;
+  let altura   = parseFloat(document.getElementById('altura')?.value) || 0;
+  if (altura > 3) altura = altura / 100; // normaliza
+  const idade  = pacienteIdade;
+  const sexoB  = pacienteSexo === 'masculino' ? 1 : 0;
+  const el = document.getElementById('rf-mm-esq');
+  if (!peso || !altura || !idade) {
+    if (el) el.textContent = '—';
+    return null;
+  }
+  const sm = (peso * 0.244) + (altura * 7.80) - (idade * 0.098) + (6.6 * sexoB) - 3.3;
+  if (el) el.textContent = sm.toFixed(2) + ' kg';
+  return +sm.toFixed(2);
+}
+
+// ════════════════════════════════════════════════════════════
+// VALIDAÇÃO DE PROTOCOLO DE PREGAS
+// Avisa quando o protocolo selecionado precisa de dobras que estão vazias.
+// ════════════════════════════════════════════════════════════
+function validarProtocolo() {
+  const protocolo = document.getElementById('protocolo')?.value;
+  const aviso = document.getElementById('protocolo-aviso');
+  if (!aviso) return;
+
+  if (!protocolo) {
+    aviso.style.display = 'none';
+    return;
+  }
+
+  // Dobras requeridas por protocolo (dependem do sexo p/ Pollock 3 e Guedes)
+  const REQUERIDAS = {
+    pollock7:  ['triceps','subescapular','suprailiaca','abdominal','axilar','peitoral','coxa'],
+    pollock3:  pacienteSexo === 'masculino'
+                 ? ['peitoral','abdominal','coxa']
+                 : ['triceps','suprailiaca','coxa'],
+    guedes:    pacienteSexo === 'masculino'
+                 ? ['triceps','subescapular','suprailiaca']
+                 : ['subescapular','suprailiaca','coxa'],
+    faulkner:  ['triceps','subescapular','suprailiaca','abdominal'],
+  };
+  const NOMES = {
+    triceps: 'Tríceps', subescapular: 'Subescapular', suprailiaca: 'Suprailíaca',
+    abdominal: 'Abdominal', axilar: 'Axilar Média', peitoral: 'Peitoral',
+    coxa: 'Coxa', biceps: 'Bíceps', panturrilha: 'Panturrilha Medial',
+  };
+  const req = REQUERIDAS[protocolo] || [];
+  const faltantes = req.filter(d => {
+    const v = parseFloat(document.getElementById('dobra_' + d)?.value);
+    return !v || v <= 0;
+  });
+
+  if (faltantes.length === 0) {
+    aviso.style.display = 'none';
+    aviso.textContent = '';
+  } else {
+    const labelProto = ({
+      pollock7: '7 Pregas (Pollock-Ward)',
+      pollock3: '3 Pregas (Pollock)',
+      guedes:   'Guedes',
+      faulkner: 'Faulkner',
+    })[protocolo] || protocolo;
+    aviso.style.display = '';
+    aviso.textContent =
+      `${labelProto} requer ${req.length} dobras. ` +
+      `Você preencheu ${req.length - faltantes.length}. ` +
+      `Faltam: ${faltantes.map(f => NOMES[f]).join(', ')}.`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// DELTAS — diferença vs avaliação anterior
+// Lê da última entrada de evolucaoData (que é populada antes do render)
+// ════════════════════════════════════════════════════════════
+function aplicarDeltas() {
+  if (!evolucaoData || evolucaoData.length < 2) return;
+  // O último item é o atual sendo editado/visto; o penúltimo é a avaliação anterior
+  const atual    = evolucaoData[evolucaoData.length - 1];
+  const anterior = evolucaoData[evolucaoData.length - 2];
+  if (!atual || !anterior) return;
+
+  const cards = [
+    { id: 'rf-peso',      key: 'peso',                unit: 'kg',  decimais: 1 },
+    { id: 'rf-imc',       key: 'imc',                 unit: '',    decimais: 2 },
+    { id: 'rf-gordura',   key: 'pct_gordura',         unit: '%',   decimais: 1 },
+    { id: 'rf-mm',        key: 'massa_magra',         unit: 'kg',  decimais: 1 },
+    { id: 'rf-rcq',       key: 'rcq',                 unit: '',    decimais: 3 },
+    { id: 'rf-amb',       key: 'area_muscular_braco', unit: 'cm²', decimais: 2 },
+    { id: 'rf-agb',       key: 'area_gordura_braco',  unit: 'cm²', decimais: 2 },
+    { id: 'rf-densidade', key: 'densidade_corporal',  unit: '',    decimais: 4 },
+  ];
+
+  cards.forEach(({ id, key, decimais }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const a = atual[key], b = anterior[key];
+    if (a == null || b == null || isNaN(a) || isNaN(b)) return;
+    const d = a - b;
+    if (Math.abs(d) < Math.pow(10, -(decimais + 1))) return; // ignora ruído
+    // Cria/atualiza span de delta
+    let dEl = el.querySelector('.delta-anterior');
+    if (!dEl) {
+      dEl = document.createElement('span');
+      dEl.className = 'delta-anterior';
+      dEl.style.cssText = 'display:inline-block;margin-left:6px;font-size:0.55em;font-weight:500;letter-spacing:0;';
+      el.appendChild(dEl);
+    }
+    const sinal = d > 0 ? '▲' : '▼';
+    const cor   = d > 0 ? '#a04030' : '#3d6b4f';
+    dEl.style.color = cor;
+    dEl.textContent = ` ${sinal} ${Math.abs(d).toFixed(decimais)}`;
+  });
+}
+
 function atualizarResultado() {
   const v = (id) => {
     const el = document.getElementById(id);
@@ -426,13 +623,28 @@ function atualizarResultado() {
   setResText('rf-rcest',  rcest  ? rcest.toFixed(3): '—');
   setResText('rf-densidade', _ultimaDensidade ? _ultimaDensidade.toFixed(4) : '—');
 
-  // Recalcula áreas do braço (caso tenha valores no momento)
+  // Recalcula áreas do braço, frame size, MM esquelética
   calcularAreasBraco();
+  calcularFrameSize();
+  calcularMMEsqueletica();
+
+  // Classificação de % gordura (Pollock-Wilmore)
+  if (pctGord) {
+    const cls = classificarPctGordura(pctGord, pacienteSexo, pacienteIdade);
+    const clsEl = document.getElementById('rf-gordura-class');
+    if (clsEl && cls) {
+      clsEl.textContent = cls.texto;
+      clsEl.className = `resultado-card-class ${cls.classe}`;
+    }
+  }
 
   if (imc) {
     const cl = document.getElementById('rf-imc-class');
     if (cl) cl.textContent = txt('imc-class');
   }
+
+  // Aplica deltas vs avaliação anterior (se houver)
+  aplicarDeltas();
 }
 
 function showMetodo(tipo) {
@@ -446,6 +658,10 @@ window.calcularComposicao = calcularComposicao;
 window.calcularIndices = calcularIndices;
 window.calcularPregas  = calcularPregas;
 window.calcularAreasBraco = calcularAreasBraco;
+window.calcularFrameSize = calcularFrameSize;
+window.calcularMMEsqueletica = calcularMMEsqueletica;
+window.validarProtocolo = validarProtocolo;
+window.classificarPctGordura = classificarPctGordura;
 
 // ── Navegação ─────────────────────────────────────────────
 function goToStep(n) {
@@ -526,9 +742,11 @@ async function salvarAvaliacao() {
     soma_dobras:      { min: 0,    max: 999 },
     rcq:              { min: 0,    max: 9.99 },
     rcest:            { min: 0,    max: 9.99 },
-    densidade_corporal:    { min: 0.5, max: 1.2  },
-    area_muscular_braco:   { min: 0,   max: 999.9 },
-    area_gordura_braco:    { min: 0,   max: 999.9 },
+    densidade_corporal:           { min: 0.5, max: 1.2  },
+    area_muscular_braco:          { min: 0,   max: 999.9 },
+    area_gordura_braco:           { min: 0,   max: 999.9 },
+    frame_size_index:             { min: 0,   max: 99.99 },
+    massa_muscular_esqueletica:   { min: 0,   max: 999.9 },
     // Padrão pra circunferências e dobras: 0–999.9
     _default:         { min: 0,    max: 999.9 },
   };
@@ -614,6 +832,12 @@ async function salvarAvaliacao() {
     payload.area_muscular_braco = _amb.amb_corrigida;
     payload.area_gordura_braco  = _amb.agb;
   }
+
+  // Frame Size Index (compleição) e MM esquelética
+  const _fs = calcularFrameSize();
+  if (_fs && _fs.r) payload.frame_size_index = _fs.r;
+  const _sm = calcularMMEsqueletica();
+  if (_sm) payload.massa_muscular_esqueletica = _sm;
 
   const { error } = await supabase.from('antropometria').insert(payload);
 
@@ -963,7 +1187,10 @@ async function carregarEvolucao(patientId) {
   // Busca campos amplos para alimentar tabela + gráfico de série temporal
   const { data } = await window._supabase
     .from('antropometria')
-    .select('data_avaliacao,peso,imc,pct_gordura,massa_magra,massa_gorda,circ_cintura,circ_quadril,circ_abdominal,rcq,rcest')
+    .select('data_avaliacao,peso,imc,pct_gordura,massa_magra,massa_gorda,circ_cintura,' +
+            'circ_quadril,circ_abdominal,rcq,rcest,' +
+            'densidade_corporal,area_muscular_braco,area_gordura_braco,' +
+            'massa_muscular_esqueletica,frame_size_index')
     .eq('patient_id', patientId)
     .order('data_avaliacao', { ascending: false })
     .limit(12);
@@ -973,6 +1200,8 @@ async function carregarEvolucao(patientId) {
   evolucaoData = [...data].reverse(); // ordem cronológica ascendente para o gráfico
   renderEvolucaoChart();
   initEvolucaoTabs();
+  // Atualiza deltas na tela de resultado (caso já estejamos no step 3)
+  if (typeof aplicarDeltas === 'function') aplicarDeltas();
 
   const tabela = document.getElementById('evolucao-tabela');
   const vazio  = document.getElementById('evolucao-vazio');
@@ -1022,12 +1251,15 @@ function renderEvolucaoChart() {
   if (!chartEl || !evolucaoData.length) return;
 
   const CONFIG = {
-    peso:          { label: 'Peso',        color: '#7a5d3b', unit: 'kg', key: 'peso' },
-    imc:           { label: 'IMC',         color: '#c4a06c', unit: '',   key: 'imc' },
-    pct_gordura:   { label: '% Gordura',   color: '#a04030', unit: '%',  key: 'pct_gordura' },
-    massa_magra:   { label: 'Massa magra', color: '#3d6b4f', unit: 'kg', key: 'massa_magra' },
-    circ_cintura:  { label: 'Cintura',     color: '#b8860b', unit: 'cm', key: 'circ_cintura' },
-    circ_quadril:  { label: 'Quadril',     color: '#8b5e3c', unit: 'cm', key: 'circ_quadril' },
+    peso:                 { label: 'Peso',        color: '#7a5d3b', unit: 'kg',  key: 'peso' },
+    imc:                  { label: 'IMC',         color: '#c4a06c', unit: '',    key: 'imc' },
+    pct_gordura:          { label: '% Gordura',   color: '#a04030', unit: '%',   key: 'pct_gordura' },
+    massa_magra:          { label: 'Massa magra', color: '#3d6b4f', unit: 'kg',  key: 'massa_magra' },
+    area_muscular_braco:  { label: 'AMB',         color: '#2D6A56', unit: 'cm²', key: 'area_muscular_braco' },
+    area_gordura_braco:   { label: 'AGB',         color: '#a04030', unit: 'cm²', key: 'area_gordura_braco' },
+    densidade_corporal:   { label: 'Densidade',   color: '#5a4a3a', unit: '',    key: 'densidade_corporal' },
+    circ_cintura:         { label: 'Cintura',     color: '#b8860b', unit: 'cm',  key: 'circ_cintura' },
+    circ_quadril:         { label: 'Quadril',     color: '#8b5e3c', unit: 'cm',  key: 'circ_quadril' },
   };
 
   let series;
