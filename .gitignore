@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Memória/cache do projeto
 memory/
+
+# Snapshots do sistema de versionamento (ver versions/README.md)
+versions/
