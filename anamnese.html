@@ -67,6 +67,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Avaliação Clínica
         </a>
+        <a class="nav-item" onclick="goToStep('rast')" id="snav-rastreamento">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Sintomas e Rastreamento
+        </a>
         <a class="nav-item" onclick="goToStep(6)" id="snav-6">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
           Hábitos Alimentares
@@ -178,7 +182,7 @@
         <!-- ══ STEP 0: Identificação ══ -->
         <div class="form-step active" id="step-0">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 1 de 9</p>
+            <p class="page-greeting">Seção 1 de 10</p>
             <h1 class="page-title">Identificação</h1>
           </header>
 
@@ -232,7 +236,7 @@
         <!-- ══ STEP 1: Hábitos de Vida ══ -->
         <div class="form-step" id="step-1">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 2 de 9</p>
+            <p class="page-greeting">Seção 2 de 10</p>
             <h1 class="page-title">Hábitos de Vida</h1>
           </header>
 
@@ -324,7 +328,7 @@
         <!-- ══ STEP 2: Sono e Estresse ══ -->
         <div class="form-step" id="step-2">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 3 de 9</p>
+            <p class="page-greeting">Seção 3 de 10</p>
             <h1 class="page-title">Sono e Estresse</h1>
           </header>
 
@@ -385,7 +389,7 @@
         <!-- ══ STEP 3: Atividade Física ══ -->
         <div class="form-step" id="step-3">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 4 de 9</p>
+            <p class="page-greeting">Seção 4 de 10</p>
             <h1 class="page-title">Atividade Física</h1>
           </header>
 
@@ -437,7 +441,7 @@
         <!-- ══ STEP 4: Patologias ══ -->
         <div class="form-step" id="step-4">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 5 de 9</p>
+            <p class="page-greeting">Seção 5 de 10</p>
             <h1 class="page-title">Patologias e Medicamentos</h1>
           </header>
 
@@ -546,7 +550,7 @@
         <!-- ══ STEP 5: Avaliação Clínica ══ -->
         <div class="form-step" id="step-5">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 6 de 9</p>
+            <p class="page-greeting">Seção 6 de 10</p>
             <h1 class="page-title">Avaliação Clínica</h1>
           </header>
 
@@ -725,10 +729,28 @@
           </section>
         </div>
 
+        <!-- ══ STEP RASTREAMENTO: Sintomas e Rastreamento Metabólico ══ -->
+        <div class="form-step" id="step-rastreamento">
+          <header class="page-header fade-up">
+            <p class="page-greeting">Seção 7 de 10</p>
+            <h1 class="page-title">Sintomas e Rastreamento Metabólico</h1>
+          </header>
+
+          <section class="section fade-up fade-up-delay-1">
+            <h2 class="section-title">Sintomas e Teia de Inter-relações</h2>
+            <div id="anamnese-teia-mount"></div>
+          </section>
+
+          <section class="section fade-up fade-up-delay-2">
+            <h2 class="section-title">Rastreamento Metabólico (questionário 0–4)</h2>
+            <div id="anamnese-rastreamento-mount"></div>
+          </section>
+        </div>
+
         <!-- ══ STEP 6: Hábitos Alimentares ══ -->
         <div class="form-step" id="step-6">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 7 de 9</p>
+            <p class="page-greeting">Seção 8 de 10</p>
             <h1 class="page-title">Hábitos Alimentares</h1>
           </header>
 
@@ -873,7 +895,7 @@
         <!-- ══ STEP 7: Metas ══ -->
         <div class="form-step" id="step-7">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 8 de 9</p>
+            <p class="page-greeting">Seção 9 de 10</p>
             <h1 class="page-title">Metas e Comportamento</h1>
           </header>
 
@@ -938,22 +960,12 @@
               <textarea class="form-input form-textarea" id="obs_gerais" rows="4" placeholder="Observações adicionais relevantes..."></textarea>
             </div>
           </section>
-
-          <section class="section fade-up fade-up-delay-4">
-            <h2 class="section-title">Sintomas e Teia de Inter-relações Metabólicas</h2>
-            <div id="anamnese-teia-mount"></div>
-          </section>
-
-          <section class="section fade-up fade-up-delay-5">
-            <h2 class="section-title">Rastreamento Metabólico</h2>
-            <div id="anamnese-rastreamento-mount"></div>
-          </section>
         </div>
 
         <!-- ══ STEP 8: Exames Laboratoriais ══ -->
         <div class="form-step" id="step-8">
           <header class="page-header fade-up">
-            <p class="page-greeting">Seção 9 de 9</p>
+            <p class="page-greeting">Seção 10 de 10</p>
             <h1 class="page-title">Exames Laboratoriais</h1>
           </header>
 

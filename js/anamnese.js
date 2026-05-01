@@ -33,11 +33,12 @@ function isAdminUser(user) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── Sequência de steps ────────────────────────────────────
-// IDs base: step-0…step-8 (fixos no HTML)
+// IDs base: step-0…step-8 (fixos no HTML) + step-rastreamento
 // Módulos dinâmicos: step-modules-intro, step-mod-atleta, etc.
 // Inseridos entre step-4 e step-5 após detecção
 const BASE_STEPS_A = ['step-0', 'step-1', 'step-2', 'step-3', 'step-4'];
-const BASE_STEPS_B = ['step-5', 'step-6', 'step-7', 'step-8'];
+// step-rastreamento entra logo APÓS step-5 (Avaliação Clínica)
+const BASE_STEPS_B = ['step-5', 'step-rastreamento', 'step-6', 'step-7', 'step-8'];
 
 let stepSequence = [...BASE_STEPS_A, ...BASE_STEPS_B];
 let currentStepIdx = 0;
@@ -342,13 +343,13 @@ function navigateToStepId(targetId) {
 }
 
 // Compatibilidade com sidebar existente: goToStep(n) usa números 0-8
+// Novo: goToStep('rast') ou goToStep('rastreamento') vai para step-rastreamento
 function goToStep(n) {
-  // step-0…step-4: direto
-  if (n <= 4) {
-    navigateToStepId(`step-${n}`);
+  if (n === 'rast' || n === 'rastreamento') {
+    navigateToStepId('step-rastreamento');
     return;
   }
-  // step-5…step-8: mapeados APÓS módulos dinâmicos
+  // step-0…step-8 (numérico): mapeado direto
   navigateToStepId(`step-${n}`);
 }
 
