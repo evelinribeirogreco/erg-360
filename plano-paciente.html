@@ -176,7 +176,21 @@
 </div>
 
 <div class="page-content">
-  <a href="dashboard.html" class="back-link">← Meu painel</a>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <a href="dashboard.html" class="back-link">← Meu painel</a>
+    <div id="pp-pdf-actions" style="display:none;gap:8px;">
+      <button type="button" id="pp-btn-ver-pdf"
+        style="padding:8px 14px;background:transparent;border:1px solid var(--detail);color:var(--text);cursor:pointer;font-family:inherit;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Visualizar PDF
+      </button>
+      <button type="button" id="pp-btn-baixar-pdf"
+        style="padding:8px 14px;background:var(--text);color:var(--bg);border:1px solid var(--text);cursor:pointer;font-family:inherit;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar PDF
+      </button>
+    </div>
+  </div>
 
   <!-- Macros totais -->
   <div class="macro-grid" id="macro-grid" style="display:none">
@@ -256,6 +270,17 @@ window.addEventListener('DOMContentLoaded', async () => {
       (plano.data_elaboracao ? 'Elaborado em ' + formatDate(plano.data_elaboracao) : '') +
       (plano.validade_meses ? ' · Válido por ' + plano.validade_meses + ' meses' : '') +
       (plano.elaborador ? ' · ' + plano.elaborador : '');
+
+    // Habilita botões de PDF (Visualizar / Baixar)
+    const ppActions = document.getElementById('pp-pdf-actions');
+    if (ppActions) ppActions.style.display = 'flex';
+    const btnVerPdf = document.getElementById('pp-btn-ver-pdf');
+    const btnBxrPdf = document.getElementById('pp-btn-baixar-pdf');
+    if (btnVerPdf || btnBxrPdf) {
+      const { exportPlanoPDF } = await import('./js/plano-pdf-export.js');
+      if (btnVerPdf) btnVerPdf.addEventListener('click', () => exportPlanoPDF(plano, patient.nome, 'preview'));
+      if (btnBxrPdf) btnBxrPdf.addEventListener('click', () => exportPlanoPDF(plano, patient.nome, 'print'));
+    }
 
     // Buscar itens do plano
     const itens = await sb('plano_itens', `?plano_id=eq.${plano.id}&select=refeicao,nome_livre,quantidade_g,medida_descricao,kcal,proteina_g,cho_g,lipidio_g,fibra_g,ordem,alimentos(nome)&order=refeicao,ordem`);

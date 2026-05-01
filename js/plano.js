@@ -4,6 +4,7 @@
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { exportPlanoPDF } from './plano-pdf-export.js';
 
 const SUPABASE_URL  = 'https://gqnlrhmriufepzpustna.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbmxyaG1yaXVmZXB6cHVzdG5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjQxMDAsImV4cCI6MjA5MDU0MDEwMH0.MhGvF5BCjeEGdVKVeoSERO7pzIciPxCs26Jx-537qLo';
@@ -83,6 +84,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderPlano(plano, nome);
+  // Habilita botões de PDF (Visualizar / Baixar)
+  const btnVer = document.getElementById('btn-ver-pdf');
+  const btnBxr = document.getElementById('btn-baixar-pdf');
+  if (btnVer) {
+    btnVer.style.display = 'inline-flex';
+    btnVer.addEventListener('click', () => exportPlanoPDF(plano, nome, 'preview'));
+  }
+  if (btnBxr) {
+    btnBxr.style.display = 'inline-flex';
+    btnBxr.addEventListener('click', () => exportPlanoPDF(plano, nome, 'print'));
+  }
 });
 
 // ── Renderização principal ────────────────────────────────

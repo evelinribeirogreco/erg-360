@@ -18,21 +18,28 @@
 //   exportPlanoPDF(plano, nomePaciente);
 // ============================================================
 
-export function exportPlanoPDF(plano, nomePaciente = 'Paciente') {
+// modo: 'preview' (apenas abre em nova aba) | 'print' (abre + dispara diálogo de impressão/salvar PDF)
+export function exportPlanoPDF(plano, nomePaciente = 'Paciente', modo = 'print') {
   if (!plano) {
     alert('Preencha o plano antes de exportar.');
     return;
   }
 
   const html = renderPlanoHTML(plano, nomePaciente);
-  const win  = window.open('', '_blank', 'width=900,height=700');
+  const win  = window.open('', '_blank', 'width=900,height=720');
   if (!win) {
-    alert('Permita pop-ups para exportar o PDF.');
+    alert('Permita pop-ups para visualizar/baixar o PDF.');
     return;
   }
   win.document.open();
   win.document.write(html);
   win.document.close();
+
+  if (modo === 'preview') {
+    // Apenas mostra; usuário decide imprimir/salvar
+    return;
+  }
+
   // Aguarda renderizar fontes e layout antes de imprimir
   win.onload = () => {
     setTimeout(() => {
@@ -139,13 +146,69 @@ function renderRefeicoes(plano) {
   return `
     <section class="sec">
       ${sectionHeader('Plano de refeições', 'Cardápio')}
-      ${plano.refeicoes.map(r => `
+      ${plano.refeicoes.map(r => {
+        // Formato novo (Onda 1): alimentos[] com macros calculados
+        const usaAlimentos = Array.isArray(r.alimentos) && r.alimentos.length > 0;
+        // Formato antigo: itens[] com strings
+        const usaItens = !usaAlimentos && Array.isArray(r.itens) && r.itens.length > 0;
+        // Macros já vêm calculados ou somam dos alimentos
+        let macros = r.macros || {};
+        if (usaAlimentos && (!macros.kcal && !macros.ptn)) {
+          macros = r.alimentos.reduce((acc, a) => ({
+            kcal:   (acc.kcal   || 0) + (a.kcal   || 0),
+            ptn:    (acc.ptn    || 0) + (a.ptn    || 0),
+            cho:    (acc.cho    || 0) + (a.cho    || 0),
+            lip:    (acc.lip    || 0) + (a.lip    || 0),
+            fibras: (acc.fibras || 0) + (a.fibras || 0),
+          }), {});
+          // Arredonda
+          for (const k of Object.keys(macros)) macros[k] = Math.round(macros[k] * 10) / 10;
+        }
+        return `
         <article class="refeicao avoid-break">
           <header class="ref-hd">
             <h3>${esc(r.nome)}</h3>
             ${r.horario ? `<span class="ref-horario">${esc(r.horario)}</span>` : ''}
           </header>
-          ${r.itens?.length ? `
+
+          ${usaAlimentos ? `
+            <table class="ref-tabela">
+              <thead>
+                <tr>
+                  <th>Alimento</th>
+                  <th class="num">Qtd</th>
+                  <th class="num">PTN</th>
+                  <th class="num">CHO</th>
+                  <th class="num">LIP</th>
+                  <th class="num">kcal</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${r.alimentos.map(a => `
+                  <tr>
+                    <td>
+                      <strong>${esc(a.nome)}</strong>
+                      ${a.medida_label ? `<br><span class="medida">${esc(a.qty_medida)} × ${esc(a.medida_label)}</span>` : ''}
+                      ${a.novo ? '<span class="tag-novo">novo</span>' : ''}
+                    </td>
+                    <td class="num">${esc(a.qty_g)}<span class="unit">g</span></td>
+                    <td class="num m-ptn">${esc(a.ptn || 0)}</td>
+                    <td class="num m-cho">${esc(a.cho || 0)}</td>
+                    <td class="num m-lip">${esc(a.lip || 0)}</td>
+                    <td class="num">${esc(a.kcal || 0)}</td>
+                  </tr>`).join('')}
+                <tr class="ref-total">
+                  <td><strong>TOTAL</strong></td>
+                  <td class="num">${macros.qty_g ? Math.round(macros.qty_g) : '—'}<span class="unit">g</span></td>
+                  <td class="num m-ptn"><strong>${esc(macros.ptn || 0)}</strong></td>
+                  <td class="num m-cho"><strong>${esc(macros.cho || 0)}</strong></td>
+                  <td class="num m-lip"><strong>${esc(macros.lip || 0)}</strong></td>
+                  <td class="num"><strong>${esc(macros.kcal || 0)}</strong></td>
+                </tr>
+              </tbody>
+            </table>` : ''}
+
+          ${usaItens ? `
             <ul class="ref-itens">
               ${r.itens.map(it => `
                 <li>
@@ -153,16 +216,20 @@ function renderRefeicoes(plano) {
                   <span class="ref-item-nome">${esc(it.nome)}</span>
                 </li>`).join('')}
             </ul>` : ''}
-          ${(r.macros && (r.macros.kcal || r.macros.ptn || r.macros.cho || r.macros.lip)) ? `
+
+          ${(!usaAlimentos && macros && (macros.kcal || macros.ptn || macros.cho || macros.lip)) ? `
             <p class="ref-macros">
-              ${r.macros.kcal ? `<span><strong>${esc(r.macros.kcal)}</strong> kcal</span>` : ''}
-              ${r.macros.ptn  ? `<span>PTN <strong>${esc(r.macros.ptn)}</strong>g</span>` : ''}
-              ${r.macros.cho  ? `<span>CHO <strong>${esc(r.macros.cho)}</strong>g</span>` : ''}
-              ${r.macros.lip  ? `<span>LIP <strong>${esc(r.macros.lip)}</strong>g</span>` : ''}
-              ${r.macros.fibras ? `<span>Fibras <strong>${esc(r.macros.fibras)}</strong>g</span>` : ''}
+              ${macros.kcal ? `<span><strong>${esc(macros.kcal)}</strong> kcal</span>` : ''}
+              ${macros.ptn  ? `<span>PTN <strong>${esc(macros.ptn)}</strong>g</span>` : ''}
+              ${macros.cho  ? `<span>CHO <strong>${esc(macros.cho)}</strong>g</span>` : ''}
+              ${macros.lip  ? `<span>LIP <strong>${esc(macros.lip)}</strong>g</span>` : ''}
+              ${macros.fibras ? `<span>Fibras <strong>${esc(macros.fibras)}</strong>g</span>` : ''}
             </p>` : ''}
+
+          ${r.obs ? `<p class="ref-obs"><em>${esc(r.obs)}</em></p>` : ''}
           ${r.alerta ? `<p class="ref-alerta cor-${esc(r.alerta_cor || 'amarelo')}">⚠ ${esc(r.alerta)}</p>` : ''}
-        </article>`).join('')}
+        </article>`;
+      }).join('')}
     </section>`;
 }
 
@@ -458,6 +525,56 @@ const PRINT_CSS = `
   }
   .ref-alerta.cor-vermelho { border-color: #a04030; background: #fbe9e5; color: #7a2e20; }
   .ref-alerta.cor-verde { border-color: #4a7a4a; background: #e9f2e9; color: #2e5a2e; }
+  .ref-alerta.cor-laranja { border-color: #c26b3f; background: #fdeee5; color: #7a3a20; }
+  .ref-alerta.cor-azul { border-color: #2d6a8a; background: #e5f0f7; color: #1e4a5a; }
+  .ref-obs { margin: 4px 0; font-size: 9pt; color: #6b5a40; }
+
+  /* Tabela de alimentos (formato Onda 1) */
+  .ref-tabela {
+    width: 100%; border-collapse: collapse;
+    margin: 8px 0 10px;
+    font-size: 9.5pt;
+  }
+  .ref-tabela thead th {
+    text-align: left;
+    padding: 6px 8px;
+    background: #f7f3ed;
+    border-bottom: 1px solid #c9a882;
+    font-weight: 600;
+    font-size: 8.5pt; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #7a5e2e;
+  }
+  .ref-tabela tbody td {
+    padding: 6px 8px;
+    border-bottom: 1px dotted #f0e6d4;
+    vertical-align: top;
+  }
+  .ref-tabela td.num, .ref-tabela th.num {
+    text-align: right; white-space: nowrap;
+  }
+  .ref-tabela .medida {
+    font-size: 8pt; color: #7a5d3b; font-style: italic;
+  }
+  .ref-tabela .unit {
+    font-size: 0.8em; color: #999; margin-left: 1px;
+  }
+  .ref-tabela .m-ptn { color: #a04030; }
+  .ref-tabela .m-cho { color: #5e4fb8; }
+  .ref-tabela .m-lip { color: #c26b3f; }
+  .ref-tabela .ref-total td {
+    background: #f7f3ed;
+    border-top: 1px solid #c9a882; border-bottom: none;
+    font-weight: 600;
+  }
+  .ref-tabela .tag-novo {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 6px;
+    background: rgba(201,168,76,0.18);
+    color: #8b6e18;
+    font-size: 7.5pt; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
 
   /* Substituições */
   .subst-grupo { margin-bottom: 10px; }

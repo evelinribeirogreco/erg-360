@@ -278,20 +278,33 @@ function updateProgress() {
 window.goToStep = goToStep;
 window.nextStep = nextStep;
 
-// ── Exporta PDF do plano atual ────────────────────────────
+// ── PDF do plano: Visualizar (preview) ou Baixar (com print dialog) ──
 // Lê o nome da paciente da URL (param ?nome=) e monta o payload
 // a partir do estado atual do formulário, sem precisar salvar.
+function verPlanoPdf() {
+  const params = new URLSearchParams(window.location.search);
+  const nome   = decodeURIComponent(params.get('nome') || 'Paciente');
+  try {
+    const plano = buildPayload();
+    exportPlanoPDF(plano, nome, 'preview');
+  } catch (err) {
+    console.error('[ERG] erro ao visualizar PDF:', err);
+    alert('Erro ao gerar visualização: ' + err.message);
+  }
+}
 function exportarPlanoPdf() {
   const params = new URLSearchParams(window.location.search);
   const nome   = decodeURIComponent(params.get('nome') || 'Paciente');
   try {
     const plano = buildPayload();
-    exportPlanoPDF(plano, nome);
+    exportPlanoPDF(plano, nome, 'print');
   } catch (err) {
     console.error('[ERG] erro ao exportar PDF:', err);
     alert('Erro ao gerar PDF: ' + err.message);
   }
 }
+window.verPlanoPdf = verPlanoPdf;
+window.exportarPlanoPdf = exportarPlanoPdf;
 window.exportarPlanoPdf = exportarPlanoPdf;
 window.prevStep = prevStep;
 
