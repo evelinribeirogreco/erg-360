@@ -932,6 +932,10 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
               <a href="${viewHref}" style="${btnStyle}color:#2D6A56;border:1px solid #2D6A56;background:transparent;" title="Visualizar (somente leitura)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver
               </a>
+              ${tab === 'plano' ? `
+              <button onclick="verPdfDoHistorico('${row.id}','${nomeEnc}')" style="${btnStyle}color:#7A2E2E;border:1px solid #7A2E2E;background:transparent;" title="Abrir PDF deste plano em nova aba">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> PDF
+              </button>` : ''}
               <a href="${editHref}" style="${btnStyle}color:var(--text);border:1px solid var(--detail);background:transparent;" title="Editar este registro">
                 Editar
               </a>
@@ -955,6 +959,25 @@ function verUltimaEntrada(tab, patientId, userId, nomeEnc) {
   window.location.href = `${cfg.editPage}?patient_id=${patientId}&user_id=${userId}&nome=${nomeEnc}&view=${lastId}`;
 }
 window.verUltimaEntrada = verUltimaEntrada;
+
+// Abre PDF de um plano alimentar específico em nova aba (sem navegar)
+async function verPdfDoHistorico(planoId, nomeEnc) {
+  const nome = decodeURIComponent(nomeEnc || '');
+  const { data, error } = await supabase
+    .from('planos_alimentares').select('*').eq('id', planoId).single();
+  if (error || !data) {
+    alert('Erro ao carregar plano: ' + (error?.message || 'plano nao encontrado'));
+    return;
+  }
+  try {
+    const { exportPlanoPDF } = await import('./plano-pdf-export.js');
+    exportPlanoPDF(data, nome || 'Paciente', 'preview');
+  } catch (e) {
+    console.error('[admin] erro carregando PDF export:', e);
+    alert('Erro ao gerar PDF: ' + e.message);
+  }
+}
+window.verPdfDoHistorico = verPdfDoHistorico;
 
 async function excluirHistorico(table, id, tab, patientId, userId, nomeEnc) {
   if (!confirm('Tem certeza que deseja excluir este registro permanentemente? Esta ação não pode ser desfeita.')) return;
