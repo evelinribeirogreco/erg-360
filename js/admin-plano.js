@@ -45,6 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window._supabase = supabase;
   installOnlineHook(supabase);
   mountPendingBanner();
+  // Sidebar de macros (pie chart + meta vs atual) — montagem após plano-refeicoes-pro carregar
+  setTimeout(() => {
+    if (window._refeicoesPro) {
+      window._refeicoesPro.montarSidebarMacros();
+    }
+  }, 400);
 });
 
 async function checkAdmin() {
@@ -837,28 +843,49 @@ function addRefeicao(data = {}) {
         </select>
       </div>
     </div>
-    <label class="form-label">Itens da refeição</label>
-    <div class="refeicao-items-list" id="items-${refId}">
+
+    <!-- Tabela pro de alimentos com cálculo automático -->
+    <div class="pro-alim-mount-host" data-refid="${refId}"></div>
+
+    <!-- Fallback: itens em texto livre (apenas se vier de plano antigo) -->
+    <div class="refeicao-items-list refeicao-items-legacy" id="items-${refId}" style="display:none;">
       <div style="display:grid;grid-template-columns:1fr 140px 80px auto;gap:8px;padding-bottom:6px;border-bottom:1px solid rgba(201,168,130,0.2);">
-        <span class="form-label" style="margin:0">Alimento</span>
+        <span class="form-label" style="margin:0">Alimento (modo texto)</span>
         <span class="form-label" style="margin:0">Quantidade</span>
         <span class="form-label" style="margin:0">Novo</span>
         <span></span>
       </div>
     </div>
-    <button type="button" class="add-item-btn" onclick="addItemRefeicao('${refId}')">+ Adicionar alimento</button>
-    <div class="macros-row">
-      <div><label class="form-label">kcal</label><input class="form-input" type="number" name="ref-kcal" value="${data.macros?.kcal||''}" placeholder="—"></div>
-      <div><label class="form-label">Proteína (g)</label><input class="form-input" type="text" name="ref-ptn" value="${data.macros?.ptn||''}" placeholder="—"></div>
-      <div><label class="form-label">CHO (g)</label><input class="form-input" type="text" name="ref-cho" value="${data.macros?.cho||''}" placeholder="—"></div>
-      <div><label class="form-label">Lip (g)</label><input class="form-input" type="text" name="ref-lip" value="${data.macros?.lip||''}" placeholder="—"></div>
-      <div><label class="form-label">Fibras (g)</label><input class="form-input" type="text" name="ref-fibras" value="${data.macros?.fibras||''}" placeholder="—"></div>
+
+    <div class="macros-row" style="margin-top:14px;">
+      <div><label class="form-label">kcal</label><input class="form-input" type="number" name="ref-kcal" value="${data.macros?.kcal||''}" placeholder="auto" readonly style="background:var(--bg-secondary);cursor:not-allowed;"></div>
+      <div><label class="form-label">Proteína (g)</label><input class="form-input" type="text" name="ref-ptn" value="${data.macros?.ptn||''}" placeholder="auto" readonly style="background:var(--bg-secondary);cursor:not-allowed;"></div>
+      <div><label class="form-label">CHO (g)</label><input class="form-input" type="text" name="ref-cho" value="${data.macros?.cho||''}" placeholder="auto" readonly style="background:var(--bg-secondary);cursor:not-allowed;"></div>
+      <div><label class="form-label">Lip (g)</label><input class="form-input" type="text" name="ref-lip" value="${data.macros?.lip||''}" placeholder="auto" readonly style="background:var(--bg-secondary);cursor:not-allowed;"></div>
+      <div><label class="form-label">Fibras (g)</label><input class="form-input" type="text" name="ref-fibras" value="${data.macros?.fibras||''}" placeholder="auto" readonly style="background:var(--bg-secondary);cursor:not-allowed;"></div>
     </div>
   `;
   c.appendChild(div);
-  // Adiciona itens existentes
-  if (data.itens) data.itens.forEach(item => addItemRefeicao(refId, item));
-  else addItemRefeicao(refId); // linha vazia inicial
+
+  // Renderiza tabela pro com alimentos[] (objetos com macros) ou itens[] (strings legacy)
+  const proHost = div.querySelector('.pro-alim-mount-host');
+  if (window._refeicoesPro && proHost) {
+    // Se vier no formato novo (alimentos[]), usa direto
+    if (Array.isArray(data.alimentos) && data.alimentos.length > 0) {
+      window._refeicoesPro.renderTabelaAlimentos(div, data.alimentos);
+    }
+    // Se vier no formato antigo (itens[]), tenta migrar pra tela legacy + tabela pro vazia
+    else if (Array.isArray(data.itens) && data.itens.length > 0) {
+      const legacy = div.querySelector('.refeicao-items-legacy');
+      if (legacy) legacy.style.display = '';
+      data.itens.forEach(item => addItemRefeicao(refId, item));
+      window._refeicoesPro.renderTabelaAlimentos(div, []);
+    }
+    // Refeição totalmente nova
+    else {
+      window._refeicoesPro.renderTabelaAlimentos(div, []);
+    }
+  }
 }
 window.addRefeicao = addRefeicao;
 
@@ -1259,21 +1286,25 @@ function buildPayload() {
     cor:       block.querySelector('[name=ds-cor]')?.value || 'verde',
   })).filter(s => s.nome);
 
-  // Refeições do plano
+  // Refeições do plano — formato pro (alimentos[] com macros) + legacy (itens[] strings)
   const refeicoes = [...document.querySelectorAll('#refeicoes-container .dynamic-block')].map(block => {
-    const refId = block.dataset.refid;
+    // Itens em texto livre (legacy, só pra refeições antigas migradas)
     const itens = [...block.querySelectorAll('.refeicao-item-row')].map(row => ({
       nome: row.querySelector('[name=item-nome]')?.value?.trim() || '',
       qty:  row.querySelector('[name=item-qty]')?.value?.trim() || '',
       novo: row.querySelector('[name=item-novo]')?.checked || false,
     })).filter(i => i.nome);
 
+    // Alimentos do formato novo (objetos com macros calculados)
+    const alimentos = (window._refeicoesPro?.getRefeicaoData?.(block) || []).filter(a => a.nome);
+
     return {
       nome:       block.querySelector('[name=ref-nome]')?.value?.trim() || '',
       horario:    block.querySelector('[name=ref-horario]')?.value?.trim() || '',
       alerta:     block.querySelector('[name=ref-alerta]')?.value?.trim() || '',
       alerta_cor: block.querySelector('[name=ref-alerta-cor]')?.value || 'amarelo',
-      itens,
+      alimentos,                       // formato novo, prioridade
+      itens: itens.length ? itens : undefined,  // só se houver legacy
       macros: {
         kcal:   block.querySelector('[name=ref-kcal]')?.value?.trim() || '',
         ptn:    block.querySelector('[name=ref-ptn]')?.value?.trim() || '',

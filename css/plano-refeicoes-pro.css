@@ -1,0 +1,418 @@
+/* ============================================================
+   plano-refeicoes-pro.css
+   Estilos do modal "Adicionar alimento", tabela de alimentos
+   por refeição e sidebar de macros (pie chart + meta vs atual)
+   ============================================================ */
+
+/* ── Cores semânticas dos macros ────────────────────────────── */
+.m-ptn { color: #A04030; }
+.m-cho { color: #5E4FB8; }
+.m-lip { color: #C26B3F; }
+
+/* ════════════════════════════════════════════════════════════
+   MODAL ADICIONAR ALIMENTO
+   ════════════════════════════════════════════════════════════ */
+.pro-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(44,34,24,0.65);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(2px);
+}
+.pro-modal {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--detail, #C9A882);
+  max-width: 560px; width: 100%;
+  max-height: 92vh; display: flex; flex-direction: column;
+  font-family: 'DM Sans', sans-serif;
+}
+.pro-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(184,147,106,0.2);
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+}
+.pro-modal-eyebrow {
+  font-size: 0.55rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--subtitle, #7A5E2E);
+  margin-bottom: 4px;
+}
+.pro-modal-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem; font-weight: 300; color: var(--text);
+}
+.pro-modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.6rem; color: var(--text-light); padding: 0 6px;
+  line-height: 1;
+}
+.pro-modal-close:hover { color: var(--text); }
+
+.pro-modal-body {
+  padding: 22px 24px; flex: 1; overflow-y: auto;
+}
+.pro-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(184,147,106,0.2);
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+
+.pro-form-group { margin-bottom: 16px; position: relative; }
+.pro-form-row {
+  display: grid; grid-template-columns: 1fr 160px; gap: 12px;
+  margin-bottom: 16px;
+}
+.pro-form-row .pro-form-group { margin-bottom: 0; }
+.pro-form-label {
+  display: block;
+  font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--subtitle, #7A5E2E);
+  font-weight: 500; margin-bottom: 6px;
+}
+.pro-form-input {
+  width: 100%; padding: 10px 14px;
+  border: 1px solid var(--detail, #C9A882);
+  background: var(--bg-primary, #fff);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem; color: var(--text);
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.pro-form-input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+.pro-form-input:disabled {
+  background: var(--bg-secondary, #f7f3ed);
+  cursor: not-allowed;
+  color: var(--text-light);
+}
+.pro-form-hint {
+  font-size: 0.7rem; color: var(--text-light);
+  margin-top: 6px; min-height: 1.1em;
+  font-style: italic;
+}
+
+/* Dropdown de alimentos */
+.pro-alim-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  z-index: 10;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--detail, #C9A882);
+  border-top: none;
+  max-height: 280px; overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.pro-alim-item {
+  display: block; width: 100%;
+  padding: 10px 14px;
+  border: none; background: none;
+  border-bottom: 1px solid rgba(184,147,106,0.15);
+  text-align: left; cursor: pointer;
+  transition: background 0.1s;
+  font-family: 'DM Sans', sans-serif;
+}
+.pro-alim-item:last-child { border-bottom: none; }
+.pro-alim-item:hover { background: rgba(184,147,106,0.08); }
+.pro-alim-nome {
+  display: block; font-size: 0.84rem;
+  color: var(--text); font-weight: 500;
+}
+.pro-alim-meta {
+  display: block; font-size: 0.7rem;
+  color: var(--text-light); margin-top: 2px;
+}
+.pro-alim-meta em {
+  color: var(--subtitle, #7A5E2E); font-style: italic;
+}
+.pro-alim-empty {
+  padding: 18px; text-align: center;
+  font-size: 0.78rem; color: var(--text-light);
+  font-style: italic;
+}
+
+/* Preview ao adicionar */
+.pro-preview {
+  margin-top: 8px; padding: 14px 16px;
+  border: 1px solid rgba(76,184,160,0.25);
+  background: rgba(76,184,160,0.05);
+}
+.pro-preview-label {
+  font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #1F4D3E;
+  margin-bottom: 8px; font-weight: 500;
+}
+.pro-preview-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; margin-bottom: 8px;
+}
+.pro-preview-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; color: var(--text); font-weight: 300;
+}
+.pro-preview-qty {
+  font-size: 0.74rem; color: var(--text-light);
+}
+.pro-preview-macros {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 0.78rem; color: var(--text);
+}
+.pro-preview-macros strong {
+  font-weight: 600; font-size: 0.92rem;
+}
+
+/* Botões do modal */
+.pro-btn {
+  padding: 10px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem; letter-spacing: 0.12em;
+  text-transform: uppercase; font-weight: 500;
+  border: 1px solid transparent; cursor: pointer;
+  transition: all 0.15s;
+}
+.pro-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pro-btn-primary {
+  background: var(--text); color: var(--bg-primary, #fff);
+}
+.pro-btn-primary:hover:not(:disabled) {
+  background: #2D6A56;
+}
+.pro-btn-secondary {
+  background: rgba(76,184,160,0.10);
+  border-color: rgba(76,184,160,0.4);
+  color: #2D6A56;
+}
+.pro-btn-secondary:hover {
+  background: rgba(76,184,160,0.18);
+}
+.pro-btn-ghost {
+  background: none;
+  border-color: var(--detail, #C9A882);
+  color: var(--text-light);
+}
+.pro-btn-ghost:hover { color: var(--text); }
+
+/* ════════════════════════════════════════════════════════════
+   TABELA DE ALIMENTOS DENTRO DA REFEIÇÃO
+   ════════════════════════════════════════════════════════════ */
+.pro-alim-mount {
+  margin-bottom: 16px;
+}
+.pro-alim-vazio {
+  text-align: center;
+  padding: 22px;
+  border: 1px dashed var(--detail, #C9A882);
+  background: rgba(184,147,106,0.04);
+}
+.pro-alim-vazio p {
+  font-size: 0.78rem; color: var(--text-light);
+  margin-bottom: 12px; font-style: italic;
+}
+.pro-alim-tabela {
+  border: 1px solid var(--detail, #C9A882);
+  background: var(--bg-primary, #fff);
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+.pro-alim-thead, .pro-alim-tr {
+  display: grid;
+  grid-template-columns: minmax(180px,2.3fr) 60px 60px 60px 70px 60px 80px;
+  gap: 8px; padding: 8px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  align-items: center;
+}
+.pro-alim-thead {
+  background: var(--bg-secondary, #f7f3ed);
+  border-bottom: 1px solid var(--detail, #C9A882);
+  font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--subtitle, #7A5E2E);
+}
+.pro-alim-tr {
+  border-bottom: 1px solid rgba(184,147,106,0.15);
+}
+.pro-alim-tr:last-child { border-bottom: none; }
+.pro-alim-trtotal {
+  background: var(--bg-secondary, #f7f3ed);
+  border-top: 1px solid var(--detail, #C9A882);
+  font-weight: 600;
+}
+.pro-alim-col small {
+  font-size: 0.65em; color: var(--text-light); margin-left: 1px;
+}
+.pro-alim-col-nome {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-width: 0;
+}
+.pro-alim-tnome {
+  font-weight: 500; color: var(--text);
+}
+.pro-alim-tmedida {
+  font-size: 0.7rem; color: var(--text-light);
+}
+.pro-tag-novo {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 7px;
+  background: rgba(201,168,76,0.18);
+  color: #8B6E18;
+  font-size: 0.55rem; letter-spacing: 0.1em;
+  text-transform: uppercase; font-weight: 600;
+}
+.pro-alim-col-acoes {
+  display: flex; gap: 4px; justify-content: flex-end;
+}
+.pro-icon-btn {
+  background: none; border: 1px solid var(--detail, #C9A882);
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: all 0.15s;
+}
+.pro-icon-btn:hover {
+  background: var(--bg-secondary, #f7f3ed);
+  color: var(--text);
+}
+.pro-btn-add {
+  width: 100%;
+  padding: 12px; font-size: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SIDEBAR DE MACROS (fixa no canto direito)
+   ════════════════════════════════════════════════════════════ */
+.pro-macros-sidebar {
+  position: fixed; right: 16px; top: 110px;
+  width: 280px; max-height: calc(100vh - 140px);
+  z-index: 50;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--detail, #C9A882);
+  box-shadow: 0 6px 20px rgba(44,34,24,0.08);
+  font-family: 'DM Sans', sans-serif;
+  overflow-y: auto;
+  transition: transform 0.25s ease;
+}
+@media (max-width: 1280px) {
+  .pro-macros-sidebar {
+    transform: translateX(calc(100% + 24px));
+  }
+  .pro-macros-sidebar.aberta {
+    transform: translateX(0);
+  }
+}
+.pro-macros-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(184,147,106,0.2);
+}
+.pro-macros-eyebrow {
+  font-size: 0.55rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--subtitle, #7A5E2E);
+  margin-bottom: 3px;
+}
+.pro-macros-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; font-weight: 300;
+  color: var(--text);
+}
+.pro-pie-wrap {
+  padding: 14px 18px;
+  display: flex; justify-content: center;
+}
+.pro-pie {
+  width: 180px; height: 180px;
+}
+.pro-pie-kcal {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem; fill: var(--text); font-weight: 300;
+}
+.pro-pie-kcal-lbl {
+  font-size: 0.55rem; fill: var(--subtitle, #7A5E2E);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+
+.pro-macros-rows {
+  padding: 0 18px 14px;
+}
+.pro-macro-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(184,147,106,0.15);
+  align-items: center;
+}
+.pro-macro-row:last-child { border-bottom: none; }
+.pro-macro-l {
+  display: flex; align-items: center; gap: 8px;
+}
+.pro-macro-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 0.6rem; font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #fff;
+  border-radius: 2px;
+}
+.pro-macro-gkg {
+  font-size: 0.68rem; color: var(--text-light);
+}
+.pro-macro-c {
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+.pro-macro-atual {
+  font-size: 0.85rem; color: var(--text); font-weight: 500;
+}
+.pro-macro-atual small {
+  font-size: 0.7em; color: var(--text-light);
+}
+.pro-macro-pct {
+  font-size: 0.65rem; color: var(--subtitle, #7A5E2E);
+  margin-top: 2px;
+}
+.pro-macro-r {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+}
+.pro-macro-meta {
+  font-size: 0.7rem; color: var(--text-light);
+}
+.pro-macro-r .arr { vertical-align: -1px; }
+
+.pro-macros-foot {
+  padding: 14px 18px;
+  background: var(--bg-secondary, #f7f3ed);
+  border-top: 1px solid rgba(184,147,106,0.2);
+}
+.pro-kcal-bar {
+  height: 8px;
+  background: rgba(0,0,0,0.06);
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.pro-kcal-fill {
+  height: 100%;
+  transition: width 0.4s ease, background 0.2s;
+}
+.pro-kcal-info {
+  display: flex; justify-content: space-between;
+  font-size: 0.7rem;
+}
+.pro-kcal-atual { color: var(--text); font-weight: 600; }
+.pro-kcal-meta  { color: var(--text-light); }
+
+/* Botão flutuante pra abrir sidebar em telas pequenas */
+.pro-sidebar-toggle {
+  position: fixed; right: 16px; bottom: 88px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--text); color: var(--bg-primary, #fff);
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(44,34,24,0.25);
+  display: none; align-items: center; justify-content: center;
+  z-index: 51;
+}
+@media (max-width: 1280px) {
+  .pro-sidebar-toggle { display: flex; }
+}
