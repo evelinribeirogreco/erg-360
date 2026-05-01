@@ -381,6 +381,85 @@
   margin-bottom: 8px;
 }
 
+/* Modal Ver nutrientes */
+.pro-nutri-summary {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(184,147,106,0.2);
+}
+.pro-nutri-summary-item {
+  text-align: center;
+  padding: 10px;
+  background: var(--bg-secondary, #f7f3ed);
+  border: 1px solid rgba(184,147,106,0.15);
+}
+.pro-nutri-sum-lbl {
+  font-size: 0.6rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--subtitle, #7A5E2E);
+  margin-bottom: 4px;
+}
+.pro-nutri-sum-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem; font-weight: 300; color: var(--text);
+}
+.pro-nutri-sum-val small {
+  font-size: 0.5em; color: var(--text-light);
+}
+.pro-nutri-grupo-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; font-weight: 300;
+  color: var(--text);
+  margin: 18px 0 8px;
+  border-bottom: 1px solid rgba(184,147,106,0.2);
+  padding-bottom: 4px;
+}
+.pro-nutri-tabela {
+  display: flex; flex-direction: column;
+}
+.pro-nutri-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) 100px minmax(110px, 1.4fr);
+  gap: 12px; align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(184,147,106,0.10);
+  font-size: 0.85rem;
+}
+.pro-nutri-row:last-child { border-bottom: none; }
+.pro-nutri-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #fff;
+  border-radius: 2px;
+}
+.pro-nutri-lbl { color: var(--text); font-weight: 500; }
+.pro-nutri-val {
+  text-align: right; font-weight: 600; color: var(--text);
+}
+.pro-nutri-val small {
+  font-size: 0.7em; color: var(--text-light); margin-left: 1px;
+}
+.pro-nutri-pct {
+  font-size: 0.75rem;
+  display: flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+}
+.pro-nutri-bar {
+  display: inline-block; flex: 1;
+  height: 4px; background: rgba(0,0,0,0.06);
+  position: relative; border-radius: 2px; overflow: hidden;
+}
+.pro-nutri-bar-fill {
+  display: block; height: 100%;
+  transition: width 0.3s;
+}
+.pro-macros-actions {
+  padding: 12px 18px 14px;
+  border-top: 1px solid rgba(184,147,106,0.15);
+}
+
 /* ════════════════════════════════════════════════════════════
    SIDEBAR DE MACROS (fixa no canto direito)
    ════════════════════════════════════════════════════════════ */

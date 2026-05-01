@@ -75,11 +75,18 @@ let alimentosFetched = false;
 async function carregarAlimentos() {
   if (alimentosFetched) return alimentosCache;
   try {
-    const { data, error } = await supabase
+    // Tenta com micronutrientes; se faltar coluna, fallback sem
+    let { data, error } = await supabase
       .from('alimentos')
-      .select('id, nome, categoria, subcategoria, porcao_padrao_g, kcal, ptn_g, cho_g, lip_g, fibras_g')
+      .select('id, nome, categoria, subcategoria, porcao_padrao_g, kcal, ptn_g, cho_g, lip_g, fibras_g, micronutrientes')
       .eq('ativo', true)
       .order('nome', { ascending: true });
+    if (error) {
+      console.warn('[refeicoes-pro] fallback sem micros:', error.message);
+      ({ data, error } = await supabase.from('alimentos')
+        .select('id, nome, categoria, subcategoria, porcao_padrao_g, kcal, ptn_g, cho_g, lip_g, fibras_g')
+        .eq('ativo', true).order('nome', { ascending: true }));
+    }
     if (error) { console.warn('[refeicoes-pro] erro carregando alimentos:', error); return []; }
     alimentosCache = data || [];
     alimentosFetched = true;
@@ -87,6 +94,73 @@ async function carregarAlimentos() {
     console.warn('[refeicoes-pro] exceção:', e);
   }
   return alimentosCache;
+}
+
+// ════════════════════════════════════════════════════════════
+// CATÁLOGO DE MICRONUTRIENTES (label + unidade + IDR/UL)
+// ════════════════════════════════════════════════════════════
+// IDR baseado em DRI (Dietary Reference Intake) — adulto 19-50 anos
+// Valores aproximados, usados como referência para interpretação
+const MICROS_META = {
+  // Minerais
+  calcio_mg:    { label: 'Cálcio',          unidade: 'mg',  idr: 1000, grupo: 'Minerais' },
+  ferro_mg:     { label: 'Ferro',           unidade: 'mg',  idr: 8,    grupo: 'Minerais' },
+  magnesio_mg:  { label: 'Magnésio',        unidade: 'mg',  idr: 400,  grupo: 'Minerais' },
+  potassio_mg:  { label: 'Potássio',        unidade: 'mg',  idr: 4700, grupo: 'Minerais' },
+  sodio_mg:     { label: 'Sódio',           unidade: 'mg',  idr: 2300, grupo: 'Minerais', ul: true },
+  zinco_mg:     { label: 'Zinco',           unidade: 'mg',  idr: 11,   grupo: 'Minerais' },
+  fosforo_mg:   { label: 'Fósforo',         unidade: 'mg',  idr: 700,  grupo: 'Minerais' },
+  selenio_mcg:  { label: 'Selênio',         unidade: 'mcg', idr: 55,   grupo: 'Minerais' },
+  cobre_mg:     { label: 'Cobre',           unidade: 'mg',  idr: 0.9,  grupo: 'Minerais' },
+  manganes_mg:  { label: 'Manganês',        unidade: 'mg',  idr: 2.3,  grupo: 'Minerais' },
+  iodo_mcg:     { label: 'Iodo',            unidade: 'mcg', idr: 150,  grupo: 'Minerais' },
+  // Vitaminas
+  vit_a_mcg:    { label: 'Vitamina A',      unidade: 'mcg', idr: 900,  grupo: 'Vitaminas' },
+  vit_c_mg:     { label: 'Vitamina C',      unidade: 'mg',  idr: 90,   grupo: 'Vitaminas' },
+  vit_d_mcg:    { label: 'Vitamina D',      unidade: 'mcg', idr: 15,   grupo: 'Vitaminas' },
+  vit_e_mg:     { label: 'Vitamina E',      unidade: 'mg',  idr: 15,   grupo: 'Vitaminas' },
+  vit_k_mcg:    { label: 'Vitamina K',      unidade: 'mcg', idr: 120,  grupo: 'Vitaminas' },
+  vit_b1_mg:    { label: 'B1 (Tiamina)',    unidade: 'mg',  idr: 1.2,  grupo: 'Vitaminas B' },
+  vit_b2_mg:    { label: 'B2 (Riboflavina)',unidade: 'mg',  idr: 1.3,  grupo: 'Vitaminas B' },
+  vit_b3_mg:    { label: 'B3 (Niacina)',    unidade: 'mg',  idr: 16,   grupo: 'Vitaminas B' },
+  vit_b6_mg:    { label: 'B6 (Piridoxina)', unidade: 'mg',  idr: 1.3,  grupo: 'Vitaminas B' },
+  vit_b9_mcg:   { label: 'B9 (Ác. Fólico)', unidade: 'mcg', idr: 400,  grupo: 'Vitaminas B' },
+  vit_b12_mcg:  { label: 'B12 (Cobalamina)',unidade: 'mcg', idr: 2.4,  grupo: 'Vitaminas B' },
+  // Lípides
+  colesterol_mg:{ label: 'Colesterol',      unidade: 'mg',  idr: 300,  grupo: 'Lípides', ul: true },
+  g_saturada_g: { label: 'Gordura saturada',unidade: 'g',   idr: 22,   grupo: 'Lípides', ul: true },
+  g_trans_g:    { label: 'Gordura trans',   unidade: 'g',   idr: 2,    grupo: 'Lípides', ul: true },
+  g_mono_g:     { label: 'Gord. monoinsaturada', unidade: 'g', idr: 25, grupo: 'Lípides' },
+  g_poli_g:     { label: 'Gord. poli-insaturada',unidade: 'g', idr: 17, grupo: 'Lípides' },
+  // Açúcares
+  acucar_g:     { label: 'Açúcar total',    unidade: 'g',   idr: 50,   grupo: 'Carboidratos', ul: true },
+};
+
+// Calcula micros de um alimento × quantidade
+function calcMicros(alimento, qty_g) {
+  const porcao = alimento.porcao_padrao_g || 100;
+  const fator = qty_g / porcao;
+  const out = {};
+  const micros = alimento.micronutrientes || {};
+  for (const [k, v] of Object.entries(micros)) {
+    if (typeof v !== 'number') continue;
+    out[k] = round2(v * fator);
+  }
+  return out;
+}
+
+// Soma micros de uma lista de alimentos
+function somarMicros(alimentos) {
+  const total = {};
+  for (const a of alimentos || []) {
+    const m = a.micros || {};
+    for (const [k, v] of Object.entries(m)) {
+      total[k] = (total[k] || 0) + (v || 0);
+    }
+  }
+  // Arredonda
+  for (const k of Object.keys(total)) total[k] = round2(total[k]);
+  return total;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -266,6 +340,7 @@ export async function abrirModalAdicionarAlimento(opts = {}) {
       const medida    = MEDIDAS[medidaKey];
       const qty_g     = qty * medida.g;
       const macros    = calcMacros(alimentoSel, qty_g);
+      const micros    = calcMicros(alimentoSel, qty_g);
       fechar({
         alimento_id:   alimentoSel.id,
         nome:          alimentoSel.nome,
@@ -274,6 +349,7 @@ export async function abrirModalAdicionarAlimento(opts = {}) {
         qty_medida:    qty,
         qty_g:         qty_g,
         ...macros,
+        micros,        // micronutrientes calculados pra essa quantidade
       });
     });
 
@@ -305,7 +381,7 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
 
   const renderRows = () => {
     const lista = blockEl._proAlimentos;
-    // Barra de ações sempre presente (Carregar / Salvar como modelo)
+    // Barra de ações sempre presente (Carregar / Salvar como modelo / Ver nutrientes)
     const acoesTopoHtml = `
       <div class="pro-ref-acoes">
         <button type="button" class="pro-btn pro-btn-ghost-sm pro-btn-carregar">
@@ -316,12 +392,21 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Salvar como modelo
         </button>
+        <button type="button" class="pro-btn pro-btn-ghost-sm pro-btn-ver-nutrientes" ${lista.length ? '' : 'disabled'}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Ver nutrientes
+        </button>
       </div>`;
     const bindAcoesTopo = () => {
       const carregarBtn = mount.querySelector('.pro-btn-carregar');
       const salvarBtn   = mount.querySelector('.pro-btn-salvar-modelo');
+      const verBtn      = mount.querySelector('.pro-btn-ver-nutrientes');
       carregarBtn?.addEventListener('click', () => abrirModalCarregar(blockEl, renderRows));
       salvarBtn?.addEventListener('click',   () => abrirModalSalvarModelo(blockEl));
+      verBtn?.addEventListener('click',      () => abrirModalVerNutrientes({
+        titulo: blockEl.querySelector('input[name="ref-nome"]')?.value || 'Refeição',
+        alimentos: blockEl._proAlimentos || [],
+      }));
     };
 
     if (!lista.length) {
@@ -744,6 +829,130 @@ async function abrirModalCarregar(blockEl, renderRows) {
   carregarAba();
 }
 
+// ════════════════════════════════════════════════════════════
+// MODAL "VER NUTRIENTES" — soma de macros + 25+ micros
+// Aceita { titulo, alimentos } (uma refeição) ou
+// { titulo, refeicoes: [{alimentos}, ...] } (plano todo)
+// ════════════════════════════════════════════════════════════
+export function abrirModalVerNutrientes(opts = {}) {
+  // Achata: se vier `refeicoes`, soma todas; se vier `alimentos`, usa direto
+  let alimentosTodos = [];
+  if (Array.isArray(opts.alimentos)) alimentosTodos = opts.alimentos;
+  else if (Array.isArray(opts.refeicoes)) {
+    opts.refeicoes.forEach(r => {
+      if (Array.isArray(r.alimentos)) alimentosTodos = alimentosTodos.concat(r.alimentos);
+    });
+  }
+  if (!alimentosTodos.length) {
+    alert('Nenhum alimento pra calcular nutrientes.');
+    return;
+  }
+
+  // Soma macros
+  const macros = alimentosTodos.reduce((acc, a) => ({
+    kcal:    acc.kcal    + (a.kcal    || 0),
+    ptn:     acc.ptn     + (a.ptn     || 0),
+    cho:     acc.cho     + (a.cho     || 0),
+    lip:     acc.lip     + (a.lip     || 0),
+    fibras:  acc.fibras  + (a.fibras  || 0),
+    qty_g:   acc.qty_g   + (a.qty_g   || 0),
+  }), { kcal:0, ptn:0, cho:0, lip:0, fibras:0, qty_g:0 });
+
+  const micros = somarMicros(alimentosTodos);
+
+  // Agrupa por categoria
+  const grupos = {};
+  for (const [chave, meta] of Object.entries(MICROS_META)) {
+    if (!(chave in micros) && !meta.sempre) continue;
+    if (!grupos[meta.grupo]) grupos[meta.grupo] = [];
+    const valor = micros[chave] || 0;
+    const idr   = meta.idr || 0;
+    const pct   = idr > 0 ? (valor / idr) * 100 : null;
+    grupos[meta.grupo].push({
+      chave, label: meta.label, unidade: meta.unidade,
+      valor, idr, pct, ul: meta.ul,
+    });
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pro-modal-overlay';
+  overlay.innerHTML = `
+    <div class="pro-modal" style="max-width:720px;">
+      <div class="pro-modal-header">
+        <div>
+          <p class="pro-modal-eyebrow">Análise nutricional completa</p>
+          <p class="pro-modal-titulo">${escapeHtml(opts.titulo || 'Resumo de nutrientes')}</p>
+        </div>
+        <button type="button" class="pro-modal-close">×</button>
+      </div>
+
+      <div class="pro-modal-body">
+        <!-- Resumo geral -->
+        <div class="pro-nutri-summary">
+          <div class="pro-nutri-summary-item">
+            <p class="pro-nutri-sum-lbl">Calorias</p>
+            <p class="pro-nutri-sum-val">${round1(macros.kcal).toLocaleString('pt-BR')}<small> kcal</small></p>
+          </div>
+          <div class="pro-nutri-summary-item">
+            <p class="pro-nutri-sum-lbl">Quantidade</p>
+            <p class="pro-nutri-sum-val">${round1(macros.qty_g)}<small> g</small></p>
+          </div>
+        </div>
+
+        <!-- Macros -->
+        <h3 class="pro-nutri-grupo-titulo">Macronutrientes</h3>
+        <div class="pro-nutri-tabela">
+          ${[
+            { lbl:'Proteína',   val:macros.ptn,    cor:'#A04030', pct: macros.kcal ? (macros.ptn*4 / macros.kcal * 100) : 0 },
+            { lbl:'Carboidrato',val:macros.cho,    cor:'#5E4FB8', pct: macros.kcal ? (macros.cho*4 / macros.kcal * 100) : 0 },
+            { lbl:'Lipídio',    val:macros.lip,    cor:'#C26B3F', pct: macros.kcal ? (macros.lip*9 / macros.kcal * 100) : 0 },
+            { lbl:'Fibra',      val:macros.fibras, cor:'#6B4F2E', pct: null },
+          ].map(m => `
+            <div class="pro-nutri-row">
+              <span class="pro-nutri-tag" style="background:${m.cor}">${m.lbl}</span>
+              <span class="pro-nutri-val">${round2(m.val)}<small> g</small></span>
+              ${m.pct != null ? `<span class="pro-nutri-pct">${round1(m.pct)}% kcal</span>` : '<span></span>'}
+            </div>`).join('')}
+        </div>
+
+        <!-- Micros agrupados -->
+        ${Object.entries(grupos).map(([grupo, items]) => items.length ? `
+          <h3 class="pro-nutri-grupo-titulo">${grupo}</h3>
+          <div class="pro-nutri-tabela">
+            ${items.map(it => {
+              const pctTxt = it.pct != null ? round1(it.pct) + '%' : '—';
+              const cor = !it.pct ? '#999' :
+                          it.ul ? (it.pct > 100 ? '#A04030' : it.pct > 75 ? '#B8860B' : '#3D6B4F') :
+                                  (it.pct >= 80 ? '#3D6B4F' : it.pct >= 50 ? '#B8860B' : '#A04030');
+              const widthBar = Math.min(120, it.pct || 0);
+              return `
+                <div class="pro-nutri-row">
+                  <span class="pro-nutri-lbl">${it.label}</span>
+                  <span class="pro-nutri-val">${round2(it.valor)}<small> ${it.unidade}</small></span>
+                  <span class="pro-nutri-pct" style="color:${cor}" title="IDR: ${it.idr} ${it.unidade}${it.ul ? ' (UL)' : ''}">
+                    ${pctTxt}
+                    ${it.pct != null ? `<span class="pro-nutri-bar"><span class="pro-nutri-bar-fill" style="width:${widthBar}%;background:${cor}"></span></span>` : ''}
+                  </span>
+                </div>`;
+            }).join('')}
+          </div>` : '').join('')}
+
+        <p class="pro-form-hint" style="margin-top:14px;text-align:center;">
+          IDR (DRI 19-50 anos). Valores marcados com cor avermelhada em <strong>UL</strong> indicam excesso.
+        </p>
+      </div>
+
+      <div class="pro-modal-footer">
+        <button type="button" class="pro-btn pro-btn-ghost" id="pro-nutri-close">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = () => overlay.remove();
+  overlay.querySelector('.pro-modal-close').onclick = fechar;
+  overlay.querySelector('#pro-nutri-close').onclick = fechar;
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+}
+
 function labelTipo(t) {
   return ({
     cafe_manha: 'Café da manhã', lanche_manha: 'Lanche da manhã',
@@ -825,8 +1034,33 @@ export function montarSidebarMacros(opts = {}) {
     </div>
 
     <div class="pro-macros-foot" id="pro-macros-foot"></div>
+
+    <div class="pro-macros-actions">
+      <button type="button" class="pro-btn pro-btn-ghost-sm" id="pro-ver-nutri-plano" style="width:100%;justify-content:center;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Ver nutrientes do plano
+      </button>
+    </div>
   `;
   document.body.appendChild(host);
+
+  // Listener: ver nutrientes de TODAS as refeições do plano
+  host.querySelector('#pro-ver-nutri-plano').addEventListener('click', () => {
+    const blocks = document.querySelectorAll('#refeicoes-container .dynamic-block');
+    const todos = [];
+    blocks.forEach(b => {
+      const lista = b._proAlimentos || [];
+      todos.push(...lista);
+    });
+    if (!todos.length) {
+      alert('Nenhum alimento adicionado em nenhuma refeição.');
+      return;
+    }
+    abrirModalVerNutrientes({
+      titulo: 'Resumo nutricional do plano completo',
+      alimentos: todos,
+    });
+  });
 
   const sidebar = {
     atualizar() {
@@ -967,8 +1201,10 @@ function escapeHtml(s) {
 window._refeicoesPro = {
   carregarAlimentos,
   abrirModalAdicionarAlimento,
+  abrirModalVerNutrientes,
   renderTabelaAlimentos,
   getRefeicaoData,
   montarSidebarMacros,
-  MEDIDAS, MEDIDAS_ORDEM,
+  somarMicros,
+  MEDIDAS, MEDIDAS_ORDEM, MICROS_META,
 };
