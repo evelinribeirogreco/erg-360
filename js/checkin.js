@@ -224,7 +224,7 @@ function mostrarBannerRetroativo() {
     flex-wrap: wrap;
   `;
   banner.innerHTML = `
-    <span style="font-size:1.1rem;">📋</span>
+    <span style="font-size:1.1rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
     <span><strong>Modo retroativo</strong> · preenchendo check-in da data
       <strong id="retro-data-label">${dataAlvo || 'a definir'}</strong>
     </span>
@@ -743,7 +743,7 @@ function showSaveErrorBanner(err) {
     line-height: 1.5;
   `;
   banner.innerHTML = `
-    <strong style="display:block;font-weight:600;margin-bottom:4px;">⚠ Atenção: check-in não enviado ao servidor</strong>
+    <strong style="display:block;font-weight:600;margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Atenção: check-in não enviado ao servidor</strong>
     Suas respostas foram salvas localmente no aparelho e serão enviadas automaticamente quando a conexão melhorar. Você pode fechar este check-in.
     <button type="button" onclick="window._tentarReenviarCheckin && window._tentarReenviarCheckin()" style="display:block;margin-top:10px;padding:8px 16px;background:#7A2E2E;color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:0.78rem;cursor:pointer;">
       Tentar enviar agora
@@ -771,7 +771,7 @@ async function sincronizarFilaCheckins() {
         if (item.tentativas < 10) novos.push(item); // mantém pra retry futuro
         console.warn('[checkin] sync falhou:', error.message);
       } else {
-        console.log('[checkin] ✓ checkin sincronizado:', item.payload.data);
+        console.log('[checkin] <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> checkin sincronizado:', item.payload.data);
       }
     } catch (err) {
       item.tentativas = (item.tentativas || 0) + 1;
@@ -829,7 +829,7 @@ function renderFlags(flags) {
 
   container.innerHTML = flags.map(f => {
     const cls = f.tipo === 'ok' ? 'ci-flag-ok' : f.tipo === 'crit' ? 'ci-flag-crit' : 'ci-flag-warn';
-    const icon = f.tipo === 'ok' ? '✓' : f.tipo === 'crit' ? '⚠' : '→';
+    const icon = f.tipo === 'ok' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : f.tipo === 'crit' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
     return `
       <div class="ci-flag-item ${cls}">
         <span style="font-weight:500;">${icon} ${f.label}</span>

@@ -130,7 +130,7 @@ function initToggleButtons() {
       btn.classList.add('active');
       const hidden = document.getElementById(field);
       if (hidden) hidden.value = btn.dataset.value;
-      // Se mudou tipo → sugere protocolo
+      // Se mudou tipo -> sugere protocolo
       if (field === 'tipo') sugerirProtocoloPorTipo(btn.dataset.value);
     });
   });
@@ -229,7 +229,7 @@ window.onProtocoloChange = function() {
   const precisaMM = ['katch_mcardle','cunningham','tinsley'].includes(p);
   const mmEl = document.getElementById('massa_magra');
   if (precisaMM && (!mmEl.value || parseFloat(mmEl.value) <= 0)) {
-    hint.textContent += ' ⚠️ Este protocolo requer massa magra.';
+    hint.textContent += ' <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Este protocolo requer massa magra.';
     hint.style.color = '#7A5E00';
   } else if (hint) {
     hint.style.color = 'var(--text-light)';
@@ -281,7 +281,7 @@ function renderAtividades() {
         value="${a.tipo || ''}" oninput="window._atvUpdate(${idx},'tipo',this.value)" style="flex:2;">
       <input class="form-input" type="number" placeholder="kcal/dia" step="1"
         value="${a.kcal || ''}" oninput="window._atvUpdate(${idx},'kcal',this.value);recalcular()" style="flex:1;max-width:120px;">
-      <button type="button" onclick="window._atvRemove(${idx})" style="background:none;border:1px solid var(--error,#a04030);color:var(--error,#a04030);padding:8px 12px;cursor:pointer;font-size:0.7rem;">✕</button>
+      <button type="button" onclick="window._atvRemove(${idx})" style="background:none;border:1px solid var(--error,#a04030);color:var(--error,#a04030);padding:8px 12px;cursor:pointer;font-size:0.7rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
   `).join('');
   recalcular();
@@ -525,7 +525,7 @@ function _aplicarReadonly() {
     'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
   const editUrl = window.location.href.replace('view=', 'edit=');
   banner.innerHTML = `
-    <span>👁 Modo visualização — campos travados</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Modo visualização — campos travados</span>
     <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
       text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
       Editar este registro

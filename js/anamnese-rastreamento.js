@@ -322,7 +322,7 @@ function abrirModalSintomas() {
           font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);transition:background 0.1s;"
         onmouseover="this.style.background='rgba(184,147,106,0.08)'"
         onmouseout="this.style.background='none'">
-        ${isSel ? '✓ ' : '+ '}${s.nome}
+        ${isSel ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> ' : '+ '}${s.nome}
       </button>`;
     document.getElementById('ms-lista-disp').innerHTML =
       disp.map(s => itemHtml(s, false)).join('') ||
@@ -405,7 +405,7 @@ function atualizarTeia() {
       defWrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.74rem;color:var(--text-light);font-style:italic;">—</p>`;
     } else {
       defWrap.innerHTML = ordenadas.map(([slug, info]) => {
-        // Gradiente verde claro → verde escuro com base em probabilidade
+        // Gradiente verde claro -> verde escuro com base em probabilidade
         const intensidade = 0.3 + (info.probabilidade * 0.7);
         const bg = `rgba(45, 106, 86, ${intensidade})`;
         const cor = info.probabilidade > 0.5 ? '#fff' : '#1F4D3E';
@@ -414,7 +414,7 @@ function atualizarTeia() {
     }
   }
 
-  // Excessos (gradiente amarelo→laranja)
+  // Excessos (gradiente amarelo->laranja)
   const excessos = calcularExcessos(sintomas);
   window._teiaState.excessos = excessos;
   const excWrap = document.getElementById('teia-excessos');
@@ -424,7 +424,7 @@ function atualizarTeia() {
       excWrap.innerHTML = `<p style="font-family:'DM Sans',sans-serif;font-size:0.74rem;color:var(--text-light);font-style:italic;">—</p>`;
     } else {
       excWrap.innerHTML = ordenadas.map(([slug, info]) => {
-        // Gradiente amarelo (#E8B83C) → laranja (#C26B3F)
+        // Gradiente amarelo (#E8B83C) -> laranja (#C26B3F)
         const r = Math.round(232 - (38 * info.probabilidade));
         const g = Math.round(184 - (77 * info.probabilidade));
         const b = Math.round(60  + (3  * info.probabilidade));

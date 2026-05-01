@@ -375,7 +375,7 @@ export function renderModuleIntroStep(modulosAtivos) {
 
       <section class="section fade-up fade-up-delay-2" style="padding:20px 28px;background:var(--bg2);border:1px solid var(--detail);">
         <p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--sub);line-height:1.6;margin:0;">
-          💡 As respostas desses módulos são salvas separadamente e geram
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> As respostas desses módulos são salvas separadamente e geram
           <strong>insights clínicos automáticos</strong> ao final da anamnese.
           Todas as seções são opcionais — pule se não forem relevantes para este atendimento.
         </p>
@@ -750,31 +750,31 @@ export function renderInsightsPanel(insights) {
 
   if (prioridades.length) {
     html += `<div class="insights-section insights-prioridade">
-      <p class="insights-section-label">🎯 Prioridades clínicas</p>
-      ${prioridades.map(p => `<p class="insight-item">→ ${p}</p>`).join('')}
+      <p class="insights-section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Prioridades clínicas</p>
+      ${prioridades.map(p => `<p class="insight-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${p}</p>`).join('')}
     </div>`;
   }
   if (criticos.length) {
     html += `<div class="insights-section insights-critico">
-      <p class="insights-section-label">⚠ Atenção imediata</p>
+      <p class="insights-section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Atenção imediata</p>
       ${criticos.map(a => `<p class="insight-item">${a.msg}</p>`).join('')}
     </div>`;
   }
   if (atencoes.length) {
     html += `<div class="insights-section insights-atencao">
-      <p class="insights-section-label">📋 Alertas clínicos</p>
+      <p class="insights-section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Alertas clínicos</p>
       ${atencoes.map(a => `<p class="insight-item">${a.msg}</p>`).join('')}
     </div>`;
   }
   if (condutas.length) {
     html += `<div class="insights-section insights-conduta">
-      <p class="insights-section-label">✓ Condutas nutricionais sugeridas</p>
+      <p class="insights-section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Condutas nutricionais sugeridas</p>
       ${condutas.map(c => `<p class="insight-item">${c}</p>`).join('')}
     </div>`;
   }
   if (infos.length) {
     html += `<div class="insights-section insights-info">
-      <p class="insights-section-label">💡 Observações</p>
+      <p class="insights-section-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Observações</p>
       ${infos.map(a => `<p class="insight-item">${a.msg}</p>`).join('')}
     </div>`;
   }

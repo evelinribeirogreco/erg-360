@@ -218,11 +218,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
   if (!comp) return [];
   const lista = [];
 
-  // 1. Sono ruim → Fome elevada (grelina/leptina)
+  // 1. Sono ruim -> Fome elevada (grelina/leptina)
   if (comp.sonoHoras !== null && comp.sonoHoras < 6.5 && comp.fome !== null && comp.fome > 2.5) {
     lista.push({
       id: 'sono_fome',
-      titulo: 'Sono insuficiente → Fome elevada',
+      titulo: 'Sono insuficiente <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Fome elevada',
       mecanismo: 'Privação de sono eleva grelina (+24%) e reduz leptina, amplificando a sensação de fome e cravings.',
       evidencia: `Sono médio: ${comp.sonoHoras.toFixed(1)}h · Fome: ${comp.fome.toFixed(1)}/4`,
       impacto: 'alto',
@@ -230,11 +230,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 2. Sono ruim → Energia baixa → Abandono de treinos
+  // 2. Sono ruim -> Energia baixa -> Abandono de treinos
   if (comp.sonoHoras !== null && comp.sonoHoras < 6.5 && comp.energia !== null && comp.energia < 3 && comp.pctTreino < 40) {
     lista.push({
       id: 'sono_energia_treino',
-      titulo: 'Sono insuficiente → Fadiga → Sedentarismo',
+      titulo: 'Sono insuficiente <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Fadiga <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Sedentarismo',
       mecanismo: 'Recuperação inadequada prejudica disposição e reduz frequência de treinos, diminuindo o gasto calórico.',
       evidencia: `Sono: ${comp.sonoHoras.toFixed(1)}h · Energia: ${comp.energia.toFixed(1)}/5 · Treinos: ${comp.pctTreino}% dos dias`,
       impacto: 'alto',
@@ -242,11 +242,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 3. Restrição excessiva → Compulsão
+  // 3. Restrição excessiva -> Compulsão
   if (padroes.problemas.some(p => p.id === 'dieta_restritiva')) {
     lista.push({
       id: 'restricao_compulsao',
-      titulo: 'Restrição excessiva → Episódios de compulsão',
+      titulo: 'Restrição excessiva <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Episódios de compulsão',
       mecanismo: 'Déficit calórico muito agressivo ativa mecanismos de sobrevivência: aumento de grelina, pensamentos obsessivos sobre comida e perda de controle.',
       evidencia: `Fome elevada em ${Math.round(checkins.filter(c => c.fome_nivel >= 4).length / checkins.length * 100)}% dos dias`,
       impacto: 'alto',
@@ -254,11 +254,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 4. Hidratação baixa → Fome confundida com sede
+  // 4. Hidratação baixa -> Fome confundida com sede
   if (comp.agua !== null && comp.agua < 1.5 && comp.fome !== null && comp.fome > 2) {
     lista.push({
       id: 'desidratacao_fome',
-      titulo: 'Desidratação → Fome falsa',
+      titulo: 'Desidratação <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Fome falsa',
       mecanismo: 'O hipotálamo processa fome e sede na mesma região. Desidratação leve é frequentemente interpretada como fome, levando a excessos calóricos.',
       evidencia: `Água média: ${comp.agua.toFixed(1)}L/dia (recomendado ≥2L)`,
       impacto: 'medio',
@@ -266,11 +266,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 5. Treino intenso → Calorias insuficientes (overreaching)
+  // 5. Treino intenso -> Calorias insuficientes (overreaching)
   if (comp.pctTreino > 70 && comp.fome !== null && comp.fome > 2.5 && comp.energia !== null && comp.energia < 3.5) {
     lista.push({
       id: 'treino_subnutricao',
-      titulo: 'Alta carga de treino + subnutrição → Overreaching',
+      titulo: 'Alta carga de treino + subnutrição <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Overreaching',
       mecanismo: 'Treinos frequentes com ingestão calórica insuficiente elevam cortisol, prejudicam recuperação e podem causar catabolismo muscular.',
       evidencia: `Treinos: ${comp.pctTreino}% dos dias · Energia: ${comp.energia.toFixed(1)}/5 · Fome: ${comp.fome.toFixed(1)}/4`,
       impacto: 'alto',
@@ -278,11 +278,11 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 6. Humor baixo → Descontrole alimentar (componente emocional)
+  // 6. Humor baixo -> Descontrole alimentar (componente emocional)
   if (comp.humor !== null && comp.humor < 3 && comp.pctDescontrole > 25) {
     lista.push({
       id: 'humor_descontrole',
-      titulo: 'Humor rebaixado → Alimentação emocional',
+      titulo: 'Humor rebaixado <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Alimentação emocional',
       mecanismo: 'Estados emocionais negativos ativam busca por alimentos hiperpalatáveis como regulação emocional. Estratégia de curto prazo que sabota resultados.',
       evidencia: `Humor médio: ${comp.humor.toFixed(1)}/5 · Descontrole: ${comp.pctDescontrole}% dos dias`,
       impacto: 'alto',
@@ -302,7 +302,7 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     });
   }
 
-  // 8. Trânsito intestinal alterado → Inflamação/desconforto
+  // 8. Trânsito intestinal alterado -> Inflamação/desconforto
   const pctSemEvacu = 100 - comp.pctEvacuou;
   if (pctSemEvacu > 40) {
     lista.push({
@@ -321,7 +321,7 @@ function detectarGargalos(comp, padroes, evolPeso, anamnese, checkins) {
     if (comp.fome !== null && comp.fome > 2.5) {
       lista.push({
         id: 'ri_fome',
-        titulo: 'Resistência à insulina → Fome persistente',
+        titulo: 'Resistência à insulina <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Fome persistente',
         mecanismo: 'RI reduz eficiência da sinalização de saciedade (leptina e insulina). Células não recebem glicose adequadamente, gerando fome mesmo após refeições.',
         evidencia: `Diagnóstico: ${patologias.includes('diabetes') ? 'Diabetes' : 'RI'} · Fome média: ${comp.fome.toFixed(1)}/4`,
         impacto: 'alto',
@@ -440,7 +440,7 @@ function detectarRiscos(comp30, comp90, adesao, tendAdesao, scoreData, evolPeso,
 function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padroes) {
   const ops = [];
 
-  // 1. Score subindo + peso estagnado → ajuste calórico
+  // 1. Score subindo + peso estagnado -> ajuste calórico
   if (scoreData?.tendencia?.tipo === 'melhorando' && evolPeso && Math.abs(evolPeso.deltaTotal || 0) < 0.5) {
     ops.push({
       id: 'ajuste_calorico_positivo',
@@ -451,7 +451,7 @@ function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padro
     });
   }
 
-  // 2. Alta adesão + boa evolução → próxima fase
+  // 2. Alta adesão + boa evolução -> próxima fase
   const faseAtiva = fases.find(f => f.status === 'ativa');
   const proximaFase = fases.find(f => f.status === 'pendente');
   if (adesao.pct >= 70 && evolPeso?.deltaTotal !== null && evolPeso.deltaTotal < -1 && proximaFase) {
@@ -464,7 +464,7 @@ function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padro
     });
   }
 
-  // 3. Sono melhorando → boa janela para ajuste de treino
+  // 3. Sono melhorando -> boa janela para ajuste de treino
   if (comp30?.sonoHoras !== null && comp30.sonoHoras >= 7 && comp30.energia !== null && comp30.energia >= 3.5 && comp30.pctTreino < 50) {
     ops.push({
       id: 'aumentar_treinos',
@@ -475,7 +475,7 @@ function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padro
     });
   }
 
-  // 4. Sem padrões críticos → fase de otimização
+  // 4. Sem padrões críticos -> fase de otimização
   if (!padroes.problemas.length && adesao.pct >= 65 && scoreData?.score >= 65) {
     ops.push({
       id: 'otimizacao',
@@ -486,7 +486,7 @@ function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padro
     });
   }
 
-  // 5. Trânsito intestinal bom + sono bom → suplementação/ajuste fino
+  // 5. Trânsito intestinal bom + sono bom -> suplementação/ajuste fino
   if (comp30?.pctEvacuou >= 80 && comp30?.sonoHoras >= 7 && comp30?.agua >= 2) {
     ops.push({
       id: 'ajuste_fino',
@@ -497,7 +497,7 @@ function detectarOportunidades(comp30, adesao, scoreData, evolPeso, fases, padro
     });
   }
 
-  // 6. Alta fome controlada + boa adesão → proteína ou volume
+  // 6. Alta fome controlada + boa adesão -> proteína ou volume
   if (comp30?.fome !== null && comp30.fome >= 2.5 && comp30.fome < 3.5 && adesao.pct >= 60) {
     ops.push({
       id: 'volume_saciedade',
@@ -522,7 +522,7 @@ const PERFIS_METABOLICOS = [
     descricao: 'Boa adaptação ao déficit calórico com manutenção de energia e sono. Organismo respondendo de forma eficiente às intervenções nutricionais.',
     cor: '#2E8B6A',
     bg: 'rgba(46,139,106,0.06)',
-    icone: '⚡',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
     caracteristicas: ['Perde peso de forma consistente', 'Mantém boa energia mesmo em déficit', 'Sono não comprometido', 'Baixa variabilidade de resultados'],
     condicao: (c, e) => e?.kgPorSemana !== null && e.kgPorSemana < -0.1 && c?.energia >= 3.5 && c?.sonoHoras >= 6.5,
   },
@@ -544,7 +544,7 @@ const PERFIS_METABOLICOS = [
     descricao: 'Sono ruim, energia baixa e fome elevada sugerem estado inflamatório. Pode estar relacionado a disbiose, estresse crônico ou dieta pró-inflamatória.',
     cor: '#B33030',
     bg: 'rgba(179,48,48,0.06)',
-    icone: '🔥',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
     caracteristicas: ['Cansaço frequente', 'Fome elevada', 'Sono de má qualidade', 'Recuperação lenta de treinos'],
     condicao: (c) => c?.sonoHoras !== null && c.sonoHoras < 6.5 && c?.fome > 2.5 && c?.energia < 3,
   },
@@ -555,7 +555,7 @@ const PERFIS_METABOLICOS = [
     descricao: 'Resultados muito variáveis entre períodos. Pode refletir irregularidade alimentar, alto estresse ou comportamento de "começa e para". Necessita de maior estrutura.',
     cor: '#B8860B',
     bg: 'rgba(184,134,11,0.06)',
-    icone: '📊',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
     caracteristicas: ['Resultados inconsistentes', 'Boas e más semanas alternadas', 'Dificuldade de manutenção', 'Alta sensibilidade ao contexto'],
     condicao: (c) => c?.pctDescontrole > 20 && c?.humor < 3.5,
   },
@@ -591,7 +591,7 @@ const PERFIS_COMPORTAMENTAIS = [
     descricao: 'Paciente engajada, registra com frequência, poucos episódios de descontrole. Perfil que responde bem a aumento de complexidade do protocolo.',
     cor: '#2E8B6A',
     bg: 'rgba(46,139,106,0.06)',
-    icone: '🎯',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
     estrategia: 'Avançar protocolo. Introduzir periodização e estratégias avançadas.',
     condicao: (c, a) => a.pct >= 70 && c?.pctDescontrole < 15 && c?.humor >= 3.5,
   },
@@ -609,11 +609,11 @@ const PERFIS_COMPORTAMENTAIS = [
   {
     slug: 'rigido_fragil',
     titulo: 'Rígido-Frágil',
-    subtitulo: 'Perfeccionismo → colapso',
+    subtitulo: 'Perfeccionismo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> colapso',
     descricao: 'Alterna entre dias perfeitos e quebras totais. Pensamento "tudo ou nada" — uma falha cancela o dia inteiro. Necessita de plano mais flexível com "regra dos 80%".',
     cor: '#8B5E3C',
     bg: 'rgba(139,94,60,0.06)',
-    icone: '⚖️',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
     estrategia: 'Flexibilizar protocolo. Trabalhar relação com "imperfeição". Plano com substitutos e adaptações.',
     condicao: (c, a) => a.pct >= 55 && c?.pctDescontrole > 20 && c?.humor >= 3,
   },
@@ -635,7 +635,7 @@ const PERFIS_COMPORTAMENTAIS = [
     descricao: 'Treina com frequência, registra consistentemente, mantém boa energia. Perfil de alta performance que responde bem a estratégias avançadas.',
     cor: '#3A5E8B',
     bg: 'rgba(58,94,139,0.06)',
-    icone: '🏃',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="13" cy="4" r="2"/><path d="M4 22 7 17 11 13 14 16 17 14 19 11"/><path d="M11 13 9 6 13 5 17 8"/></svg>',
     estrategia: 'Periodização nutricional. Foco em composição corporal. Nutrição de performance.',
     condicao: (c, a) => c?.pctTreino >= 70 && a.pct >= 60 && c?.energia >= 3.5,
   },
@@ -700,7 +700,7 @@ function gerarSubObjetivos(anamnese, padroes, antro, modulos) {
   if (pat.some(p => ['diabetes','resistencia_insulina'].includes(p)))
     objetivos.push({ icone: '🩸', texto: 'Estabilização glicêmica e redução de picos de insulina' });
   if (pat.some(p => ['hipertensao'].includes(p)))
-    objetivos.push({ icone: '❤️', texto: 'Redução da pressão arterial via dieta anti-inflamatória' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>', texto: 'Redução da pressão arterial via dieta anti-inflamatória' });
   if (pat.some(p => ['sop'].includes(p)))
     objetivos.push({ icone: '🌸', texto: 'Regulação hormonal e melhora dos ciclos' });
   if (pat.some(p => ['dislipidemia'].includes(p)))
@@ -708,21 +708,21 @@ function gerarSubObjetivos(anamnese, padroes, antro, modulos) {
 
   // Por padrões de check-in
   if (padroes.problemas.some(p => p.id === 'sono_critico'))
-    objetivos.push({ icone: '😴', texto: 'Restauração da qualidade do sono e recuperação' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>', texto: 'Restauração da qualidade do sono e recuperação' });
   if (padroes.problemas.some(p => p.id === 'dieta_restritiva'))
-    objetivos.push({ icone: '🍽️', texto: 'Reestruturação do padrão alimentar com saciedade' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/></svg>', texto: 'Reestruturação do padrão alimentar com saciedade' });
 
   // Por composição corporal
   const antroAtual = antro?.[0];
   if (antroAtual?.pct_gordura > 30)
-    objetivos.push({ icone: '⚖️', texto: 'Redução de gordura corporal com preservação de massa magra' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>', texto: 'Redução de gordura corporal com preservação de massa magra' });
   if (antroAtual?.massa_magra)
-    objetivos.push({ icone: '💪', texto: 'Manutenção e melhora da composição corporal' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M4 12h6l2-3 2 3h6"/><path d="M14 9V5a2 2 0 1 0-4 0v4"/><path d="M5 19l3-7"/><path d="M19 19l-3-7"/></svg>', texto: 'Manutenção e melhora da composição corporal' });
 
   // Sempre presente
-  objetivos.push({ icone: '⚡', texto: 'Aumento de energia, foco e qualidade de vida' });
+  objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>', texto: 'Aumento de energia, foco e qualidade de vida' });
   if (modulos.includes('atleta'))
-    objetivos.push({ icone: '🏃', texto: 'Otimização de performance e recuperação esportiva' });
+    objetivos.push({ icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="13" cy="4" r="2"/><path d="M4 22 7 17 11 13 14 16 17 14 19 11"/><path d="M11 13 9 6 13 5 17 8"/></svg>', texto: 'Otimização de performance e recuperação esportiva' });
 
   return objetivos.slice(0, 5);
 }
@@ -888,7 +888,7 @@ function gerarRecomendacoes(anamnese, comp, perfilMetabolico, modulos, antro) {
   const litrosRec = Math.round((pesoRef * 35) / 1000 * 10) / 10;
   recs.push({
     categoria: 'Hidratação',
-    icone: '💧',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
     recomendacao: `${litrosRec}L de água/dia (35ml/kg de peso corporal)`,
     detalhe: comp?.agua < litrosRec ? `Atual: ${comp.agua?.toFixed(1) || '?'}L — déficit de ${(litrosRec - (comp?.agua || 0)).toFixed(1)}L/dia` : 'Meta atingida. Manter o padrão.',
     prioridade: comp?.agua < 1.5 ? 'alta' : 'media',
@@ -897,7 +897,7 @@ function gerarRecomendacoes(anamnese, comp, perfilMetabolico, modulos, antro) {
   // Sono
   recs.push({
     categoria: 'Sono',
-    icone: '😴',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
     recomendacao: '7–8h de sono por noite, horários regulares (mesma hora de dormir e acordar)',
     detalhe: comp?.sonoHoras < 7
       ? `Atual: ${comp.sonoHoras?.toFixed(1)}h. Evitar telas 1h antes de dormir; última refeição 2h antes; considerar magnésio glicinato à noite.`
@@ -937,7 +937,7 @@ function gerarRecomendacoes(anamnese, comp, perfilMetabolico, modulos, antro) {
   // Rotina alimentar
   recs.push({
     categoria: 'Rotina Alimentar',
-    icone: '⏰',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
     recomendacao: 'Janela alimentar de 10–12h; café da manhã proteico; evitar comer após 20h',
     detalhe: 'Alimentação com horários regulares melhora metabolismo, glicemia e qualidade do sono.',
     prioridade: 'media',
@@ -947,7 +947,7 @@ function gerarRecomendacoes(anamnese, comp, perfilMetabolico, modulos, antro) {
   if (comp?.pctTreino < 50) {
     recs.push({
       categoria: 'Movimento',
-      icone: '🏃',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="13" cy="4" r="2"/><path d="M4 22 7 17 11 13 14 16 17 14 19 11"/><path d="M11 13 9 6 13 5 17 8"/></svg>',
       recomendacao: '150 min/semana de atividade moderada mínima — caminhar 20–30min/dia já impacta',
       detalhe: `Atual: ${comp.pctTreino}% dos dias com treino. Cada 10% de aumento na frequência melhora score metabólico em ~5 pontos.`,
       prioridade: comp.pctTreino < 30 ? 'alta' : 'media',
@@ -1182,7 +1182,7 @@ export function renderDossie(dados, analise, containerId) {
       <div class="dos-dx-grid">
         ${achadosDx.map(a => `
           <div class="dos-dx-item dos-dx-${a.nivel}">
-            <div class="dos-dx-nivel-badge">${a.nivel === 'critico' ? '⚠ Crítico' : 'Atenção'}</div>
+            <div class="dos-dx-nivel-badge">${a.nivel === 'critico' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Crítico' : 'Atenção'}</div>
             <p class="dos-dx-texto">${a.texto}</p>
             <span class="dos-dx-origem">${a.origem}</span>
           </div>`).join('')}
@@ -1197,7 +1197,7 @@ export function renderDossie(dados, analise, containerId) {
             <div>
               <p class="dos-gargalo-titulo">${g.titulo}</p>
               <p class="dos-gargalo-mec">${g.mecanismo}</p>
-              <p class="dos-gargalo-ev">📊 ${g.evidencia}</p>
+              <p class="dos-gargalo-ev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> ${g.evidencia}</p>
             </div>
           </div>`).join('')}
       </div>` : ''}
@@ -1221,15 +1221,15 @@ export function renderDossie(dados, analise, containerId) {
             <p class="dos-score-num" style="color:${scoreData.score >= 70 ? '#2E8B6A' : scoreData.score >= 50 ? '#B8860B' : '#B33030'};">${scoreData.score}</p>
             <p class="dos-score-label">${scoreData.score >= 75 ? 'Muito Bom' : scoreData.score >= 60 ? 'Bom' : scoreData.score >= 45 ? 'Regular' : 'Baixo'}</p>
           </div>
-          <p class="dos-score-tend" style="color:${scoreData.tendencia?.cor || 'var(--sub)'};">${scoreData.tendencia?.label || '→ Estável'}</p>
+          <p class="dos-score-tend" style="color:${scoreData.tendencia?.cor || 'var(--sub)'};">${scoreData.tendencia?.label || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Estável'}</p>
         </div>
         <div class="dos-score-areas">
           ${[
-            { label: 'Sono', val: scoreAreas.sono, icone: '😴' },
-            { label: 'Alimentação', val: scoreAreas.alimentacao, icone: '🍽️' },
-            { label: 'Intestino', val: scoreAreas.intestino, icone: '🌿' },
-            { label: 'Energia', val: scoreAreas.energia, icone: '⚡' },
-            { label: 'Adesão', val: scoreAreas.adesao, icone: '🎯' },
+            { label: 'Sono', val: scoreAreas.sono, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>' },
+            { label: 'Alimentação', val: scoreAreas.alimentacao, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/></svg>' },
+            { label: 'Intestino', val: scoreAreas.intestino, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M6 3 21 3v15a3 3 0 0 1-3 3 3 3 0 0 1-3-3v-1c0-1.66 1.34-3 3-3"/><path d="M3 6c0 8.94 5.06 14 14 14"/></svg>' },
+            { label: 'Energia', val: scoreAreas.energia, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
+            { label: 'Adesão', val: scoreAreas.adesao, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>' },
           ].map(a => {
             const cor = a.val >= 70 ? '#2E8B6A' : a.val >= 50 ? '#B8860B' : '#B33030';
             return `<div class="dos-score-area-row">
@@ -1289,21 +1289,21 @@ export function renderDossie(dados, analise, containerId) {
       ${secNum(7, 'Gargalos e Riscos Clínicos', 'Identificação automática de bloqueadores de resultado e pontos de atenção')}
       <div class="dos-2col">
         <div>
-          <p class="dos-card-label" style="color:#B33030;">⬤ Gargalos (cadeias causais)</p>
-          ${!gargalos.length ? '<p class="dos-empty">Nenhum gargalo identificado ✓</p>' :
+          <p class="dos-card-label" style="color:#B33030;"><svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#3D6B4F"/></svg> Gargalos (cadeias causais)</p>
+          ${!gargalos.length ? '<p class="dos-empty">Nenhum gargalo identificado <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></p>' :
             gargalos.map(g => `<div class="dos-risco-card" style="border-left-color:#B33030;">
               <p class="dos-risco-titulo" style="color:#B33030;">${g.titulo}</p>
               <p class="dos-risco-desc">${g.mecanismo}</p>
-              <p class="dos-risco-ev">📊 ${g.evidencia}</p>
+              <p class="dos-risco-ev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> ${g.evidencia}</p>
             </div>`).join('')}
         </div>
         <div>
-          <p class="dos-card-label" style="color:#B8860B;">⬤ Riscos de Acompanhamento</p>
-          ${!riscos.length ? '<p class="dos-empty">Sem riscos identificados ✓</p>' :
+          <p class="dos-card-label" style="color:#B8860B;"><svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#3D6B4F"/></svg> Riscos de Acompanhamento</p>
+          ${!riscos.length ? '<p class="dos-empty">Sem riscos identificados <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></p>' :
             riscos.map(r => `<div class="dos-risco-card" style="border-left-color:#B8860B;">
               <p class="dos-risco-titulo" style="color:#B8860B;">${r.titulo}</p>
               <p class="dos-risco-desc">${r.descricao}</p>
-              <p class="dos-risco-ev">→ ${r.acao}</p>
+              <p class="dos-risco-ev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${r.acao}</p>
             </div>`).join('')}
         </div>
       </div>
@@ -1324,7 +1324,7 @@ export function renderDossie(dados, analise, containerId) {
           const ativa = f.status === 'ativa';
           return `<div class="dos-fase-doc ${ativa ? 'dos-fase-doc-ativa' : ''}">
             <div class="dos-fase-doc-num" style="color:${cor};border-color:${cor};">
-              ${f.status === 'concluida' ? '✓' : `F${i+1}`}
+              ${f.status === 'concluida' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : `F${i+1}`}
             </div>
             <div class="dos-fase-doc-corpo">
               <div class="dos-fase-doc-header">
@@ -1381,7 +1381,7 @@ export function renderDossie(dados, analise, containerId) {
             </div>`;
           }).join('')}
           <div class="dos-alert-info" style="margin-top:16px;">
-            💡 O plano alimentar completo está disponível no módulo <strong>Plano Alimentar</strong> do sistema.
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> O plano alimentar completo está disponível no módulo <strong>Plano Alimentar</strong> do sistema.
           </div>
         </div>
       </div>
@@ -1413,14 +1413,14 @@ export function renderDossie(dados, analise, containerId) {
       ${secNum(11, 'Plano de Acompanhamento', 'Frequência · monitoramento · critérios de intervenção')}
       <div class="dos-3col">
         <div class="dos-acomp-bloco">
-          <p class="dos-card-label">📅 Frequência</p>
+          <p class="dos-card-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Frequência</p>
           <div class="dos-acomp-item"><strong>Check-in diário:</strong> Score, sono, fome, energia, humor, água</div>
           <div class="dos-acomp-item"><strong>Diário alimentar:</strong> Registro de refeições (quando aplicável)</div>
           <div class="dos-acomp-item"><strong>Pesagem:</strong> 1–2x/semana, mesmas condições (manhã, em jejum)</div>
           <div class="dos-acomp-item"><strong>Consulta:</strong> ${patient.data_proxima_consulta ? formatData(patient.data_proxima_consulta) : 'A agendar'}</div>
         </div>
         <div class="dos-acomp-bloco">
-          <p class="dos-card-label">📊 O que monitorar</p>
+          <p class="dos-card-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> O que monitorar</p>
           <div class="dos-acomp-item">Score metabólico e tendência</div>
           <div class="dos-acomp-item">Peso e variação semanal</div>
           <div class="dos-acomp-item">Qualidade e quantidade de sono</div>
@@ -1476,7 +1476,7 @@ export function renderDossie(dados, analise, containerId) {
           </div>`).join('')}
       </div>
       <div class="dos-alert-info" style="margin-top:16px;">
-        ⚠️ Projeções são estimativas baseadas no ritmo atual. Fatores como adesão, ajustes de plano e resposta individual influenciam o resultado real.
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Projeções são estimativas baseadas no ritmo atual. Fatores como adesão, ajustes de plano e resposta individual influenciam o resultado real.
       </div>` : '<p class="dos-empty">Dados de evolução insuficientes para projeção. Continue registrando peso e check-ins.</p>'}
     </section>
 
@@ -1525,11 +1525,11 @@ export function renderDossie(dados, analise, containerId) {
         <div>
           <p class="dos-card-label">Próximos Passos (14 dias)</p>
           <div class="dos-proximos-lista">
-            ${riscos.filter(r=>r.urgencia==='alta').slice(0,2).map(r => `<div class="dos-proximo-item dos-proximo-urgente">⚠ ${r.acao}</div>`).join('')}
+            ${riscos.filter(r=>r.urgencia==='alta').slice(0,2).map(r => `<div class="dos-proximo-item dos-proximo-urgente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${r.acao}</div>`).join('')}
             ${oportunidades.slice(0,2).map(o => `<div class="dos-proximo-item dos-proximo-op">✦ ${o.titulo}</div>`).join('')}
-            <div class="dos-proximo-item">→ Manter check-in diário</div>
-            <div class="dos-proximo-item">→ Pesagem ${antro?.length ? '2x/semana' : 'semanal'} nas mesmas condições</div>
-            ${patient.data_proxima_consulta ? `<div class="dos-proximo-item">📅 Próxima consulta: ${formatData(patient.data_proxima_consulta)}</div>` : ''}
+            <div class="dos-proximo-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Manter check-in diário</div>
+            <div class="dos-proximo-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Pesagem ${antro?.length ? '2x/semana' : 'semanal'} nas mesmas condições</div>
+            ${patient.data_proxima_consulta ? `<div class="dos-proximo-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Próxima consulta: ${formatData(patient.data_proxima_consulta)}</div>` : ''}
           </div>
 
           <div class="dos-assinatura">
@@ -1559,21 +1559,21 @@ function renderMiniPerfil()   { return ''; }
 function renderColRiscos(riscos) {
   return `<div class="dos-decisao-col">
     <div class="dos-decisao-col-header" style="border-bottom:2px solid #B8860B;">
-      <span style="color:#B8860B;">⬤</span>
+      <span style="color:#B8860B;"><svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#3D6B4F"/></svg></span>
       <p class="dos-decisao-col-titulo">Riscos</p>
       <span class="dos-decisao-badge" style="background:rgba(184,134,11,0.1);color:#B8860B;">${riscos.length}</span>
     </div>
     <div class="dos-decisao-col-body">
       ${!riscos.length
-        ? `<p class="dos-empty-col">Sem riscos identificados ✓</p>`
+        ? `<p class="dos-empty-col">Sem riscos identificados <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></p>`
         : riscos.map(r => `
           <div class="dos-item-risco">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
               <p class="dos-item-titulo" style="color:#B8860B;">${r.titulo}</p>
-              <span class="dos-item-badge" style="background:rgba(184,134,11,0.08);color:#B8860B;flex-shrink:0;">${r.urgencia === 'alta' ? '⚠ Urgente' : 'Atenção'}</span>
+              <span class="dos-item-badge" style="background:rgba(184,134,11,0.08);color:#B8860B;flex-shrink:0;">${r.urgencia === 'alta' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Urgente' : 'Atenção'}</span>
             </div>
             <p class="dos-item-mecanismo">${r.descricao}</p>
-            <p class="dos-item-acao">→ ${r.acao}</p>
+            <p class="dos-item-acao"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${r.acao}</p>
           </div>`).join('')}
     </div>
   </div>`;
@@ -1583,7 +1583,7 @@ function renderColRiscos(riscos) {
 function renderColOportunidades(ops) {
   return `<div class="dos-decisao-col">
     <div class="dos-decisao-col-header" style="border-bottom:2px solid #2E8B6A;">
-      <span style="color:#2E8B6A;">⬤</span>
+      <span style="color:#2E8B6A;"><svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#3D6B4F"/></svg></span>
       <p class="dos-decisao-col-titulo">Oportunidades</p>
       <span class="dos-decisao-badge" style="background:rgba(46,139,106,0.1);color:#2E8B6A;">${ops.length}</span>
     </div>
@@ -1594,7 +1594,7 @@ function renderColOportunidades(ops) {
           <div class="dos-item-op">
             <p class="dos-item-titulo" style="color:#2E8B6A;">✦ ${o.titulo}</p>
             <p class="dos-item-mecanismo">${o.descricao}</p>
-            <p class="dos-item-acao" style="color:#2E8B6A;">💡 ${o.impacto}</p>
+            <p class="dos-item-acao" style="color:#2E8B6A;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> ${o.impacto}</p>
             <span class="dos-area-tag" style="background:rgba(46,139,106,0.08);color:#2E8B6A;">${o.tipo}</span>
           </div>`).join('')}
     </div>
@@ -1649,7 +1649,7 @@ function renderPerfilMetabolicoDetalhado(perfil, comp, evolPeso) {
 
 // ── Perfil Comportamental Detalhado ───────────────────────
 function renderPerfilComportamentalDetalhado(perfil, comp, adesao, tendAdesao) {
-  const tendLabel = { subindo: '↑ Subindo', caindo: '↓ Caindo', estavel: '→ Estável' }[tendAdesao] || '—';
+  const tendLabel = { subindo: '↑ Subindo', caindo: '↓ Caindo', estavel: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Estável' }[tendAdesao] || '—';
   const tendCor   = { subindo: '#2E8B6A', caindo: '#B33030', estavel: '#B8860B' }[tendAdesao] || 'var(--sub)';
 
   return `<div class="dos-perfil-card" style="border-left:3px solid ${perfil.cor};">
@@ -1718,7 +1718,7 @@ function renderEstrategia(fases, faseAtual) {
     return `<div class="dos-section-wide">
       <p class="dos-section-sup">Estratégia de Tratamento</p>
       <div style="padding:24px;background:rgba(184,134,11,0.05);border:1px solid rgba(184,134,11,0.2);text-align:center;">
-        <p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#B8860B;margin:0;">Nenhuma fase cadastrada. <a href="javascript:history.back()" style="color:#B8860B;">Definir estratégia de fases →</a></p>
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#B8860B;margin:0;">Nenhuma fase cadastrada. <a href="javascript:history.back()" style="color:#B8860B;">Definir estratégia de fases <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a></p>
       </div>
     </div>`;
   }
@@ -1738,7 +1738,7 @@ function renderEstrategia(fases, faseAtual) {
         const ativa = f.status === 'ativa';
         return `<div class="dos-fase-item ${ativa ? 'dos-fase-ativa' : ''}">
           <div class="dos-fase-num" style="border-color:${st.cor};${ativa ? 'background:' + st.cor + ';color:var(--bg-primary);' : ''}">
-            ${f.status === 'concluida' ? '✓' : i + 1}
+            ${f.status === 'concluida' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : i + 1}
           </div>
           <div class="dos-fase-body" style="${ativa ? 'border-left:3px solid ' + st.cor + ';' : ''}">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">

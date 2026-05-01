@@ -228,7 +228,7 @@ function editarFase(id) {
   document.getElementById('f-carboidrato').value = f.carboidrato_alvo || '';
   document.getElementById('f-gordura').value   = f.gordura_alvo || '';
 
-  // Arrays → texto
+  // Arrays -> texto
   document.getElementById('f-dicas').value      = Array.isArray(f.dicas) ? f.dicas.join('\n') : (f.dicas || '');
   document.getElementById('f-restricoes').value = Array.isArray(f.restricoes) ? f.restricoes.join(', ') : (f.restricoes || '');
   document.getElementById('f-permitidos').value = Array.isArray(f.permitidos) ? f.permitidos.join(', ') : (f.permitidos || '');
@@ -481,8 +481,8 @@ async function sugerirMacros() {
 
   // 3. Macros por peso × g/kg (quando temos peso) ou % das calorias
   // Diretrizes (ISSN, ACSM):
-  //   • Proteína: 1.6 g/kg (manutenção) → 2.0-2.4 g/kg (déficit ou ganho)
-  //   • Gordura : 0.8-1.0 g/kg (mínimo) → ajustar pra completar 25-30% kcal
+  //   • Proteína: 1.6 g/kg (manutenção) -> 2.0-2.4 g/kg (déficit ou ganho)
+  //   • Gordura : 0.8-1.0 g/kg (mínimo) -> ajustar pra completar 25-30% kcal
   //   • Carbo   : completa o que sobra
   const ptnGkg = ({
     deficit_leve: 2.0, deficit_moderado: 2.2, deficit_intenso: 2.4,
@@ -553,10 +553,10 @@ function calcularProporcaoMacros() {
   const alertaMacros = document.getElementById('alerta-macros');
   if (alertaMacros) {
     if (ptn > 0 && pp < 20) {
-      alertaMacros.textContent = '⚠ Proteína abaixo de 20% — risco de perda de massa muscular. Recomendado: 25–35%.';
+      alertaMacros.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Proteína abaixo de 20% — risco de perda de massa muscular. Recomendado: 25–35%.';
       alertaMacros.style.display = '';
     } else if (kcal > 0 && total > 0 && Math.abs(kcal - total) > 100) {
-      alertaMacros.textContent = `⚠ Calorias declaradas (${kcal} kcal) divergem do total calculado pelos macros (${Math.round(total)} kcal).`;
+      alertaMacros.textContent = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Calorias declaradas (${kcal} kcal) divergem do total calculado pelos macros (${Math.round(total)} kcal).`;
       alertaMacros.style.display = '';
     } else {
       alertaMacros.style.display = 'none';
@@ -593,7 +593,7 @@ function validarMetaFase() {
     previewEl.style.display = '';
 
     if (ritmo > 1) {
-      alertaEl.textContent = `⚠ Meta de ${diff} kg em ${duracao} semanas = ${ritmo.toFixed(2)} kg/semana — acima do limite seguro (1 kg/sem). Risco de perda de massa muscular.`;
+      alertaEl.textContent = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Meta de ${diff} kg em ${duracao} semanas = ${ritmo.toFixed(2)} kg/semana — acima do limite seguro (1 kg/sem). Risco de perda de massa muscular.`;
       alertaEl.style.display = '';
     } else {
       alertaEl.style.display = 'none';
@@ -603,7 +603,7 @@ function validarMetaFase() {
       previewTxt.innerHTML = `
         ${diff} kg em ${duracao} semanas = <strong>${ritmo.toFixed(2)} kg/semana</strong>
         <br>Déficit necessário: ~${Math.round(ritmo * 7000 / 7)} kcal/dia
-        <br>Classificação: ${ritmo <= 0.25 ? 'Lento (conservador)' : ritmo <= 0.5 ? 'Moderado (ideal)' : ritmo <= 0.75 ? 'Ativo (viável)' : ritmo <= 1 ? 'Intenso (monitorar)' : '⚠ Acima do seguro'}`;
+        <br>Classificação: ${ritmo <= 0.25 ? 'Lento (conservador)' : ritmo <= 0.5 ? 'Moderado (ideal)' : ritmo <= 0.75 ? 'Ativo (viável)' : ritmo <= 1 ? 'Intenso (monitorar)' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Acima do seguro'}`;
     }
   } else {
     previewEl.style.display = 'none';

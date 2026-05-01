@@ -350,7 +350,7 @@ window.abrirSubstituicoes = async function(alimentoNome, btn) {
           <p style="font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:#6B6659;margin:0 0 4px;">Substituições para</p>
           <h3 style="font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.3rem;color:#1A1A16;margin:0;">${escapeHtml(alimentoNome)}</h3>
         </div>
-        <button onclick="this.closest('#modal-substituicoes').remove()" style="background:none;border:1px solid #D4D0C5;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:1rem;">✕</button>
+        <button onclick="this.closest('#modal-substituicoes').remove()" style="background:none;border:1px solid #D4D0C5;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:1rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${substitutos.map(s => {
@@ -370,7 +370,7 @@ window.abrirSubstituicoes = async function(alimentoNome, btn) {
         }).join('')}
       </div>
       <p style="font-size:0.7rem;color:#6B6659;margin-top:14px;font-style:italic;">
-        💡 Substituições calculadas pela equivalência do macro principal.
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Substituições calculadas pela equivalência do macro principal.
       </p>
     </div>
   `;
@@ -515,7 +515,7 @@ window.validarPlanoAntesPublicar = function() {
 window.abrirModalValidacao = function() {
   const { erros, avisos, kcalTotal } = window.validarPlanoAntesPublicar();
   if (!erros.length && !avisos.length) {
-    _toast('✓ Plano validado: nenhum erro ou aviso', 'ok');
+    _toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Plano validado: nenhum erro ou aviso', 'ok');
     return true; // pode prosseguir
   }
   let modal = $('modal-validacao-plano');
@@ -545,7 +545,7 @@ window.abrirModalValidacao = function() {
         </div>` : ''}
       ${avisos.length ? `
         <div style="margin-bottom:14px;padding:12px;background:rgba(184,134,11,0.08);border-left:3px solid #B8860B;border-radius:4px;">
-          <p style="font-weight:600;color:#6B5A20;font-size:0.78rem;margin:0 0 6px;">⚠ Avisos (recomenda revisar):</p>
+          <p style="font-weight:600;color:#6B5A20;font-size:0.78rem;margin:0 0 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Avisos (recomenda revisar):</p>
           <ul style="margin:0;padding-left:20px;font-size:0.78rem;color:#1A1A16;">
             ${avisos.map(a => `<li>${escapeHtml(a)}</li>`).join('')}
           </ul>
@@ -627,7 +627,7 @@ function _injetarBotaoTMB() {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.id = 'btn-calc-tmb';
-  btn.textContent = '⚡ Calcular TMB+GET';
+  btn.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Calcular TMB+GET';
   btn.title = 'Calcula calorias-alvo automaticamente (Mifflin-St Jeor)';
   btn.style.cssText = `
     margin-top:6px;padding:7px 14px;background:rgba(76,184,160,0.10);

@@ -85,7 +85,7 @@ function renderAgenda() {
       <span class="agenda-day-num">${d.day}</span>
       <span class="agenda-day-count">${d.count ? d.count + (d.count > 1 ? ' consultas' : ' consulta') : '—'}</span>
     </button>`).join('');
-  // click → filtra a tabela por aquele dia
+  // click -> filtra a tabela por aquele dia
   el.querySelectorAll('.agenda-day').forEach(btn => {
     btn.addEventListener('click', () => {
       const iso = btn.dataset.iso;
@@ -154,7 +154,7 @@ function renderCmdResults(query) {
     { type: 'action', label: 'Nova paciente',          icon: '+',  fn: () => { closeCmd(); window.showView && window.showView('novo'); } },
     { type: 'action', label: 'Voltar para lista',      icon: '⌂',  fn: () => { closeCmd(); window.showView && window.showView('pacientes'); } },
     { type: 'action', label: 'Exportar lista CSV',     icon: '↓',  fn: () => { closeCmd(); exportCSV(); } },
-    { type: 'action', label: 'Abrir feed de atividades', icon: '⚡', fn: () => { closeCmd(); openActivity(); } },
+    { type: 'action', label: 'Abrir feed de atividades', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>', fn: () => { closeCmd(); openActivity(); } },
     { type: 'action', label: 'Ver atalhos de teclado', icon: '⌨',  fn: () => { closeCmd(); openHelp(); } },
     { type: 'action', label: 'Alternar tema (claro/escuro)', icon: '◐', fn: () => { closeCmd(); toggleDark(); } },
     { type: 'action', label: 'Sair (logout)',          icon: '⎋',  fn: () => { closeCmd(); window.adminLogout && window.adminLogout(); } },
@@ -263,26 +263,26 @@ function initShortcuts() {
 
     if (inField) return;
 
-    // / → foca busca da lista
+    // / -> foca busca da lista
     if (e.key === '/') {
       const search = $('search-input');
       if (search) { e.preventDefault(); search.focus(); search.select(); }
     }
-    // N → nova paciente
+    // N -> nova paciente
     else if (e.key === 'n' || e.key === 'N') {
       if (e.shiftKey) {
-        // Shift+N → notificações
+        // Shift+N -> notificações
         const btn = document.getElementById('notif-btn');
         btn && btn.click();
       } else {
         window.showView && window.showView('novo');
       }
     }
-    // ? → atalhos
+    // ? -> atalhos
     else if (e.key === '?') { openHelp(); }
-    // A → feed atividades
+    // A -> feed atividades
     else if (e.key === 'a' || e.key === 'A') { openActivity(); }
-    // D → dark mode
+    // D -> dark mode
     else if (e.key === 'd' || e.key === 'D') { toggleDark(); }
   });
 
@@ -327,7 +327,7 @@ function getStatusTags(p) {
   const hoje = new Date().toISOString().split('T')[0];
   // Aniversariante da semana
   if (isBirthdayThisWeek(p.data_nascimento)) {
-    tags.push({ cls: 'tag-bday', text: '🎂 Aniversário', title: 'Aniversário esta semana' });
+    tags.push({ cls: 'tag-bday', text: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Aniversário', title: 'Aniversário esta semana' });
   }
   // Sem plano
   if (!p.plano_url) {
@@ -351,7 +351,7 @@ function getStatusTags(p) {
   }
   // Alerta clínico
   if ((p.flags_recentes || []).some(f => ['energia_baixa', 'overreaching', 'descontrole'].includes(f))) {
-    tags.push({ cls: 'tag-err', text: '⚠ Alerta clínico' });
+    tags.push({ cls: 'tag-err', text: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Alerta clínico' });
   }
   if (!tags.length) tags.push({ cls: 'tag-ok', text: 'Em acompanhamento' });
   return tags;
@@ -494,7 +494,7 @@ function generateActivityFromPatients() {
   // Pacientes que fizeram check-in hoje
   patients.filter(p => p.ultimo_checkin === hoje).forEach(p => {
     items.push({
-      icon: '✓',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>',
       iconClass: 'act-ok',
       title: `${firstName(p.nome)} fez check-in hoje`,
       sub: p.score_medio_7d ? `Score 7d: ${p.score_medio_7d}` : '',
@@ -505,7 +505,7 @@ function generateActivityFromPatients() {
   // Consultas hoje
   patients.filter(p => p.data_proxima_consulta === hoje).forEach(p => {
     items.push({
-      icon: '📅',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
       iconClass: 'act-info',
       title: `Consulta com ${firstName(p.nome)} hoje`,
       sub: 'Confirmar horário',
@@ -516,7 +516,7 @@ function generateActivityFromPatients() {
   // Aniversariantes
   patients.filter(p => isBirthdayThisWeek(p.data_nascimento)).forEach(p => {
     items.push({
-      icon: '🎂',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
       iconClass: 'act-bday',
       title: `${firstName(p.nome)} faz aniversário esta semana`,
       sub: '',
@@ -527,7 +527,7 @@ function generateActivityFromPatients() {
   // Alertas
   patients.filter(p => (p.flags_recentes || []).some(f => ['energia_baixa', 'overreaching', 'descontrole'].includes(f))).slice(0, 5).forEach(p => {
     items.push({
-      icon: '⚠',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
       iconClass: 'act-warn',
       title: `Alerta clínico: ${firstName(p.nome)}`,
       sub: 'Verificar último check-in',
@@ -606,7 +606,7 @@ function renderSmartAlerts() {
   if (consultaHoje.length) {
     alerts.push({
       cls: 'alert-info',
-      icon: '📅',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
       title: `${consultaHoje.length} consulta${consultaHoje.length > 1 ? 's' : ''} agendada${consultaHoje.length > 1 ? 's' : ''} hoje`,
       sub: consultaHoje.map(p => firstName(p.nome)).join(', '),
       action: 'Ver agenda',
@@ -617,7 +617,7 @@ function renderSmartAlerts() {
   if (semPlano.length >= 3) {
     alerts.push({
       cls: 'alert-soft',
-      icon: '📋',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
       title: `${semPlano.length} pacientes ainda sem plano alimentar`,
       sub: 'Considere priorizar elaboração desses planos.',
       action: 'Ver lista',
@@ -628,7 +628,7 @@ function renderSmartAlerts() {
   if (aniversarios.length) {
     alerts.push({
       cls: 'alert-bday',
-      icon: '🎂',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
       title: `${aniversarios.length} aniversário${aniversarios.length > 1 ? 's' : ''} esta semana`,
       sub: aniversarios.map(p => firstName(p.nome)).join(', '),
     });

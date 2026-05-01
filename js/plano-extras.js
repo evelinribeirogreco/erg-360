@@ -95,7 +95,7 @@ function injetarUIRefeicoes() {
       <input type="checkbox" id="chk-feita-${slug(nome)}" ${isMarcada ? 'checked' : ''}
         style="width:18px;height:18px;cursor:pointer;accent-color:#2D6A56;">
       <label for="chk-feita-${slug(nome)}" style="font-size:0.84rem;color:#1A1A16;cursor:pointer;flex:1;">
-        ${isMarcada ? '✓ Refeição realizada' : 'Marcar como realizada'}
+        ${isMarcada ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Refeição realizada' : 'Marcar como realizada'}
       </label>
       <span class="ci-marcar-status" style="font-size:0.7rem;color:#6B6659;"></span>
     `;
@@ -107,12 +107,12 @@ function injetarUIRefeicoes() {
       if (status) status.textContent = 'Salvando...';
       const ok = await marcarRefeicao(nome, chk.checked);
       if (ok) {
-        if (status) status.textContent = '✓';
-        if (label)  label.textContent = chk.checked ? '✓ Refeição realizada' : 'Marcar como realizada';
+        if (status) status.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>';
+        if (label)  label.textContent = chk.checked ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Refeição realizada' : 'Marcar como realizada';
         marcadasHoje[nome] = chk.checked;
         setTimeout(() => { if (status) status.textContent = ''; }, 2000);
       } else {
-        if (status) status.textContent = '⚠ erro ao salvar';
+        if (status) status.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> erro ao salvar';
         chk.checked = !chk.checked;
       }
     });
@@ -219,7 +219,7 @@ function injetarProximaRefeicao() {
   banner.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:200px;">
-        <span style="font-size:1.4rem;line-height:1;">${isProxima ? '⏰' : '🍽'}</span>
+        <span style="font-size:1.4rem;line-height:1;">${isProxima ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/></svg>'}</span>
         <div>
           <p style="margin:0;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.85;">
             Próxima refeição ${tempo}
@@ -232,7 +232,7 @@ function injetarProximaRefeicao() {
       <button onclick="document.getElementById('proxima-refeicao-banner').style.display='none'"
         style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;
                width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:0.85rem;line-height:1;"
-        title="Ocultar">✕</button>
+        title="Ocultar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
   `;
   // Atualiza a cada minuto

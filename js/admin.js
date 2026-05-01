@@ -243,7 +243,7 @@ function renderTable(patients) {
           color:#7A5E00;border:1px solid rgba(184,134,11,0.2);">Inativo ${dias}d</span>`;
       } else if (temAlerta) {
         statusHtml = `<span class="status-badge" style="background:rgba(122,46,46,0.07);
-          color:#7A2E2E;border:1px solid rgba(122,46,46,0.15);">⚠ Alerta</span>`;
+          color:#7A2E2E;border:1px solid rgba(122,46,46,0.15);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Alerta</span>`;
       } else {
         statusHtml = '<span class="status-badge status-ativo">Ativo</span>';
       }
@@ -266,7 +266,7 @@ function renderTable(patients) {
     let consultaHtml = '<span class="consulta-vazia">—</span>';
     if (p.data_proxima_consulta) {
       if (p.data_proxima_consulta < hoje) {
-        consultaHtml = `<span class="consulta-atrasada">⚠ ${formatDate(p.data_proxima_consulta)}</span>`;
+        consultaHtml = `<span class="consulta-atrasada"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${formatDate(p.data_proxima_consulta)}</span>`;
       } else if (p.data_proxima_consulta === hoje) {
         consultaHtml = `<span class="consulta-hoje">● Hoje</span>`;
       } else {
@@ -309,7 +309,7 @@ function renderTable(patients) {
 
   // Cabeçalho com colunas ordenáveis
   const sort = window._adminExtras ? window._adminExtras.getSort() : { col: 'nome', dir: 'asc' };
-  const arrow = (col) => sort.col === col ? `<span class="sort-arrow">${sort.dir === 'asc' ? '▲' : '▼'}</span>` : '';
+  const arrow = (col) => sort.col === col ? `<span class="sort-arrow">${sort.dir === 'asc' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>'}</span>` : '';
   wrapper.innerHTML = `
     <table class="patients-table">
       <thead><tr>
@@ -357,7 +357,7 @@ function renderTable(patients) {
       const peso   = p.peso_atual      != null ? `Peso: <strong>${p.peso_atual} kg</strong>`      : '';
       const checkins = `Check-ins/sem: <strong>${p.checkins_semana || 0}</strong>`;
       const flags  = (p.flags_recentes || []).filter(f => f !== 'ok');
-      const flagHtml = flags.length ? `<span style="color:#B8860B;">⚠ ${flags.join(', ')}</span>` : '';
+      const flagHtml = flags.length ? `<span style="color:#B8860B;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${flags.join(', ')}</span>` : '';
       tooltip.innerHTML = [score, checkins, peso, flagHtml].filter(Boolean).join('<br>');
       tooltip.style.display = 'block';
     });
@@ -567,7 +567,7 @@ function renderChecklistStrip(c) {
 
   const pendLine = pend.length
     ? `<p class="pac-check-missing">Pendente: <strong>${pend.join(' · ')}</strong></p>`
-    : `<p class="pac-check-missing" style="color:#3D6B4F;">✓ Prontuário completo</p>`;
+    : `<p class="pac-check-missing" style="color:#3D6B4F;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Prontuário completo</p>`;
 
   host.innerHTML = `
     <div class="pac-checklist-card">
@@ -586,7 +586,7 @@ function renderChecklistStrip(c) {
       <div class="pac-checklist-items">
         ${items.map(i => `
           <span class="pac-check-chip ${i.ok ? 'ok' : 'pend'}" title="${i.ok ? 'Preenchido' : 'Pendente'}">
-            <span class="pac-check-icon">${i.ok ? '✓' : '○'}</span>
+            <span class="pac-check-icon">${i.ok ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : '○'}</span>
             ${i.label}${i.badge ? `<span class="pac-check-badge">${i.badge}</span>` : ''}
           </span>`).join('')}
       </div>
@@ -709,7 +709,7 @@ function showPacTab(tab, btn) {
   const nascEnc  = encodeURIComponent(pac.data_nascimento || '');
   const sexoEnc  = encodeURIComponent(pac.sexo || '');
 
-  // Completude (se já carregada no cache) — determina ✓ / ○ de cada card
+  // Completude (se já carregada no cache) — determina OK / ○ de cada card
   const c = completenessCache[id] || null;
   const statusOf = (key) => {
     if (!c) return null;
@@ -736,7 +736,7 @@ function showPacTab(tab, btn) {
   const statusChip = (ok) => {
     if (ok === null) return ''; // ainda carregando
     return ok
-      ? `<span class="pac-action-status ok"    title="Preenchido">✓</span>`
+      ? `<span class="pac-action-status ok"    title="Preenchido"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></span>`
       : `<span class="pac-action-status pend"  title="Pendente">○</span>`;
   };
 
@@ -774,7 +774,7 @@ function showPacTab(tab, btn) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
           </a>
           <button id="pac-ver-ultima-${tab}" onclick="verUltimaEntrada('${tab}','${id}','${userId}','${encodeURIComponent(nome)}')" style="display:none;padding:14px 28px;background:transparent;border:1px solid var(--detail);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;">
-            👁 Ver última
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver última
           </button>
         </div>
       </div>
@@ -846,7 +846,7 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
     if (ehTabelaAusente) {
       wrap.innerHTML = `
         <div style="padding:14px 16px;border:1px solid #B8860B;background:rgba(184,134,11,0.06);font-family:'DM Sans',sans-serif;font-size:0.75rem;color:#7A5E00;line-height:1.5;">
-          ⚠️ Tabela <code>${cfg.table}</code> ainda não existe no banco.
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Tabela <code>${cfg.table}</code> ainda não existe no banco.
           Rode a migration SQL no Supabase SQL Editor para habilitar este histórico.
         </div>`;
       return;
@@ -930,13 +930,13 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
             </div>
             <div style="display:flex;gap:6px;">
               <a href="${viewHref}" style="${btnStyle}color:#2D6A56;border:1px solid #2D6A56;background:transparent;" title="Visualizar (somente leitura)">
-                👁 Ver
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Ver
               </a>
               <a href="${editHref}" style="${btnStyle}color:var(--text);border:1px solid var(--detail);background:transparent;" title="Editar este registro">
                 Editar
               </a>
               <button onclick="excluirHistorico('${cfg.table}','${row.id}','${tab}','${patientId}','${userId}','${nomeEnc}')" style="${btnStyle}background:transparent;border:1px solid var(--error,#a04030);color:var(--error,#a04030);" title="Excluir">
-                ✕
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           </div>`;
@@ -1165,7 +1165,7 @@ async function handleFormSubmit(e) {
   const senhaAuto    = nascimento
     ? nascimento.replace(/-/g, '').split('').reverse().join('').replace(/(\d{4})(\d{2})(\d{2})/, '$3$2$1')
     : '';
-  // Converte YYYY-MM-DD → DDMMAAAA
+  // Converte YYYY-MM-DD -> DDMMAAAA
   const senhaData    = nascimento
     ? (() => { const [y,m,d] = nascimento.split('-'); return d+m+y; })()
     : '';
@@ -1681,7 +1681,7 @@ function showChecklist(patientId, userId, nome) {
       : isNext
         ? 'border-color:#C9A882;color:#C9A882;background:rgba(201,168,130,0.12);'
         : 'border-color:var(--detail);color:var(--subtitle);';
-    const circleContent = s.filled ? '✓' : s.n;
+    const circleContent = s.filled ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : s.n;
     const nextBadge = isNext
       ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;background:#C9A882;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;">Comece aqui</span>`
       : '';
@@ -1713,7 +1713,7 @@ function showChecklist(patientId, userId, nome) {
     : `Próximos passos para ${nome.split(' ')[0]}`;
   const subtitle = allDone
     ? 'Todas as seções estão preenchidas. Siga para check-ins e acompanhamento.'
-    : 'Siga os passos abaixo na ordem sugerida. As seções marcadas com ✓ já foram preenchidas.';
+    : 'Siga os passos abaixo na ordem sugerida. As seções marcadas com <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> já foram preenchidas.';
 
   // Dica de atalho com PDFs (economiza tempo de digitação)
   const dicaPdf = allDone ? '' : `
@@ -1906,7 +1906,7 @@ function renderNotificacoesPainel() {
   if (notifCache.length === 0) {
     lista.innerHTML = `
       <div style="padding:48px 20px;text-align:center;">
-        <div style="font-size:2rem;margin-bottom:12px;">✓</div>
+        <div style="font-size:2rem;margin-bottom:12px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></div>
         <p style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:300;color:var(--text);margin-bottom:6px;">Tudo em dia</p>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--text-light);">Nenhuma notificação pendente.</p>
       </div>`;
@@ -1915,11 +1915,11 @@ function renderNotificacoesPainel() {
 
   const ICONE = {
     sem_checkin:      '⏱',
-    sono_baixo:       '😴',
-    fome_alta:        '🍽',
-    consulta_proxima: '📅',
-    sobrecarga:       '⚠️',
-    intestino:        '🌿',
+    sono_baixo:       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    fome_alta:        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/></svg>',
+    consulta_proxima: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    sobrecarga:       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    intestino:        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M6 3 21 3v15a3 3 0 0 1-3 3 3 3 0 0 1-3-3v-1c0-1.66 1.34-3 3-3"/><path d="M3 6c0 8.94 5.06 14 14 14"/></svg>',
     positivo:         '✨',
   };
   const COR = {

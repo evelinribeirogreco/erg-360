@@ -82,15 +82,15 @@ function gerarContextoDia(paciente) {
   // Frases por dia — curtas e encorajadoras
   // null = sem frase extra (dias sem contexto específico)
   const FRASES = {
-    0: fem ? 'Cuide-se — o descanso é parte do processo.'          // Dom ♀
-           : 'Cuide-se — o descanso também é evolução.',           // Dom ♂/neutro
-    1: fem ? 'Nova semana, nova chance de cuidar de você.'         // Seg ♀
-           : 'Nova semana. Vamos com tudo.',                       // Seg ♂/neutro
+    0: fem ? 'Cuide-se — o descanso é parte do processo.'          // Dom <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg>
+           : 'Cuide-se — o descanso também é evolução.',           // Dom <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="10" cy="14" r="5"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="14 4 20 4 20 10"/></svg>/neutro
+    1: fem ? 'Nova semana, nova chance de cuidar de você.'         // Seg <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg>
+           : 'Nova semana. Vamos com tudo.',                       // Seg <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="10" cy="14" r="5"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="14 4 20 4 20 10"/></svg>/neutro
     2: null,                                                        // Ter
     3: 'Metade da semana — continue com o plano.',                 // Qua (neutro)
     4: null,                                                        // Qui
-    5: fem ? 'Mais uma semana dedicada. Orgulhe-se.'               // Sex ♀
-           : 'Mais uma semana concluída. Continue o ritmo.',       // Sex ♂/neutro
+    5: fem ? 'Mais uma semana dedicada. Orgulhe-se.'               // Sex <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg>
+           : 'Mais uma semana concluída. Continue o ritmo.',       // Sex <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="10" cy="14" r="5"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="14 4 20 4 20 10"/></svg>/neutro
     6: null,                                                        // Sáb
   };
 
@@ -115,7 +115,7 @@ function gerarContextoDia(paciente) {
 
 /**
  * Retorna apenas o primeiro nome de uma string de nome completo.
- * "Maria Oliveira Santos" → "Maria"
+ * "Maria Oliveira Santos" -> "Maria"
  */
 function primeiroNome(nomeCompleto) {
   if (!nomeCompleto) return 'você';
@@ -461,7 +461,7 @@ async function renderPlano(p) {
             </div>`).join('')}
         </div>
         <a href="checkin.html" style="display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--subtitle);text-decoration:none;border-bottom:1px solid var(--detail);padding-bottom:2px;">
-          Fazer check-in diário →
+          Fazer check-in diário <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
       </div>`;
     return;
@@ -926,7 +926,7 @@ function renderHoje(checkinHoje, checkins7, faseAtiva, streak) {
         </div>
         <a href="checkin-resumo.html" style="font-family:'DM Sans',sans-serif;font-size:0.63rem;
           letter-spacing:0.14em;text-transform:uppercase;color:var(--subtitle);text-decoration:none;
-          white-space:nowrap;flex-shrink:0;">Ver resumo →</a>
+          white-space:nowrap;flex-shrink:0;">Ver resumo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
       </div>
       <div style="border:1px solid var(--detail);overflow:hidden;">
         <a href="diario.html" style="display:flex;align-items:center;justify-content:space-between;
@@ -1062,7 +1062,7 @@ function renderFaseAtual(fase) {
       </div>
       <a href="fases.html" style="font-family:'DM Sans',sans-serif;font-size:0.62rem;letter-spacing:0.14em;
         text-transform:uppercase;color:var(--subtitle);text-decoration:none;white-space:nowrap;flex-shrink:0;">
-        Ver fases →
+        Ver fases <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
     </div>
     ${progressoHtml}`;
@@ -1153,9 +1153,9 @@ function gerarStreakBanner(streak, fezHoje) {
   if (streak < 3) return null; // só mostra a partir de 3 dias
   const msgs = {
     3:  { icon: '🌱', texto: '<strong>3 dias seguidos!</strong> Você está criando um hábito.' },
-    5:  { icon: '🔥', texto: '<strong>5 dias consecutivos!</strong> Consistência é o caminho.' },
-    7:  { icon: '⭐', texto: '<strong>Semana completa!</strong> Você fez check-in todos os dias.' },
-    10: { icon: '💪', texto: '<strong>10 dias!</strong> Sua dedicação está gerando resultados.' },
+    5:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>', texto: '<strong>5 dias consecutivos!</strong> Consistência é o caminho.' },
+    7:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', texto: '<strong>Semana completa!</strong> Você fez check-in todos os dias.' },
+    10: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M4 12h6l2-3 2 3h6"/><path d="M14 9V5a2 2 0 1 0-4 0v4"/><path d="M5 19l3-7"/><path d="M19 19l-3-7"/></svg>', texto: '<strong>10 dias!</strong> Sua dedicação está gerando resultados.' },
     14: { icon: '🏆', texto: '<strong>2 semanas seguidas!</strong> Você é extraordinária.' },
     21: { icon: '✨', texto: '<strong>21 dias!</strong> Hábito formado — parabéns.' },
     30: { icon: '🌟', texto: '<strong>30 dias consecutivos!</strong> Comprometimento de alto nível.' },

@@ -153,7 +153,7 @@ function showRecoveryModal(draft) {
 // 5 — STEPPER VISUAL CLICÁVEL
 // ============================================================
 // IMPORTANTE: STEP_META segue a ORDEM do stepSequence em anamnese.js:
-// step-0, 1, 2, 3, 4, 5, step-rastreamento, 6, 7, 8 → 10 etapas total
+// step-0, 1, 2, 3, 4, 5, step-rastreamento, 6, 7, 8 -> 10 etapas total
 // Campo `step` é o argumento que `goToStep()` aceita (número 0-8 ou 'rast')
 const STEP_META = [
   { num: 1,  step: 0,      name: 'Identificação',         time: '2 min', why: 'Dados de contato e motivo da consulta.' },
@@ -178,7 +178,7 @@ function renderStepper(currentIdx, totalSteps) {
                 : i < currentIdx ? 'visited'
                 : 'pending';
     return `<button type="button" class="stepper-dot ${state}" data-step="${m.step}" title="${escapeHTML(m.name)}">
-      <span class="stepper-num">${state === 'done' ? '✓' : m.num}</span>
+      <span class="stepper-num">${state === 'done' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' : m.num}</span>
       <span class="stepper-label">${escapeHTML(m.name)}</span>
     </button>`;
   }).join('<span class="stepper-line"></span>');
@@ -350,7 +350,7 @@ async function copyFromLast() {
       }
     }
   });
-  showToast(`✓ ${copiados} campos copiados da última anamnese`, 'ok');
+  showToast(`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> ${copiados} campos copiados da última anamnese`, 'ok');
   saveDraft();
 }
 
@@ -372,31 +372,31 @@ function detectRiskAlerts() {
   const fuma   = $('fumante')?.value === 'true';
 
   if (pats.includes('diabetes_tipo2') || pats.includes('pre_diabetes')) {
-    alerts.push({ tipo: 'warn', msg: 'Diabetes/pré-diabetes detectada → considere protocolo de baixo IG, distribuição equilibrada de carbos.' });
+    alerts.push({ tipo: 'warn', msg: 'Diabetes/pré-diabetes detectada <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> considere protocolo de baixo IG, distribuição equilibrada de carbos.' });
   }
   if (pats.includes('hipertensao')) {
-    alerts.push({ tipo: 'warn', msg: 'Hipertensão → recomende sódio < 2g/dia (5g de sal). DASH adaptado.' });
+    alerts.push({ tipo: 'warn', msg: 'Hipertensão <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> recomende sódio < 2g/dia (5g de sal). DASH adaptado.' });
   }
   if (pats.includes('dislipidemia') || pats.includes('colesterol_alto')) {
-    alerts.push({ tipo: 'warn', msg: 'Dislipidemia → priorize gorduras insaturadas, fibra solúvel, ômega-3.' });
+    alerts.push({ tipo: 'warn', msg: 'Dislipidemia <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> priorize gorduras insaturadas, fibra solúvel, ômega-3.' });
   }
   if (pats.includes('hipotireoidismo') && fuma) {
-    alerts.push({ tipo: 'crit', msg: '⚠ Hipotireoidismo + tabagismo: alto risco metabólico — orientar parar fumar é prioritário.' });
+    alerts.push({ tipo: 'crit', msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Hipotireoidismo + tabagismo: alto risco metabólico — orientar parar fumar é prioritário.' });
   }
   if (sonoH > 0 && sonoH < 5.5) {
     alerts.push({ tipo: 'warn', msg: `Sono curto (${sonoH}h) eleva grelina, reduz leptina. Risco aumentado de ganho de peso.` });
   }
   if (sonoQ === 'ruim' || sonoQ === 'pessimo') {
-    alerts.push({ tipo: 'info', msg: 'Sono ruim → aumenta cortisol e fome. Considere higiene do sono.' });
+    alerts.push({ tipo: 'info', msg: 'Sono ruim <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> aumenta cortisol e fome. Considere higiene do sono.' });
   }
   if (af === 'sedentario' && pats.length > 0) {
-    alerts.push({ tipo: 'warn', msg: 'Sedentarismo + comorbidades → atividade física estruturada é parte essencial do tratamento.' });
+    alerts.push({ tipo: 'warn', msg: 'Sedentarismo + comorbidades <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> atividade física estruturada é parte essencial do tratamento.' });
   }
   if (aguaL > 0 && aguaL < 1.5) {
-    alerts.push({ tipo: 'info', msg: `Hidratação insuficiente (${aguaL}L) → meta inicial 30 ml/kg de peso.` });
+    alerts.push({ tipo: 'info', msg: `Hidratação insuficiente (${aguaL}L) <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> meta inicial 30 ml/kg de peso.` });
   }
   if (ingAlc && pats.includes('esteatose_hepatica')) {
-    alerts.push({ tipo: 'crit', msg: '⚠ Esteatose hepática + álcool → suspender ou reduzir drasticamente.' });
+    alerts.push({ tipo: 'crit', msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Esteatose hepática + álcool <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> suspender ou reduzir drasticamente.' });
   }
   return alerts;
 }
@@ -407,7 +407,7 @@ function renderRiskAlerts() {
   if (!alerts.length) { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = `
-    <p class="risk-alerts-title">⚡ Detecção em tempo real (${alerts.length})</p>
+    <p class="risk-alerts-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Detecção em tempo real (${alerts.length})</p>
     <div class="risk-alerts-list">
       ${alerts.map(a => `<div class="risk-alert risk-${a.tipo}">${escapeHTML(a.msg)}</div>`).join('')}
     </div>
@@ -443,9 +443,9 @@ function calculateRiskScore() {
   return Math.min(100, score);
 }
 function getRiskLevel(score) {
-  if (score < 20) return { lvl: 'baixo',    cor: '#3D6B4F', label: '🟢 Risco baixo' };
-  if (score < 45) return { lvl: 'moderado', cor: '#B8860B', label: '🟡 Risco moderado' };
-  return                 { lvl: 'alto',     cor: '#7A2E2E', label: '🔴 Risco alto' };
+  if (score < 20) return { lvl: 'baixo',    cor: '#3D6B4F', label: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#3D6B4F"/></svg> Risco baixo' };
+  if (score < 45) return { lvl: 'moderado', cor: '#B8860B', label: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#B8860B"/></svg> Risco moderado' };
+  return                 { lvl: 'alto',     cor: '#7A2E2E', label: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#A04030"/></svg> Risco alto' };
 }
 function renderRiskScore() {
   const el = $('anamnese-risk-score');
@@ -560,13 +560,13 @@ function renderDiff(prev) {
   if (!diffs.length) { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = `
-    <p class="diff-title">📊 O que mudou desde a última consulta</p>
+    <p class="diff-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> O que mudou desde a última consulta</p>
     <div class="diff-list">
       ${diffs.map(d => `
         <div class="diff-row">
           <span class="diff-label">${escapeHTML(d.label)}</span>
           <span class="diff-old">${escapeHTML(d.old || '—')}</span>
-          <span class="diff-arrow">→</span>
+          <span class="diff-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
           <span class="diff-new"><strong>${escapeHTML(d.new || '—')}</strong></span>
         </div>`).join('')}
     </div>
@@ -601,7 +601,7 @@ function renderCheckinSuggestions() {
   if (!sugs.length) { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = `
-    <p class="ckq-title">💡 Sugestões de pergunta personalizada para o check-in diário</p>
+    <p class="ckq-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Sugestões de pergunta personalizada para o check-in diário</p>
     <p class="ckq-sub">Adicione no próximo check-in dela perguntas relevantes ao perfil clínico.</p>
     <div class="ckq-list">
       ${sugs.map(s => `<label class="ckq-item">
@@ -666,7 +666,7 @@ function startVoiceInput(target, btn) {
 function togglePresentationMode() {
   document.body.classList.toggle('presentation-mode');
   const on = document.body.classList.contains('presentation-mode');
-  showToast(on ? '👁 Modo apresentação ativado' : 'Modo apresentação desativado');
+  showToast(on ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Modo apresentação ativado' : 'Modo apresentação desativado');
   try { localStorage.setItem('erg_anamnese_presentation', on ? '1' : '0'); } catch (_) {}
 }
 
@@ -702,7 +702,7 @@ function applyTemplate(slug) {
 function toggleTurboMode() {
   document.body.classList.toggle('turbo-mode');
   const on = document.body.classList.contains('turbo-mode');
-  showToast(on ? '⚡ Modo turbo ativado — Enter avança' : 'Modo turbo desativado');
+  showToast(on ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Modo turbo ativado — Enter avança' : 'Modo turbo desativado');
 }
 
 // ============================================================
@@ -743,7 +743,7 @@ function promoteExtractorBanner() {
   // Adiciona ícone e texto reforçado se ainda não tiver
   const titleEl = wrap.querySelector('.section-title');
   if (titleEl && !titleEl.querySelector('.extractor-pulse')) {
-    titleEl.insertAdjacentHTML('afterbegin', '<span class="extractor-pulse">💡</span> ');
+    titleEl.insertAdjacentHTML('afterbegin', '<span class="extractor-pulse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg></span> ');
   }
 }
 
@@ -815,7 +815,7 @@ function onStepChange(idx, totalSteps, stepId) {
     renderRiskScore();
     renderCheckinSuggestions();
   }, 30);
-  // Se chegou ao último step → mostra revisão
+  // Se chegou ao último step -> mostra revisão
   if (idx === totalSteps - 1) {
     setTimeout(() => { showReviewPanel(); }, 100);
     loadDiffVsLast().then(prev => prev && renderDiff(prev));

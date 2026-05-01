@@ -235,7 +235,7 @@ function _aplicarModoVisualizacaoAnamnese() {
     'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
   const editUrl = window.location.href.replace('view=', 'edit=');
   banner.innerHTML = `
-    <span>👁 Modo visualização — campos travados</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Modo visualização — campos travados</span>
     <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
       text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
       Editar este registro
@@ -476,7 +476,7 @@ function injetarModulos() {
     initModuleConditionals(slug);
   }
 
-  showToast(`✓ ${modulosAtivos.length} módulo${modulosAtivos.length > 1 ? 's' : ''} personalizado${modulosAtivos.length > 1 ? 's' : ''} adicionado${modulosAtivos.length > 1 ? 's' : ''}.`);
+  showToast(`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> ${modulosAtivos.length} módulo${modulosAtivos.length > 1 ? 's' : ''} personalizado${modulosAtivos.length > 1 ? 's' : ''} adicionado${modulosAtivos.length > 1 ? 's' : ''}.`);
 }
 
 // ── GERAÇÃO E EXIBIÇÃO DE INSIGHTS ───────────────────────
@@ -539,7 +539,7 @@ async function saveAnamnese() {
 
   // ── 1. Salva anamnese base (com proteção total contra perda) ──
   const payload = buildPayload(patientId, userId);
-  // Modo edição: ?edit=ID setou anamnese-id → UPDATE; senão, nova entrada (INSERT)
+  // Modo edição: ?edit=ID setou anamnese-id -> UPDATE; senão, nova entrada (INSERT)
   const editandoId = document.getElementById('anamnese-id')?.value;
   const result = editandoId
     ? await safeUpdate(supabase, 'anamnese', payload, { id: editandoId },
@@ -929,17 +929,17 @@ const ALERTAS_PATOLOGIA = {
 
 // ── Alertas por resultado de exame ────────────────────────
 const ALERTAS_EXAMES = {
-  glicemia:    { alto: { limiar: 100, msg: 'Glicemia alterada → considerar curva glicêmica e insulina de jejum.', tipo: 'atencao' },
-                 muito_alto: { limiar: 126, msg: '⚠ Glicemia ≥126 mg/dL — critério diagnóstico para DM2. Encaminhar para avaliação médica.', tipo: 'critico' } },
-  hba1c:       { alto: { limiar: 5.7, msg: 'HbA1c elevada → pré-diabetes. Conduta nutricional imediata.', tipo: 'atencao' },
-                 muito_alto: { limiar: 6.5, msg: '⚠ HbA1c ≥6,5% — diagnóstico de DM2 confirmado. Plano com controle glicêmico rigoroso.', tipo: 'critico' } },
-  vitamina_d:  { baixo: { limiar: 30, msg: 'Vitamina D insuficiente → suplementação e exposição solar.', tipo: 'atencao' },
-                 muito_baixo: { limiar: 20, msg: '⚠ Vitamina D deficiente (<20) — dose terapêutica necessária (prescrição médica).', tipo: 'critico' } },
-  hdl:         { baixo: { limiar: 50, msg: 'HDL baixo → ômega-3, exercício físico e gorduras boas (azeite, abacate, nozes).', tipo: 'atencao' } },
-  tg:          { alto: { limiar: 150, msg: 'Triglicerídeos elevados → reduzir CHO simples, álcool e açúcar.', tipo: 'atencao' },
-                 muito_alto: { limiar: 500, msg: '⚠ Triglicerídeos ≥500 mg/dL — risco de pancreatite. Avaliar com médico.', tipo: 'critico' } },
-  tsh:         { alto: { limiar: 4.0, msg: 'TSH elevado → hipotireoidismo. Solicitar T4 Livre e acompanhar.', tipo: 'atencao' } },
-  vitamina_b12:{ baixo: { limiar: 200, msg: 'Vitamina B12 baixa → suplementação e investigar deficiência (veganismo, metformina, etc).', tipo: 'atencao' } },
+  glicemia:    { alto: { limiar: 100, msg: 'Glicemia alterada <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> considerar curva glicêmica e insulina de jejum.', tipo: 'atencao' },
+                 muito_alto: { limiar: 126, msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Glicemia ≥126 mg/dL — critério diagnóstico para DM2. Encaminhar para avaliação médica.', tipo: 'critico' } },
+  hba1c:       { alto: { limiar: 5.7, msg: 'HbA1c elevada <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> pré-diabetes. Conduta nutricional imediata.', tipo: 'atencao' },
+                 muito_alto: { limiar: 6.5, msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> HbA1c ≥6,5% — diagnóstico de DM2 confirmado. Plano com controle glicêmico rigoroso.', tipo: 'critico' } },
+  vitamina_d:  { baixo: { limiar: 30, msg: 'Vitamina D insuficiente <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> suplementação e exposição solar.', tipo: 'atencao' },
+                 muito_baixo: { limiar: 20, msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Vitamina D deficiente (<20) — dose terapêutica necessária (prescrição médica).', tipo: 'critico' } },
+  hdl:         { baixo: { limiar: 50, msg: 'HDL baixo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ômega-3, exercício físico e gorduras boas (azeite, abacate, nozes).', tipo: 'atencao' } },
+  tg:          { alto: { limiar: 150, msg: 'Triglicerídeos elevados <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> reduzir CHO simples, álcool e açúcar.', tipo: 'atencao' },
+                 muito_alto: { limiar: 500, msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Triglicerídeos ≥500 mg/dL — risco de pancreatite. Avaliar com médico.', tipo: 'critico' } },
+  tsh:         { alto: { limiar: 4.0, msg: 'TSH elevado <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> hipotireoidismo. Solicitar T4 Livre e acompanhar.', tipo: 'atencao' } },
+  vitamina_b12:{ baixo: { limiar: 200, msg: 'Vitamina B12 baixa <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> suplementação e investigar deficiência (veganismo, metformina, etc).', tipo: 'atencao' } },
 };
 
 // ── Função principal — dispara alertas ────────────────────
@@ -971,21 +971,21 @@ function triggerAlertasClinicos() {
   if (criticos.length) {
     html += `<div style="background:#f7edee;border-left:3px solid #7A2E2E;padding:14px 16px;">
       <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#7A2E2E;margin-bottom:8px;">Atenção clínica</p>
-      ${criticos.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#6B2020;margin-bottom:4px;line-height:1.5;">⚠ ${a.msg}</p>`).join('')}
+      ${criticos.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#6B2020;margin-bottom:4px;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${a.msg}</p>`).join('')}
     </div>`;
   }
 
   if (obrigat.length) {
     html += `<div style="background:#f7f0e0;border-left:3px solid #B8860B;padding:14px 16px;${criticos.length ? 'border-top:1px solid rgba(184,147,106,0.2);' : ''}">
       <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#7A5E00;margin-bottom:8px;">Exames recomendados</p>
-      ${obrigat.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#5C4A00;margin-bottom:4px;line-height:1.5;">→ ${a.msg}</p>`).join('')}
+      ${obrigat.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#5C4A00;margin-bottom:4px;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${a.msg}</p>`).join('')}
     </div>`;
   }
 
   if (condutas.length) {
     html += `<div style="background:#edf4f0;border-left:3px solid #3D6B4F;padding:14px 16px;border-top:1px solid rgba(184,147,106,0.2);">
       <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#2E5E3A;margin-bottom:8px;">Condutas sugeridas</p>
-      ${condutas.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#2E5E3A;margin-bottom:4px;line-height:1.5;">✓ ${a.msg}</p>`).join('')}
+      ${condutas.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#2E5E3A;margin-bottom:4px;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> ${a.msg}</p>`).join('')}
     </div>`;
   }
 
@@ -1027,11 +1027,11 @@ function gerarAlertasExames() {
     <div style="border:1px solid var(--detail);overflow:hidden;margin-bottom:20px;">
       ${criticos.length ? `<div style="background:#f7edee;border-left:3px solid #7A2E2E;padding:14px 16px;">
         <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#7A2E2E;margin-bottom:8px;">Resultados críticos</p>
-        ${criticos.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#6B2020;margin-bottom:4px;line-height:1.5;">⚠ ${a.msg}</p>`).join('')}
+        ${criticos.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#6B2020;margin-bottom:4px;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${a.msg}</p>`).join('')}
       </div>` : ''}
       ${atencao.length ? `<div style="background:#f7f0e0;border-left:3px solid #B8860B;padding:14px 16px;${criticos.length ? 'border-top:1px solid rgba(184,147,106,0.2);' : ''}">
         <p style="font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#7A5E00;margin-bottom:8px;">Resultados a observar</p>
-        ${atencao.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#5C4A00;margin-bottom:4px;line-height:1.5;">→ ${a.msg}</p>`).join('')}
+        ${atencao.map(a => `<p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#5C4A00;margin-bottom:4px;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ${a.msg}</p>`).join('')}
       </div>` : ''}
     </div>`;
   container.style.display = '';
@@ -1056,7 +1056,7 @@ function validarMeta() {
       if (semanas > 0) {
         const kgSemana = diff / semanas;
         if (kgSemana > 1) {
-          alertEl.textContent = `⚠ Meta de ${diff.toFixed(1)} kg em ${meses} meses = ${kgSemana.toFixed(1)} kg/semana. Acima de 1 kg/semana é contraindicado — risco de perda de massa muscular. Recomendado: 0,5 kg/semana.`;
+          alertEl.textContent = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Meta de ${diff.toFixed(1)} kg em ${meses} meses = ${kgSemana.toFixed(1)} kg/semana. Acima de 1 kg/semana é contraindicado — risco de perda de massa muscular. Recomendado: 0,5 kg/semana.`;
           alertEl.style.display = '';
           return;
         }

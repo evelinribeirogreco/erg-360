@@ -50,7 +50,7 @@ export function calcularScoreSemanal(checkins) {
   };
 }
 
-// Regressão linear → tendência
+// Regressão linear -> tendência
 function calcularTendencia(scores) {
   const n = scores.length;
   if (n < 3) return { tipo: 'insuficiente', slope: 0, delta: 0 };
@@ -67,7 +67,7 @@ function calcularTendencia(scores) {
 
   if (slope > 1.2)  return { tipo: 'melhorando',  slope, delta, label: `↑ +${delta} pts`,  cor: '#2E8B6A' };
   if (slope < -1.2) return { tipo: 'piorando',    slope, delta, label: `↓ ${delta} pts`,   cor: '#B33030' };
-  return              { tipo: 'estagnado',  slope, delta: 0, label: '→ Estável',         cor: '#B07A1A' };
+  return              { tipo: 'estagnado',  slope, delta: 0, label: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Estável',         cor: '#B07A1A' };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ export function detectarPadroes(checkins) {
       id: 'dieta_restritiva',
       titulo: 'Dieta restritiva demais',
       descricao: `Fome elevada em ${Math.round(pctFomeAlta*100)}% dos dias com episódios de descontrole em ${Math.round(pctDescontrole*100)}%. Deficit calórico provável excessivo.`,
-      icone: '🍽️',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/></svg>',
       sugestoes: ['aumentar_calorias', 'redistribuir_proteina'],
     });
   }
@@ -121,7 +121,7 @@ export function detectarPadroes(checkins) {
       id: 'sono_critico',
       titulo: 'Privação de sono impactando resultados',
       descricao: `Qualidade de sono ruim em ${Math.round(pctSonoRuim*100)}% dos dias. Score médio baixo (${Math.round(scoreMed || 0)}). Sono ruim eleva cortisol, prejudica composição corporal e aderência.`,
-      icone: '🌙',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
       sugestoes: ['higiene_sono', 'ajustar_horarios'],
     });
   }
@@ -131,7 +131,7 @@ export function detectarPadroes(checkins) {
       id: 'compulsao_recorrente',
       titulo: 'Compulsão alimentar recorrente',
       descricao: `Episódios de descontrole em ${Math.round(pctDescontrole*100)}% dos dias. Padrão de compulsão interfere na adesão e nos resultados.`,
-      icone: '⚠️',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
       sugestoes: ['fracionar_refeicoes', 'aumentar_calorias', 'ajustar_horarios'],
     });
   }
@@ -141,7 +141,7 @@ export function detectarPadroes(checkins) {
       id: 'overtraining',
       titulo: 'Sobretreinamento / recuperação insuficiente',
       descricao: `Treino em ${Math.round(pctTreino*100)}% dos dias com fadiga elevada em ${Math.round(pctFadigaAlta*100)}%. Energia cronicamente baixa (${energiaMed?.toFixed(1)}/5). Risco de catabolismo e lesões.`,
-      icone: '💪',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M4 12h6l2-3 2 3h6"/><path d="M14 9V5a2 2 0 1 0-4 0v4"/><path d="M5 19l3-7"/><path d="M19 19l-3-7"/></svg>',
       sugestoes: ['aumentar_calorias', 'redistribuir_proteina', 'dia_descanso'],
     });
   }
@@ -152,7 +152,7 @@ export function detectarPadroes(checkins) {
       id: 'fome_moderada',
       titulo: 'Fome elevada frequente',
       descricao: `Fome ≥4 em ${Math.round(pctFomeAlta*100)}% dos dias. Considere aumentar fibras, proteína e volume alimentar.`,
-      icone: '🟡',
+      icone: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#B8860B"/></svg>',
       sugestoes: ['redistribuir_proteina', 'aumentar_fibras'],
     });
   }
@@ -162,7 +162,7 @@ export function detectarPadroes(checkins) {
       id: 'sono_insuficiente',
       titulo: 'Sono insuficiente ou irregular',
       descricao: `Sono curto (<6.5h) em ${Math.round(pctSonoCurto*100)}% dos dias. Pode prejudicar progressão dos resultados.`,
-      icone: '🟡',
+      icone: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#B8860B"/></svg>',
       sugestoes: ['higiene_sono'],
     });
   }
@@ -172,7 +172,7 @@ export function detectarPadroes(checkins) {
       id: 'intestino_alterado',
       titulo: 'Trânsito intestinal alterado',
       descricao: `Consistência das fezes fora do ideal em ${Math.round(pctBristolAlter*100)}% dos dias. Pode indicar ingestão baixa de fibras ou água.`,
-      icone: '🟡',
+      icone: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#B8860B"/></svg>',
       sugestoes: ['aumentar_fibras', 'aumentar_agua'],
     });
   }
@@ -182,7 +182,7 @@ export function detectarPadroes(checkins) {
       id: 'hidratacao_baixa',
       titulo: 'Hidratação cronicamente baixa',
       descricao: `Ingestão hídrica < 1,5L em ${Math.round(pctHidBaixa*100)}% dos dias (média: ${aguaMed?.toFixed(1) || '—'}L/dia).`,
-      icone: '💧',
+      icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
       sugestoes: ['aumentar_agua'],
     });
   }
@@ -192,7 +192,7 @@ export function detectarPadroes(checkins) {
       id: 'energia_baixa',
       titulo: 'Energia cronicamente baixa',
       descricao: `Energia ≤2 em ${Math.round(pctEnergBaixa*100)}% dos dias sem volume alto de treino. Pode indicar déficit calórico ou micronutrientes.`,
-      icone: '🟡',
+      icone: '<svg width="10" height="10" viewBox="0 0 24 24" style="vertical-align:-1px;"><circle cx="12" cy="12" r="6" fill="#B8860B"/></svg>',
       sugestoes: ['aumentar_calorias', 'redistribuir_proteina'],
     });
   }
@@ -206,19 +206,19 @@ export function detectarPadroes(checkins) {
     positivos.push({ titulo: 'Tendência de melhora', descricao: `Score subindo +${Math.abs(tendencia.delta)} pts no período.`, icone: '📈' });
   }
   if (pctFomeAlta < 0.2 && fomeMed !== null) {
-    positivos.push({ titulo: 'Fome bem controlada', descricao: `Fome elevada em apenas ${Math.round(pctFomeAlta*100)}% dos dias. Excelente sinal de adequação calórica.`, icone: '✅' });
+    positivos.push({ titulo: 'Fome bem controlada', descricao: `Fome elevada em apenas ${Math.round(pctFomeAlta*100)}% dos dias. Excelente sinal de adequação calórica.`, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>' });
   }
   if (sonoHoras !== null && sonoHoras >= 7) {
-    positivos.push({ titulo: 'Sono adequado', descricao: `Média de ${sonoHoras.toFixed(1)}h de sono — dentro do recomendado.`, icone: '✅' });
+    positivos.push({ titulo: 'Sono adequado', descricao: `Média de ${sonoHoras.toFixed(1)}h de sono — dentro do recomendado.`, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>' });
   }
   if (pctHidBaixa < 0.2 && aguaMed !== null) {
-    positivos.push({ titulo: 'Boa hidratação', descricao: `Média de ${aguaMed.toFixed(1)}L/dia — hidratação dentro do alvo.`, icone: '💧' });
+    positivos.push({ titulo: 'Boa hidratação', descricao: `Média de ${aguaMed.toFixed(1)}L/dia — hidratação dentro do alvo.`, icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>' });
   }
   if (pctTreino > 0.6 && pctFadigaAlta < 0.3) {
     positivos.push({ titulo: 'Rotina de exercícios consistente', descricao: `Treinou em ${Math.round(pctTreino*100)}% dos dias com boa recuperação.`, icone: '🏋️' });
   }
   if (pctDescontrole < 0.1) {
-    positivos.push({ titulo: 'Alta adesão alimentar', descricao: 'Poucos episódios de descontrole. Adesão ao plano excelente.', icone: '⭐' });
+    positivos.push({ titulo: 'Alta adesão alimentar', descricao: 'Poucos episódios de descontrole. Adesão ao plano excelente.', icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' });
   }
 
   return { problemas, alertas, positivos };
@@ -234,7 +234,7 @@ const SUGESTOES_DB = {
     impacto: 'Reduz fome, melhora energia e previne compulsão noturna',
     urgencia: 'alta',
     cor: '#C0632A',
-    icone: '📊',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
   },
   redistribuir_proteina: {
     titulo: 'Aumentar proteína nas refeições principais',
@@ -258,7 +258,7 @@ const SUGESTOES_DB = {
     impacto: 'Melhora funcionamento intestinal, energia e concentração',
     urgencia: 'media',
     cor: '#3A5E8B',
-    icone: '💧',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
   },
   higiene_sono: {
     titulo: 'Protocolo de higiene do sono',
@@ -266,7 +266,7 @@ const SUGESTOES_DB = {
     impacto: 'Melhora cortisol, ghrelina, leptina — impacto direto em fome e composição corporal',
     urgencia: 'alta',
     cor: '#4A6B9B',
-    icone: '🌙',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   },
   ajustar_horarios: {
     titulo: 'Reorganizar horários das refeições',
@@ -274,7 +274,7 @@ const SUGESTOES_DB = {
     impacto: 'Estabiliza glicemia, reduz fome noturna e compulsão',
     urgencia: 'alta',
     cor: '#B07A1A',
-    icone: '⏰',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   },
   fracionar_refeicoes: {
     titulo: 'Aumentar fracionamento alimentar',
@@ -298,7 +298,7 @@ const SUGESTOES_DB = {
     impacto: 'Retoma perda de peso sem sacrificar composição corporal',
     urgencia: 'baixa',
     cor: '#2E8B6A',
-    icone: '⚖️',
+    icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
   },
 };
 
@@ -514,7 +514,7 @@ export function renderScoreMetabolico(checkins, containerId) {
         </div>
       </div>
       <p class="smet-sug-acao"><strong>Ação:</strong> ${s.acao}</p>
-      <p class="smet-sug-impacto">💡 ${s.impacto}</p>
+      <p class="smet-sug-impacto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> ${s.impacto}</p>
     </div>
   `).join('') : `<p style="color:var(--sub);font-family:'DM Sans',sans-serif;font-size:0.78rem;">Nenhuma sugestão de ajuste neste momento. Plano adequado para o perfil atual.</p>`;
 
@@ -554,7 +554,7 @@ export function renderScoreMetabolico(checkins, containerId) {
           ${[...padroes.problemas, ...padroes.alertas].slice(0, 3).map(p => `
             <div class="smet-padrao-mini-item">
               ${p.icone} <span>${p.titulo}</span>
-            </div>`).join('') || '<p class="smet-ok-label">✅ Sem problemas identificados</p>'}
+            </div>`).join('') || '<p class="smet-ok-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg> Sem problemas identificados</p>'}
         </div>
       </div>
 
@@ -622,7 +622,7 @@ export function renderScoreMetabolico(checkins, containerId) {
               <input type="number" id="sim-semanas" value="12" min="4" max="52">
             </div>
             <button class="smet-sim-btn" onclick="executarSimulacao()">
-              Simular resultado →
+              Simular resultado <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
           <div class="smet-sim-result" id="smet-sim-result" style="display:none;">
@@ -666,7 +666,7 @@ function gerarInterpretacao(padroes, scoreData) {
   }
 
   if (tendencia.tipo === 'piorando') {
-    parts.push(`⚠ Tendência de piora — revisar plano com urgência.`);
+    parts.push(`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Tendência de piora — revisar plano com urgência.`);
   }
 
   return parts.join(' ') || null;

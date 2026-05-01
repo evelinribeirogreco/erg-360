@@ -3,10 +3,10 @@
 // ============================================================
 console.info('%c[safe-save] camada de proteção ATIVA', 'color:#2D6A56;font-weight:600');
 // Garante que NENHUM salvamento se perca em caso de:
-//   1. Coluna ausente no banco (migration não rodada)        → remove campo + retenta
-//   2. Erro de rede ou timeout                               → enfileira e retenta
-//   3. RLS / política / unique constraint                    → mostra erro claro
-//   4. Tela fechada/refresh antes de confirmar               → backup local persiste
+//   1. Coluna ausente no banco (migration não rodada)        -> remove campo + retenta
+//   2. Erro de rede ou timeout                               -> enfileira e retenta
+//   3. RLS / política / unique constraint                    -> mostra erro claro
+//   4. Tela fechada/refresh antes de confirmar               -> backup local persiste
 //
 // Uso:
 //   import { safeInsert, safeUpdate, safeUpsert, retryPending,
@@ -286,14 +286,14 @@ function _renderBanner() {
 
   const labels = pendentes.map(p => p.label).join(', ');
   banner.innerHTML = `
-    <span>⚠️ <strong>${pendentes.length} dado(s) pendente(s)</strong>: ${labels}</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> <strong>${pendentes.length} dado(s) pendente(s)</strong>: ${labels}</span>
     <button id="erg-pending-retry" style="background:#fff;color:#7A2E2E;border:none;
       padding:6px 14px;cursor:pointer;font-weight:600;border-radius:3px;font-size:0.78rem;">
       Tentar agora
     </button>
     <button id="erg-pending-dismiss" style="background:transparent;border:1px solid #fff;color:#fff;
       padding:6px 10px;cursor:pointer;font-size:0.78rem;border-radius:3px;">
-      ✕
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>`;
 
   document.getElementById('erg-pending-retry').onclick = async () => {

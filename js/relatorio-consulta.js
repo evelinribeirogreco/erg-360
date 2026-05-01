@@ -360,9 +360,9 @@ export function renderRelatorio(dados, analise, containerId) {
         </div>
         <h1 class="rel-nome">${patient.nome || '—'}</h1>
         <div class="rel-capa-sub">
-          <span>📅 Consulta: ${consultaLabel}</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Consulta: ${consultaLabel}</span>
           <span>🕐 Gerado em: ${agora}</span>
-          ${adesao.diasRegistrados > 0 ? `<span>📊 ${adesao.diasRegistrados} check-ins nos últimos 30 dias</span>` : ''}
+          ${adesao.diasRegistrados > 0 ? `<span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> ${adesao.diasRegistrados} check-ins nos últimos 30 dias</span>` : ''}
         </div>
       </div>
 
@@ -423,8 +423,8 @@ function renderIdentidadeClinica(anamnese, modulos, patient) {
   if (anamnese?.ldl)        exames.push(`LDL: <strong>${anamnese.ldl} mg/dL</strong>`);
 
   const moduloLabels = {
-    atleta: '🏃 Atleta', emagrecimento: '⚖️ Emagrecimento',
-    diabetes_ri: '🩸 Diabetes/RI', hipertensao: '❤️ Hipertensão',
+    atleta: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="13" cy="4" r="2"/><path d="M4 22 7 17 11 13 14 16 17 14 19 11"/><path d="M11 13 9 6 13 5 17 8"/></svg> Atleta', emagrecimento: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Emagrecimento',
+    diabetes_ri: '🩸 Diabetes/RI', hipertensao: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Hipertensão',
     sop: '🌸 SOP', dislipidemia: '🫀 Dislipidemia',
     gestante: '🤰 Gestante', idoso: '🧓 Idoso',
   };
@@ -676,7 +676,7 @@ function renderScoreRelatorio(scoreData) {
       <div>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text);font-weight:600;margin:0 0 4px;">${scoreLabel}</p>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.72rem;margin:0;" class="rel-tend-${tendencia.tipo}">
-          ${tendencia.label || '→ Estável'}
+          ${tendencia.label || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Estável'}
         </p>
         <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--sub);margin:6px 0 0;">Últimos 30 dias</p>
       </div>
@@ -714,15 +714,15 @@ function renderAlertasRelatorio(padroes) {
   if (!problemas.length && !alertas.length && !positivos.length) {
     return `<div class="rel-card">
       <p class="rel-card-title">Alertas Clínicos</p>
-      <p class="rel-empty">Nenhum padrão crítico detectado ✓</p>
+      <p class="rel-empty">Nenhum padrão crítico detectado <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg></p>
     </div>`;
   }
 
   const renderItem = (item, tipo) => {
     const config = {
-      problema: { cor: '#B33030', bg: 'rgba(179,48,48,0.06)', icone: '⚠️' },
-      alerta:   { cor: '#B8860B', bg: 'rgba(184,134,11,0.06)', icone: '⚡' },
-      positivo: { cor: '#2E8B6A', bg: 'rgba(46,139,106,0.06)', icone: '✓' },
+      problema: { cor: '#B33030', bg: 'rgba(179,48,48,0.06)', icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+      alerta:   { cor: '#B8860B', bg: 'rgba(184,134,11,0.06)', icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' },
+      positivo: { cor: '#2E8B6A', bg: 'rgba(46,139,106,0.06)', icone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' },
     }[tipo];
     return `<div style="padding:10px 14px;background:${config.bg};border-left:3px solid ${config.cor};margin-bottom:8px;">
       <p style="font-family:'DM Sans',sans-serif;font-size:0.76rem;font-weight:600;color:${config.cor};margin:0 0 3px;">${config.icone} ${item.titulo}</p>
@@ -776,13 +776,13 @@ function renderSugestoesRelatorio(sugestoes) {
         return `<div class="rel-sug-card">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:1.2rem;">${s.icone || '💡'}</span>
+              <span style="font-size:1.2rem;">${s.icone || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>'}</span>
               <p style="font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;color:var(--text);margin:0;">${s.titulo}</p>
             </div>
             <span style="flex-shrink:0;padding:2px 8px;background:${cfg.bg};color:${cfg.cor};border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.58rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">${cfg.label}</span>
           </div>
           <p style="font-family:'DM Sans',sans-serif;font-size:0.73rem;color:var(--text);margin:0 0 6px;line-height:1.5;">${s.acao}</p>
-          ${s.impacto ? `<p style="font-family:'DM Sans',sans-serif;font-size:0.68rem;color:var(--sub);margin:0;line-height:1.5;">💡 ${s.impacto}</p>` : ''}
+          ${s.impacto ? `<p style="font-family:'DM Sans',sans-serif;font-size:0.68rem;color:var(--sub);margin:0;line-height:1.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> ${s.impacto}</p>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -796,7 +796,7 @@ function renderAgenda(agenda) {
   const priorConfig = {
     alta:  { cor: '#B33030', marker: '●' },
     media: { cor: '#B8860B', marker: '○' },
-    ok:    { cor: '#2E8B6A', marker: '✓' },
+    ok:    { cor: '#2E8B6A', marker: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>' },
     info:  { cor: '#9A7D5E', marker: '·' },
   };
 

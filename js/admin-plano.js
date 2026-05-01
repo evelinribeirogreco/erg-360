@@ -74,8 +74,8 @@ function loadFromUrl() {
 }
 
 // Carrega plano específico
-//   readonly=false → modo edição (UPDATE no save)
-//   readonly=true  → modo visualização (sem botão salvar)
+//   readonly=false -> modo edição (UPDATE no save)
+//   readonly=true  -> modo visualização (sem botão salvar)
 async function loadPlanoById(planoId, readonly = false) {
   const { data } = await supabase
     .from('planos_alimentares')
@@ -119,7 +119,7 @@ function _aplicarModoVisualizacaoPlano() {
     'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
   const editUrl = window.location.href.replace('view=', 'edit=');
   banner.innerHTML = `
-    <span>👁 Modo visualização — campos travados</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Modo visualização — campos travados</span>
     <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
       text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
       Editar este registro
@@ -363,7 +363,7 @@ function aplicarGebCalc() {
     const tmb = box.dataset.tmb, af = box.dataset.af, obj = parseFloat(box.dataset.obj || 0);
     const get = Math.round(parseFloat(tmb) * parseFloat(af));
     const ajuste = obj === 0 ? '' : ` · ${obj > 0 ? '+' : ''}${obj} kcal`;
-    vetTxt.value = `TMB ${tmb} kcal · AF ${af} · GET ${get} kcal${ajuste} → VET ${box.dataset.vet} kcal/dia`;
+    vetTxt.value = `TMB ${tmb} kcal · AF ${af} · GET ${get} kcal${ajuste} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> VET ${box.dataset.vet} kcal/dia`;
     vetTxt.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
@@ -1144,7 +1144,7 @@ function gerarListaComprasAuto() {
   }
 
   // 8. Toast de sucesso
-  alert(`✓ Lista de compras gerada!\n\n${itensAdicionados} itens distribuídos em ${categoriasAdicionadas} categorias para ${dias} dias.\n\nRevise os valores e ajuste se necessário.`);
+  alert(`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg> Lista de compras gerada!\n\n${itensAdicionados} itens distribuídos em ${categoriasAdicionadas} categorias para ${dias} dias.\n\nRevise os valores e ajuste se necessário.`);
 }
 window.gerarListaComprasAuto = gerarListaComprasAuto;
 

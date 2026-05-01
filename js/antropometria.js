@@ -103,8 +103,8 @@ function loadPatientFromUrl() {
 }
 
 // Carrega avaliação específica
-//   readonly=false → modo edição (UPDATE no save)
-//   readonly=true  → modo visualização (sem botão salvar)
+//   readonly=false -> modo edição (UPDATE no save)
+//   readonly=true  -> modo visualização (sem botão salvar)
 async function loadAntropometriaById(patientId, antroId, readonly = false) {
   const { data, error } = await supabase
     .from('antropometria')
@@ -171,7 +171,7 @@ function _aplicarModoVisualizacaoAntro(antroId) {
     'justify-content:space-between;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);';
   const editUrl = window.location.href.replace('view=', 'edit=');
   banner.innerHTML = `
-    <span>👁 Modo visualização — campos travados</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Modo visualização — campos travados</span>
     <a href="${editUrl}" style="background:#fff;color:#2D6A56;padding:6px 14px;
       text-decoration:none;font-weight:600;border-radius:3px;font-size:0.72rem;">
       Editar este registro
@@ -205,7 +205,7 @@ function calcularIMC() {
   if (!altura || altura === 0) return;
 
   // ── Normaliza altura — se digitou em cm (>3), converte pra m ──
-  // Ex: 165 → 1.65 ; 1.65 mantém ; 2.5 mantém (limite máx humano)
+  // Ex: 165 -> 1.65 ; 1.65 mantém ; 2.5 mantém (limite máx humano)
   if (altura > 3) {
     altura = altura / 100;
     const altEl = document.getElementById('altura');
@@ -324,7 +324,7 @@ function calcularIndices() {
 // • Pollock 3: idem (mulheres: tríc+supra+coxa / homens: peit+abd+coxa)
 // • Guedes 1985: mulheres (subesc+supra+coxa) / homens (tríc+subesc+supra)
 // • Faulkner 1968: ΣST4 (tríc+subesc+supra+abd) — independente de sexo
-// • Conversão densidade→%G: Siri (1961) — % G = (4.95/D − 4.50) × 100
+// • Conversão densidade->%G: Siri (1961) — % G = (4.95/D − 4.50) × 100
 // ════════════════════════════════════════════════════════════
 let _ultimaDensidade = null; // exposto pra atualizarResultado()
 
@@ -455,7 +455,7 @@ function calcularAreasBraco() {
   }
 
   const PI = Math.PI;
-  const dtCm   = dt / 10; // mm → cm
+  const dtCm   = dt / 10; // mm <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> cm
   const amb    = Math.pow(cb - (PI * dtCm), 2) / (4 * PI);
   const ambCorr = pacienteSexo === 'masculino' ? amb - 10 : amb - 6.5;
   const ab     = (cb * cb) / (4 * PI);
@@ -677,7 +677,7 @@ function aplicarDeltas() {
       dEl.style.cssText = 'display:inline-block;margin-left:6px;font-size:0.55em;font-weight:500;letter-spacing:0;';
       el.appendChild(dEl);
     }
-    const sinal = d > 0 ? '▲' : '▼';
+    const sinal = d > 0 ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>';
     const cor   = d > 0 ? '#a04030' : '#3d6b4f';
     dEl.style.color = cor;
     dEl.textContent = ` ${sinal} ${Math.abs(d).toFixed(decimais)}`;
