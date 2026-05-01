@@ -42,10 +42,22 @@ export async function coletarDadosDossie(patientId) {
     supabase.from('anamnese').select('*').eq('patient_id', patientId)
       .order('data_avaliacao', { ascending: false }).limit(1),
 
-    supabase.from('antropometria')
-      .select('data_avaliacao,peso,imc,pct_gordura,massa_magra,circunferencia_cintura')
-      .eq('patient_id', patientId)
-      .order('data_avaliacao', { ascending: false }).limit(8),
+    // Defensivo: tenta com colunas estendidas, faz fallback se faltar coluna
+    (async () => {
+      const completos = 'data_avaliacao,peso,altura,imc,pct_gordura,massa_magra,massa_gorda,' +
+        'circ_cintura,circ_quadril,rcq,peso_meta,peso_ideal,' +
+        'densidade_corporal,area_muscular_braco,area_gordura_braco,' +
+        'massa_muscular_esqueletica,frame_size_index';
+      const basicos = 'data_avaliacao,peso,altura,imc,pct_gordura,massa_magra,circ_cintura';
+      let r = await supabase.from('antropometria').select(completos)
+        .eq('patient_id', patientId).order('data_avaliacao', { ascending: false }).limit(8);
+      if (r.error) {
+        console.warn('[dossie] fallback antro basicos:', r.error.message);
+        r = await supabase.from('antropometria').select(basicos)
+          .eq('patient_id', patientId).order('data_avaliacao', { ascending: false }).limit(8);
+      }
+      return r;
+    })(),
 
     supabase.from('patients')
       .select('nome,email,data_nascimento,sexo,data_proxima_consulta,plano_url')
@@ -156,7 +168,7 @@ function calcularEvolucaoPeso(antro) {
   return {
     atual: atual.peso, imc: atual.imc,
     gordura: atual.pct_gordura, massaMagra: atual.massa_magra,
-    circAbdominal: atual.circunferencia_cintura,
+    circAbdominal: atual.circ_cintura ?? atual.circunferencia_cintura,
     deltaTotal, semanasDecorridas, kgPorSemana,
     historico: cronologico.map(a => ({
       data: a.data_avaliacao, peso: a.peso,
@@ -737,8 +749,9 @@ function gerarAchadosDiagnostico(anamnese, comp, antro, insights, padroes) {
     achados.push({ nivel: 'atencao', texto: `IMC ${Number(antroAtual.imc).toFixed(1)} — obesidade grau ${antroAtual.imc >= 40 ? 'III' : antroAtual.imc >= 35 ? 'II' : 'I'}`, origem: 'Antropometria' });
   if (antroAtual?.pct_gordura > 30)
     achados.push({ nivel: 'atencao', texto: `Gordura corporal elevada (${antroAtual.pct_gordura.toFixed(1)}%)`, origem: 'Antropometria' });
-  if (antroAtual?.circunferencia_cintura > 88)
-    achados.push({ nivel: 'atencao', texto: `Circunferência de cintura aumentada (${antroAtual.circunferencia_cintura} cm) — risco metabólico`, origem: 'Antropometria' });
+  const _circCint = antroAtual?.circ_cintura ?? antroAtual?.circunferencia_cintura;
+  if (_circCint > 88)
+    achados.push({ nivel: 'atencao', texto: `Circunferência de cintura aumentada (${_circCint} cm) — risco metabólico`, origem: 'Antropometria' });
 
   // De check-ins
   if (comp?.fome > 2.5)
