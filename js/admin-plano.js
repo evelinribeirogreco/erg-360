@@ -69,9 +69,9 @@ function loadFromUrl() {
   // Modo visualização: ?view=<plano_id> readonly
   const viewId  = params.get('view');
 
-  document.getElementById('patient-id').value        = patientId || '';
-  document.getElementById('user-id').value           = patientUserId || '';
-  document.getElementById('patient-nome-sidebar').textContent = nome.split(' ')[0] || '—';
+  document.getElementById('f-patient-id').value        = patientId || '';
+  document.getElementById('f-user-id').value           = patientUserId || '';
+  document.getElementById('sb-paciente-nome').textContent = nome.split(' ')[0] || '—';
 
   // Sempre cria NOVO plano por padrão.
   if (editId)        loadPlanoById(editId, false);
@@ -122,7 +122,7 @@ async function loadPlanoById(planoId, readonly = false) {
   }
   // No modo view, limpa o plano-id pra não virar UPDATE caso clique em algo
   if (readonly) {
-    const planoIdEl = document.getElementById('plano-id');
+    const planoIdEl = document.getElementById('f-plano-id');
     if (planoIdEl) planoIdEl.value = '';
     _aplicarModoVisualizacaoPlano();
   }
@@ -1487,8 +1487,8 @@ function initForm() {
 
     if (!patientId || !patientUserId) {
       // Tenta recuperar dos campos ocultos como fallback
-      patientId     = document.getElementById('patient-id')?.value  || patientId;
-      patientUserId = document.getElementById('user-id')?.value     || patientUserId;
+      patientId     = document.getElementById('f-patient-id')?.value  || patientId;
+      patientUserId = document.getElementById('f-user-id')?.value     || patientUserId;
     }
 
     if (!patientId || !patientUserId) {
@@ -1505,7 +1505,7 @@ function initForm() {
     const pdfUrl = await uploadPdf();
     if (pdfUrl) payload.plano_pdf_url = pdfUrl;
 
-    const planoId = document.getElementById('plano-id').value;
+    const planoId = document.getElementById('f-plano-id').value;
     const result = planoId
       ? await safeUpdate(supabase, 'planos_alimentares', payload, { id: planoId },
                           { label: 'Plano alimentar' })
@@ -1529,7 +1529,7 @@ function initForm() {
 function fillForm(data) {
   const set = (id, val) => { const el = document.getElementById(id); if (el && val !== null && val !== undefined) el.value = val; };
 
-  set('plano-id',    data.id);
+  set('f-plano-id',  data.id);
   set('f-descricao', data.descricao);
   set('f-subtitulo', data.sub_titulo);
   set('f-data',      data.data_elaboracao);
