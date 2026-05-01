@@ -1547,18 +1547,13 @@ export function renderDossie(dados, analise, containerId) {
   setTimeout(() => renderGraficosTimeline(analise.timeline), 80);
 }
 
-// ── Gráficos (stub para remoção de funções obsoletas abaixo) ──
-function renderColGargalos(g){return'';}
-function renderColRiscos(r){return'';}
-function renderColOportunidades(o){return'';}
-function renderPerfilMetabolicoDetalhado(){return'';}
-function renderPerfilComportamentalDetalhado(){return'';}
-function renderTimeline(){return'';}
-function renderEstrategia(){return'';}
-function renderRecomendacoes(){return'';}
-function renderMiniPerfil(){return'';}
-
-// (funções stub — conteúdo migrado para as 15 seções premiums)
+// ── Stubs apenas para funções sem implementação real abaixo ──
+// (renderColRiscos, renderColOportunidades, renderPerfilMetabolicoDetalhado,
+//  renderPerfilComportamentalDetalhado, renderTimeline, renderEstrategia,
+//  renderRecomendacoes — todos têm implementação real mais abaixo, então
+//  aqui só mantemos as duas funções que ainda estão pendentes)
+function renderColGargalos(g) { return ''; }
+function renderMiniPerfil()   { return ''; }
 
 // ── Coluna de Riscos ──────────────────────────────────────
 function renderColRiscos(riscos) {
