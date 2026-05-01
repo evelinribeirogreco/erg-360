@@ -733,9 +733,257 @@ function atualizarResultado() {
     if (cl) cl.textContent = txt('imc-class');
   }
 
+  // Renderiza tabela 3 colunas (Atual / Recomendação / Situação)
+  renderTabelaResultado({ peso, imc, pctGord, pctMagra, mg, mm, rcq, rcest });
+
   // Aplica deltas vs avaliação anterior (se houver)
   aplicarDeltas();
 }
+
+// ════════════════════════════════════════════════════════════
+// TABELA DE RESULTADO 3 COLUNAS (Atual / Recomendação / Situação)
+// Estilo Dietbox — fácil leitura clínica
+// ════════════════════════════════════════════════════════════
+function renderTabelaResultado(d) {
+  const body = document.getElementById('resultado-tabela-body');
+  if (!body) return;
+
+  // Helpers para situação
+  const sitOk    = (txt = 'Adequado') => ({ texto: txt, classe: 'sit-ok' });
+  const sitBaixo = (txt = 'Abaixo')   => ({ texto: txt, classe: 'sit-atencao' });
+  const sitAlto  = (txt = 'Acima')    => ({ texto: txt, classe: 'sit-atencao' });
+  const sitRuim  = (txt = 'Ruim')     => ({ texto: txt, classe: 'sit-ruim' });
+  const sitNeutro= ()                 => ({ texto: '—',   classe: 'sit-neutro' });
+
+  // ── Calcula peso ideal e ranges para massa magra/gorda ──
+  const altura = parseFloat(document.getElementById('altura')?.value) || 0;
+  const altM = altura > 3 ? altura / 100 : altura;
+  const pesoMin = altM ? round1(18.5 * altM * altM) : null;
+  const pesoMax = altM ? round1(24.9 * altM * altM) : null;
+
+  // ── % gordura referência ACSM por sexo+idade ──
+  const refPctG = (() => {
+    const f = pacienteSexo === 'masculino';
+    const i = pacienteIdade;
+    if (f) {
+      if (i < 30) return { min: 11, max: 19 };
+      if (i < 40) return { min: 12, max: 21 };
+      if (i < 50) return { min: 14, max: 23 };
+      if (i < 60) return { min: 15, max: 25 };
+      return        { min: 16, max: 26 };
+    }
+    if (i < 30) return { min: 16, max: 25 };
+    if (i < 40) return { min: 17, max: 26 };
+    if (i < 50) return { min: 18, max: 29 };
+    if (i < 60) return { min: 19, max: 30 };
+    return        { min: 20, max: 31 };
+  })();
+
+  // ── Constrói as linhas da tabela ──
+  const linhas = [];
+
+  // Peso
+  if (d.peso) {
+    let sit = sitOk('Adequado');
+    if (pesoMin && pesoMax) {
+      if (d.peso < pesoMin)      sit = sitBaixo('Abaixo do ideal');
+      else if (d.peso > pesoMax) sit = sitAlto('Acima do ideal');
+    }
+    linhas.push({
+      metrica: 'Peso atual',
+      atual:   `${d.peso} kg`,
+      rec:     pesoMin && pesoMax ? `${pesoMin} – ${pesoMax} kg` : '—',
+      sit,
+    });
+  }
+
+  // IMC (já tem o texto da classificação no DOM)
+  if (d.imc) {
+    const imcClass = document.getElementById('imc-class')?.textContent || '';
+    let sit = sitOk('Adequado');
+    if (d.imc < 18.5)      sit = sitBaixo('Abaixo do peso');
+    else if (d.imc < 25)   sit = sitOk('Peso adequado');
+    else if (d.imc < 30)   sit = sitAlto('Sobrepeso');
+    else if (d.imc < 35)   sit = sitRuim('Obesidade I');
+    else if (d.imc < 40)   sit = sitRuim('Obesidade II');
+    else                   sit = sitRuim('Obesidade III');
+    linhas.push({
+      metrica: 'IMC',
+      atual:   d.imc.toFixed(2),
+      rec:     '18,50 – 24,99',
+      sit,
+    });
+  }
+
+  // % Gordura
+  if (d.pctGord) {
+    const cls = classificarPctGordura(d.pctGord, pacienteSexo, pacienteIdade);
+    let sit = sitOk(cls?.texto || '—');
+    if (cls) {
+      if (cls.classe === 'class-elevado')      sit = sitRuim(cls.texto);
+      else if (cls.classe === 'class-atencao') sit = sitAlto(cls.texto);
+      else if (cls.classe === 'class-baixo')   sit = sitOk(cls.texto);
+      else                                      sit = sitOk(cls.texto);
+    }
+    linhas.push({
+      metrica: '% Gordura',
+      atual:   `${d.pctGord.toFixed(1)}%`,
+      rec:     `${refPctG.min}% – ${refPctG.max}%`,
+      sit,
+    });
+  }
+
+  // % Massa Magra (complemento)
+  if (d.pctMagra) {
+    const recMin = 100 - refPctG.max;
+    const recMax = 100 - refPctG.min;
+    let sit = sitOk('Adequada');
+    if (d.pctMagra < recMin)      sit = sitRuim('Baixa');
+    else if (d.pctMagra > recMax) sit = sitOk('Alta');
+    linhas.push({
+      metrica: '% Massa Magra',
+      atual:   `${d.pctMagra.toFixed(1)}%`,
+      rec:     `${recMin.toFixed(1)}% – ${recMax.toFixed(1)}%`,
+      sit,
+    });
+  }
+
+  // Massa Gorda (kg)
+  if (d.mg && d.peso) {
+    const mgMin = round1(d.peso * refPctG.min / 100);
+    const mgMax = round1(d.peso * refPctG.max / 100);
+    let sit = sitOk('Adequada');
+    if (d.mg < mgMin)      sit = sitOk('Baixa');
+    else if (d.mg > mgMax) sit = sitRuim('Acima');
+    linhas.push({
+      metrica: 'Massa Gorda',
+      atual:   `${d.mg.toFixed(2)} kg`,
+      rec:     `${mgMin} – ${mgMax} kg`,
+      sit,
+    });
+  }
+
+  // Massa Magra (kg)
+  if (d.mm && d.peso) {
+    const mmMin = round1(d.peso * (100 - refPctG.max) / 100);
+    const mmMax = round1(d.peso * (100 - refPctG.min) / 100);
+    let sit = sitOk('Adequada');
+    if (d.mm < mmMin)      sit = sitRuim('Abaixo');
+    else if (d.mm > mmMax) sit = sitOk('Acima');
+    linhas.push({
+      metrica: 'Massa Magra',
+      atual:   `${d.mm.toFixed(2)} kg`,
+      rec:     `${mmMin} – ${mmMax} kg`,
+      sit,
+    });
+  }
+
+  // Densidade Corporal (informativo, sem range)
+  if (_ultimaDensidade) {
+    linhas.push({
+      metrica: 'Densidade Corporal',
+      atual:   _ultimaDensidade.toFixed(4) + ' g/cm³',
+      rec:     '—',
+      sit:     sitNeutro(),
+    });
+  }
+
+  // Soma de dobras (informativo)
+  const somaDobras = parseFloat(document.getElementById('soma_dobras')?.value);
+  if (somaDobras) {
+    linhas.push({
+      metrica: 'Soma de dobras',
+      atual:   somaDobras.toFixed(1) + ' mm',
+      rec:     '—',
+      sit:     sitNeutro(),
+    });
+  }
+
+  // RCQ (cintura/quadril) — OMS
+  if (d.rcq) {
+    const limiteRisco = pacienteSexo === 'masculino' ? 0.90 : 0.85;
+    let sit;
+    if (d.rcq < limiteRisco - 0.05)      sit = sitOk('Risco baixo');
+    else if (d.rcq < limiteRisco)        sit = sitOk('Adequado');
+    else if (d.rcq < limiteRisco + 0.05) sit = sitAlto('Risco moderado');
+    else                                  sit = sitRuim('Risco muito alto');
+    linhas.push({
+      metrica: 'Razão cintura/quadril',
+      atual:   d.rcq.toFixed(2),
+      rec:     `Abaixo de ${limiteRisco.toFixed(2)}`,
+      sit,
+    });
+  }
+
+  // C/Estatura
+  if (d.rcest) {
+    let sit;
+    if (d.rcest < 0.5)       sit = sitOk('Adequado');
+    else if (d.rcest < 0.6)  sit = sitAlto('Aumentado');
+    else                     sit = sitRuim('Muito alto');
+    linhas.push({
+      metrica: 'Cintura / Estatura',
+      atual:   d.rcest.toFixed(3),
+      rec:     'Abaixo de 0,500',
+      sit,
+    });
+  }
+
+  // AMB e AGB — extrai do DOM
+  const ambTxt = document.getElementById('rf-amb')?.textContent;
+  const ambVal = ambTxt && ambTxt !== '—' ? parseFloat(ambTxt) : null;
+  if (ambVal) {
+    linhas.push({
+      metrica: 'AMB corrigida (braço)',
+      atual:   `${ambVal} cm²`,
+      rec:     '—',
+      sit:     sitNeutro(),
+    });
+  }
+  const agbTxt = document.getElementById('rf-agb')?.textContent;
+  const agbVal = agbTxt && agbTxt !== '—' ? parseFloat(agbTxt) : null;
+  if (agbVal) {
+    linhas.push({
+      metrica: 'AGB (braço)',
+      atual:   `${agbVal} cm²`,
+      rec:     '—',
+      sit:     sitNeutro(),
+    });
+  }
+
+  // Compleição
+  const compTxt = document.getElementById('rf-compleicao')?.textContent;
+  if (compTxt && compTxt !== '—') {
+    linhas.push({
+      metrica: 'Compleição corporal',
+      atual:   compTxt,
+      rec:     'Pequena / Média / Grande',
+      sit:     sitNeutro(),
+    });
+  }
+
+  // MM Esquelética
+  const mmEsqTxt = document.getElementById('rf-mm-esq')?.textContent;
+  if (mmEsqTxt && mmEsqTxt !== '—') {
+    linhas.push({
+      metrica: 'MM Esquelética (Lee)',
+      atual:   mmEsqTxt,
+      rec:     '—',
+      sit:     sitNeutro(),
+    });
+  }
+
+  // Renderiza
+  body.innerHTML = linhas.map(l => `
+    <tr>
+      <td class="rt-col-metrica">${l.metrica}</td>
+      <td class="rt-col-atual">${l.atual}</td>
+      <td class="rt-col-rec">${l.rec}</td>
+      <td class="rt-col-sit"><span class="rt-badge ${l.sit.classe}">${l.sit.texto}</span></td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="rt-empty">Preencha as medidas para gerar a tabela.</td></tr>`;
+}
+const round1 = (v) => Math.round(v * 10) / 10;
 
 function showMetodo(tipo) {
   document.getElementById('secao-bio').style.display    = tipo === 'bio'    ? '' : 'none';

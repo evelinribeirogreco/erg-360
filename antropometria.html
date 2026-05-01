@@ -17,6 +17,71 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="css/doc-extractor.css">
   <link rel="stylesheet" href="css/theme-nutri.css">
+  <style>
+    /* Tabela de resultado 3 colunas (Atual / Recomendação / Situação) */
+    .resultado-tabela-wrap { width: 100%; overflow-x: auto; }
+    .resultado-tabela {
+      width: 100%; border-collapse: collapse;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-primary, #fff);
+      border: 1px solid var(--detail, #C9A882);
+    }
+    .resultado-tabela thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.6rem; letter-spacing: 0.16em;
+      text-transform: uppercase; font-weight: 600;
+      color: var(--subtitle, #7A5E2E);
+      background: var(--bg-secondary, #f7f3ed);
+      border-bottom: 1px solid var(--detail, #C9A882);
+    }
+    .resultado-tabela tbody td {
+      padding: 13px 16px;
+      font-size: 0.85rem; color: var(--text);
+      border-bottom: 1px solid rgba(184,147,106,0.15);
+    }
+    .resultado-tabela tbody tr:last-child td { border-bottom: none; }
+    .resultado-tabela tbody tr:hover { background: rgba(184,147,106,0.04); }
+    .rt-col-metrica { font-weight: 500; }
+    .rt-col-atual   { font-weight: 600; font-size: 0.92rem; }
+    .rt-col-rec     { color: var(--text-light); font-size: 0.8rem; }
+    .rt-col-sit     { width: 1%; white-space: nowrap; }
+    .rt-empty {
+      text-align: center; padding: 22px;
+      color: var(--text-light); font-style: italic; font-size: 0.78rem;
+    }
+    /* Badges de situação */
+    .rt-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      font-size: 0.7rem; font-weight: 500;
+      letter-spacing: 0.04em;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .rt-badge.sit-ok       { background: rgba(61,107,79,0.10);   color: #3D6B4F; border-color: rgba(61,107,79,0.35); }
+    .rt-badge.sit-atencao  { background: rgba(184,134,11,0.10);  color: #B8860B; border-color: rgba(184,134,11,0.35); }
+    .rt-badge.sit-ruim     { background: rgba(160,64,48,0.10);   color: #A04030; border-color: rgba(160,64,48,0.35); }
+    .rt-badge.sit-neutro   { background: rgba(122,94,46,0.06);   color: #7A5E2E; border-color: rgba(122,94,46,0.2);  font-style: italic; }
+
+    @media (max-width: 720px) {
+      .resultado-tabela thead { display: none; }
+      .resultado-tabela tbody td {
+        display: block; padding: 6px 14px;
+        border-bottom: none;
+      }
+      .resultado-tabela tbody tr {
+        display: block;
+        margin-bottom: 12px;
+        padding: 10px 4px;
+        border: 1px solid rgba(184,147,106,0.2);
+      }
+      .resultado-tabela .rt-col-metrica::before { content: ''; }
+      .resultado-tabela .rt-col-atual::before  { content: 'Atual: ';        color: var(--subtitle); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; margin-right: 4px; }
+      .resultado-tabela .rt-col-rec::before    { content: 'Recomendação: '; color: var(--subtitle); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; margin-right: 4px; }
+      .resultado-tabela .rt-col-sit::before    { content: 'Situação: ';     color: var(--subtitle); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; margin-right: 4px; }
+    }
+  </style>
 </head>
 <body id="admin-root">
 
@@ -371,64 +436,37 @@
             </div>
           </section>
 
-          <!-- ── Indicadores principais ── -->
+          <!-- ── Indicadores principais — tabela 4 colunas (Atual / Recomendação / Situação) ── -->
           <section class="section fade-up fade-up-delay-1">
             <h2 class="section-title">Indicadores Principais</h2>
-            <div class="resultado-composicao" id="resultado-final">
-              <div class="resultado-card">
-                <p class="resultado-card-label">Peso</p>
-                <p class="resultado-card-value" id="rf-peso">—</p>
-                <p class="resultado-card-class" id="rf-imc-class"></p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">IMC</p>
-                <p class="resultado-card-value" id="rf-imc">—</p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">% Gordura</p>
-                <p class="resultado-card-value" id="rf-gordura">—</p>
-                <p class="resultado-card-class" id="rf-gordura-class"></p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">Massa Magra</p>
-                <p class="resultado-card-value" id="rf-mm">—</p>
-                <p class="resultado-card-class" id="rf-magra-class"></p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">RCQ</p>
-                <p class="resultado-card-value" id="rf-rcq">—</p>
-                <p class="resultado-card-class" id="rf-rcq-class"></p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">C/Estatura</p>
-                <p class="resultado-card-value" id="rf-rcest">—</p>
-                <p class="resultado-card-class" id="rf-rcest-class"></p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">Densidade Corporal</p>
-                <p class="resultado-card-value" id="rf-densidade">—</p>
-                <p class="resultado-card-class" style="font-size:0.6rem;">g/cm³</p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">AMB corrigida</p>
-                <p class="resultado-card-value" id="rf-amb">—</p>
-                <p class="resultado-card-class" id="rf-amb-class">cm² · área muscular do braço</p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">AGB</p>
-                <p class="resultado-card-value" id="rf-agb">—</p>
-                <p class="resultado-card-class" style="font-size:0.6rem;">cm² · área de gordura do braço</p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">Compleição</p>
-                <p class="resultado-card-value" id="rf-compleicao">—</p>
-                <p class="resultado-card-class" id="rf-compleicao-class" style="font-size:0.6rem;">altura ÷ punho</p>
-              </div>
-              <div class="resultado-card">
-                <p class="resultado-card-label">MM Esquelética</p>
-                <p class="resultado-card-value" id="rf-mm-esq">—</p>
-                <p class="resultado-card-class" style="font-size:0.6rem;">kg · Lee 2000</p>
-              </div>
+            <div class="resultado-tabela-wrap" id="resultado-tabela-wrap">
+              <table class="resultado-tabela" id="resultado-tabela">
+                <thead>
+                  <tr>
+                    <th class="rt-col-metrica">Métrica</th>
+                    <th class="rt-col-atual">Atual</th>
+                    <th class="rt-col-rec">Recomendação</th>
+                    <th class="rt-col-sit">Situação</th>
+                  </tr>
+                </thead>
+                <tbody id="resultado-tabela-body">
+                  <!-- Linhas geradas por atualizarResultado() -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Hidden mantém os IDs antigos pra compatibilidade com fillForm/loadAntropometriaById -->
+            <div style="display:none;">
+              <span id="rf-peso"></span><span id="rf-imc"></span><span id="rf-imc-class"></span>
+              <span id="rf-gordura"></span><span id="rf-gordura-class"></span>
+              <span id="rf-mm"></span><span id="rf-magra-class"></span>
+              <span id="rf-rcq"></span><span id="rf-rcq-class"></span>
+              <span id="rf-rcest"></span><span id="rf-rcest-class"></span>
+              <span id="rf-densidade"></span>
+              <span id="rf-amb"></span><span id="rf-amb-class"></span>
+              <span id="rf-agb"></span>
+              <span id="rf-compleicao"></span><span id="rf-compleicao-class"></span>
+              <span id="rf-mm-esq"></span>
             </div>
           </section>
 
