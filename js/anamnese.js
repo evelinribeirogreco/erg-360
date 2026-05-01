@@ -338,7 +338,7 @@ function navigateToStepId(targetId) {
 
   // Hook anamnese-extras: stepper + tempo + risco em tempo real
   if (window._anamneseExtras) {
-    window._anamneseExtras.onStepChange(currentStepIdx, stepSequence.length);
+    window._anamneseExtras.onStepChange(currentStepIdx, stepSequence.length, stepSequence[currentStepIdx]);
   }
 }
 

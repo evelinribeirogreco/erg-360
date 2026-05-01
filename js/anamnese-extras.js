@@ -152,29 +152,32 @@ function showRecoveryModal(draft) {
 // ============================================================
 // 5 — STEPPER VISUAL CLICÁVEL
 // ============================================================
+// IMPORTANTE: STEP_META segue a ORDEM do stepSequence em anamnese.js:
+// step-0, 1, 2, 3, 4, 5, step-rastreamento, 6, 7, 8 → 10 etapas total
+// Campo `step` é o argumento que `goToStep()` aceita (número 0-8 ou 'rast')
 const STEP_META = [
-  { num: 1, name: 'Identificação',         time: '2 min', why: 'Dados de contato e motivo da consulta.' },
-  { num: 2, name: 'Hábitos de Vida',       time: '3 min', why: 'Restrições alimentares, álcool, fumo, hábitos de compra.' },
-  { num: 3, name: 'Sono e Estresse',       time: '2 min', why: 'Influenciam diretamente apetite, cortisol e composição corporal.' },
-  { num: 4, name: 'Atividade Física',      time: '2 min', why: 'Define gasto energético e estratégia nutricional.' },
-  { num: 5, name: 'Patologias e Medicamentos', time: '4 min', why: 'Dietoterapia e segurança clínica.' },
-  { num: 6, name: 'Avaliação Clínica',     time: '4 min', why: 'Sintomas digestivos, intestino, hidratação.' },
-  { num: 7, name: 'Hábitos Alimentares',   time: '5 min', why: 'Recordatório alimentar e preferências.' },
-  { num: 8, name: 'Metas e Comportamento', time: '3 min', why: 'Objetivos terapêuticos e barreiras.' },
-  { num: 9, name: 'Exames Laboratoriais',  time: '4 min', why: 'Exames recentes para análise bioquímica.' },
+  { num: 1,  step: 0,      name: 'Identificação',         time: '2 min', why: 'Dados de contato e motivo da consulta.' },
+  { num: 2,  step: 1,      name: 'Hábitos de Vida',       time: '3 min', why: 'Restrições alimentares, álcool, fumo, hábitos de compra.' },
+  { num: 3,  step: 2,      name: 'Sono e Estresse',       time: '2 min', why: 'Influenciam diretamente apetite, cortisol e composição corporal.' },
+  { num: 4,  step: 3,      name: 'Atividade Física',      time: '2 min', why: 'Define gasto energético e estratégia nutricional.' },
+  { num: 5,  step: 4,      name: 'Patologias e Medicamentos', time: '4 min', why: 'Dietoterapia e segurança clínica.' },
+  { num: 6,  step: 5,      name: 'Avaliação Clínica',     time: '4 min', why: 'Sintomas digestivos, intestino, hidratação.' },
+  { num: 7,  step: 'rast', name: 'Sintomas e Rastreamento', time: '5 min', why: 'Sintomas, teia de inter-relações e rastreamento metabólico (questionário 0–4).' },
+  { num: 8,  step: 6,      name: 'Hábitos Alimentares',   time: '5 min', why: 'Recordatório alimentar e preferências.' },
+  { num: 9,  step: 7,      name: 'Metas e Comportamento', time: '3 min', why: 'Objetivos terapêuticos e barreiras.' },
+  { num: 10, step: 8,      name: 'Exames Laboratoriais',  time: '4 min', why: 'Exames recentes para análise bioquímica.' },
 ];
 
 function renderStepper(currentIdx, totalSteps) {
   const el = $('anamnese-stepper');
   if (!el) return;
-  // Usa STEP_META só para steps base 0-8
   const completedSet = window._anamneseExtras?.completedSteps || new Set();
   const items = STEP_META.map((m, i) => {
     const state = i === currentIdx ? 'current'
                 : completedSet.has(i) ? 'done'
                 : i < currentIdx ? 'visited'
                 : 'pending';
-    return `<button type="button" class="stepper-dot ${state}" data-idx="${i}" title="${escapeHTML(m.name)}">
+    return `<button type="button" class="stepper-dot ${state}" data-step="${m.step}" title="${escapeHTML(m.name)}">
       <span class="stepper-num">${state === 'done' ? '✓' : m.num}</span>
       <span class="stepper-label">${escapeHTML(m.name)}</span>
     </button>`;
@@ -182,8 +185,10 @@ function renderStepper(currentIdx, totalSteps) {
   el.innerHTML = items;
   el.querySelectorAll('.stepper-dot').forEach(b => {
     b.addEventListener('click', () => {
-      const idx = +b.dataset.idx;
-      window.goToStep && window.goToStep(idx);
+      const raw = b.dataset.step;
+      // Se for numérico, converte; se for string ('rast'), passa como string
+      const step = /^\d+$/.test(raw) ? +raw : raw;
+      window.goToStep && window.goToStep(step);
     });
   });
 }
@@ -466,9 +471,10 @@ function showReviewPanel() {
   const el = $('anamnese-review');
   if (!el) return;
   el.style.display = 'block';
-  // Compila respostas por seção
+  // Compila respostas por seção (usa m.step para achar o div correto)
   const sections = STEP_META.map((m, i) => {
-    const stepEl = $(`step-${i}`);
+    const stepDivId = m.step === 'rast' ? 'step-rastreamento' : `step-${m.step}`;
+    const stepEl = $(stepDivId);
     if (!stepEl) return null;
     const items = [];
     stepEl.querySelectorAll('input, textarea, select').forEach(e => {
@@ -786,14 +792,23 @@ function showToast(msg, type = 'ok') {
 // ============================================================
 // HOOKS — chamados pela própria anamnese.js / DOM events
 // ============================================================
-function onStepChange(idx, totalSteps) {
+function onStepChange(idx, totalSteps, stepId) {
   window._anamneseExtras.currentStep = idx;
-  // Stepper só mostra os 9 base steps
-  const baseIdx = idx < 9 ? idx : 8; // se está em módulos dinâmicos, mantém último base
+  // Mapeia stepId atual para o índice de STEP_META (10 itens, com 'rast')
+  let baseIdx = -1;
+  if (stepId) {
+    baseIdx = STEP_META.findIndex(m => {
+      const id = m.step === 'rast' ? 'step-rastreamento' : `step-${m.step}`;
+      return id === stepId;
+    });
+  }
+  // Fallback: se não achou (módulo dinâmico ou stepId desconhecido), mantém Patologias (idx 4)
+  if (baseIdx === -1) baseIdx = (idx < 5) ? idx : 4;
+
   renderStepper(baseIdx, totalSteps);
   renderStepTimeEstimate(baseIdx);
   // Marca step anterior como completo
-  if (idx > 0) (window._anamneseExtras.completedSteps ||= new Set()).add(idx - 1);
+  if (baseIdx > 0) (window._anamneseExtras.completedSteps ||= new Set()).add(baseIdx - 1);
   // Atualiza alertas e score
   setTimeout(() => {
     renderRiskAlerts();
