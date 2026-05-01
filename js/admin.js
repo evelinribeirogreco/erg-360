@@ -796,7 +796,7 @@ const HISTORICO_CONFIG = {
   anamnese: {
     table: 'anamnese',
     dateField: 'data_avaliacao',
-    labelFields: ['descricao'],
+    labelFields: ['caso_clinico', 'motivo'],
     editPage: 'anamnese.html',
     titulo: 'Anamneses anteriores',
   },
@@ -839,8 +839,11 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
 
   if (error) {
     console.warn(`[historico ${tab}] erro com campos completos, fallback:`, error.message);
-    // Se a tabela não existir (ex: gastos_energeticos sem migration)
-    if (error.code === '42P01' || /does not exist/i.test(error.message || '')) {
+    // 42P01 = "relation does not exist" (tabela inexistente)
+    // 42703 = "column does not exist"  (coluna inexistente — recuperável)
+    const ehTabelaAusente = error.code === '42P01' ||
+      /relation .* does not exist/i.test(error.message || '');
+    if (ehTabelaAusente) {
       wrap.innerHTML = `
         <div style="padding:14px 16px;border:1px solid #B8860B;background:rgba(184,134,11,0.06);font-family:'DM Sans',sans-serif;font-size:0.75rem;color:#7A5E00;line-height:1.5;">
           ⚠️ Tabela <code>${cfg.table}</code> ainda não existe no banco.
@@ -848,7 +851,7 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
         </div>`;
       return;
     }
-    // Fallback: tenta só com id + data
+    // Coluna ausente ou outro erro: tenta só com id + dateField (sempre existem)
     ({ data, error } = await supabase
       .from(cfg.table)
       .select(`id, ${cfg.dateField}, created_at`)
@@ -875,9 +878,16 @@ async function carregarHistoricoTab(tab, patientId, userId, nome) {
 
   const nomeEnc = encodeURIComponent(nome || '');
   const fmtData = (s) => s ? new Date(s + (s.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  const truncar = (txt, n=80) => txt && txt.length > n ? txt.slice(0, n).trim() + '…' : txt;
   const labelOf = (row, idx) => {
     const partes = [];
-    if (row.descricao) partes.push(row.descricao);
+    if (tab === 'anamnese') {
+      // Anamnese não tem coluna 'descricao' — usa caso_clinico ou motivo
+      if (row.caso_clinico) partes.push(truncar(row.caso_clinico));
+      else if (row.motivo)  partes.push(truncar(row.motivo));
+    } else if (row.descricao) {
+      partes.push(row.descricao);
+    }
     if (tab === 'antro') {
       if (row.peso) partes.push(`${row.peso} kg`);
       if (row.imc)  partes.push(`IMC ${row.imc}`);
