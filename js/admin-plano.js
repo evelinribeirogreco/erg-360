@@ -83,13 +83,43 @@ function loadFromUrl() {
 //   readonly=false -> modo edição (UPDATE no save)
 //   readonly=true  -> modo visualização (sem botão salvar)
 async function loadPlanoById(planoId, readonly = false) {
-  const { data } = await supabase
+  console.info('[plano] carregando plano', planoId, 'readonly=', readonly);
+  const { data, error } = await supabase
     .from('planos_alimentares')
     .select('*')
     .eq('id', planoId)
     .single();
-  if (!data) return;
-  fillForm(data);
+  if (error) {
+    console.error('[plano] erro carregando plano:', error);
+    alert('Erro ao carregar plano: ' + error.message);
+    return;
+  }
+  if (!data) {
+    console.warn('[plano] nenhum plano encontrado com id', planoId);
+    alert('Plano não encontrado (ID: ' + planoId + ').');
+    return;
+  }
+  console.info('[plano] dados carregados — preenchendo form...', data.descricao || '(sem descricao)');
+
+  // Espera plano-refeicoes-pro estar disponível (caso ainda não tenha carregado o módulo)
+  if (Array.isArray(data.refeicoes) && data.refeicoes.length > 0 &&
+      data.refeicoes.some(r => Array.isArray(r.alimentos) && r.alimentos.length > 0) &&
+      !window._refeicoesPro) {
+    console.info('[plano] aguardando _refeicoesPro carregar...');
+    let tentativas = 0;
+    while (!window._refeicoesPro && tentativas < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      tentativas++;
+    }
+  }
+
+  try {
+    fillForm(data);
+  } catch (e) {
+    console.error('[plano] erro em fillForm:', e);
+    alert('Erro ao preencher formulário: ' + e.message);
+    return;
+  }
   // No modo view, limpa o plano-id pra não virar UPDATE caso clique em algo
   if (readonly) {
     const planoIdEl = document.getElementById('plano-id');
@@ -98,6 +128,9 @@ async function loadPlanoById(planoId, readonly = false) {
   }
   const titleEl = document.querySelector('.page-title, h1');
   if (titleEl) titleEl.textContent += readonly ? ' (visualização)' : ' (editando)';
+
+  // Re-renderiza sidebar de macros após preencher
+  setTimeout(() => window._planoSidebar?.atualizar(), 200);
 }
 
 function _aplicarModoVisualizacaoPlano() {
@@ -867,24 +900,37 @@ function addRefeicao(data = {}) {
   `;
   c.appendChild(div);
 
+  // SEMPRE guarda alimentos no div (mesmo sem _refeicoesPro), pra getRefeicaoData() funcionar no save
+  div._proAlimentos = Array.isArray(data.alimentos) ? [...data.alimentos] : [];
+
   // Renderiza tabela pro com alimentos[] (objetos com macros) ou itens[] (strings legacy)
   const proHost = div.querySelector('.pro-alim-mount-host');
-  if (window._refeicoesPro && proHost) {
-    // Se vier no formato novo (alimentos[]), usa direto
+  const renderProUI = () => {
+    if (!window._refeicoesPro || !proHost) return;
     if (Array.isArray(data.alimentos) && data.alimentos.length > 0) {
       window._refeicoesPro.renderTabelaAlimentos(div, data.alimentos);
-    }
-    // Se vier no formato antigo (itens[]), tenta migrar pra tela legacy + tabela pro vazia
-    else if (Array.isArray(data.itens) && data.itens.length > 0) {
+    } else if (Array.isArray(data.itens) && data.itens.length > 0) {
       const legacy = div.querySelector('.refeicao-items-legacy');
       if (legacy) legacy.style.display = '';
       data.itens.forEach(item => addItemRefeicao(refId, item));
       window._refeicoesPro.renderTabelaAlimentos(div, []);
-    }
-    // Refeição totalmente nova
-    else {
+    } else {
       window._refeicoesPro.renderTabelaAlimentos(div, []);
     }
+  };
+  if (window._refeicoesPro) {
+    renderProUI();
+  } else {
+    // Espera o módulo carregar (até 3s) e só então renderiza a tabela
+    let tentativas = 0;
+    const checkLoop = setInterval(() => {
+      if (window._refeicoesPro || tentativas > 30) {
+        clearInterval(checkLoop);
+        if (window._refeicoesPro) renderProUI();
+        else console.warn('[plano] _refeicoesPro não carregou em 3s — tabela pro indisponível pra refeição:', data.nome);
+      }
+      tentativas++;
+    }, 100);
   }
 }
 window.addRefeicao = addRefeicao;
