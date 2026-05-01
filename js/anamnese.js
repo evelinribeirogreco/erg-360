@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { safeInsert, safeUpdate, installOnlineHook, mountPendingBanner } from './safe-save.js';
+import { renderRastreamento, renderTeia, setRastreamento, setTeia } from './anamnese-rastreamento.js';
 import {
   MODULES,
   detectarModulos,
@@ -54,6 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSidebarMobile();
   initForm();
   updateProgress();
+  // Renderiza Rastreamento Metabólico + Teia de Inter-relações
+  renderRastreamento(document.getElementById('anamnese-rastreamento-mount'));
+  renderTeia(document.getElementById('anamnese-teia-mount'));
   // Backup global de saves + banner de pendências
   window._supabase = supabase;
   installOnlineHook(supabase);
@@ -697,6 +701,17 @@ function buildPayload(patientId, userId) {
     fome_emocional:   v('fome_emocional'),
     fome_noturna:     v('fome_noturna'),
     obs_gerais:       v('obs_gerais'),
+    // Rastreamento Metabólico (questionário 0-4) e Teia de Inter-relações
+    rastreamento_metabolico: window._rastreamentoState && Object.keys(window._rastreamentoState).length
+      ? window._rastreamentoState : null,
+    sintomas_selecionados:   window._teiaState?.sintomas?.length
+      ? window._teiaState.sintomas : null,
+    teia_lugares_afetados:   window._teiaState?.lugaresAfetados?.length
+      ? window._teiaState.lugaresAfetados : null,
+    teia_deficiencias:       window._teiaState?.deficiencias && Object.keys(window._teiaState.deficiencias).length
+      ? window._teiaState.deficiencias : null,
+    teia_excessos:           window._teiaState?.excessos && Object.keys(window._teiaState.excessos).length
+      ? window._teiaState.excessos : null,
   };
 }
 
@@ -728,6 +743,15 @@ function fillForm(data) {
       }
     }
   });
+
+  // Restaura Rastreamento Metabólico (questionário 0-4)
+  if (data.rastreamento_metabolico && typeof data.rastreamento_metabolico === 'object') {
+    setRastreamento(data.rastreamento_metabolico);
+  }
+  // Restaura Sintomas + Teia
+  if (data.sintomas_selecionados && Array.isArray(data.sintomas_selecionados)) {
+    setTeia({ sintomas: data.sintomas_selecionados });
+  }
 
   // Restaura patologias
   if (data.patologias && Array.isArray(data.patologias)) {
