@@ -280,6 +280,107 @@
   display: flex; align-items: center; justify-content: center;
 }
 
+/* Barra de ações (Salvar como modelo / Carregar refeição) */
+.pro-ref-acoes {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(184,147,106,0.25);
+}
+.pro-btn-ghost-sm {
+  padding: 7px 12px;
+  font-size: 0.65rem; letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--detail, #C9A882);
+  color: var(--text-light);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.pro-btn-ghost-sm:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(184,147,106,0.08);
+  border-color: var(--subtitle, #7A5E2E);
+}
+.pro-btn-ghost-sm:disabled {
+  opacity: 0.45; cursor: not-allowed;
+}
+
+/* Abas no modal carregar refeição */
+.pro-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--detail, #C9A882);
+  background: var(--bg-secondary, #f7f3ed);
+  overflow-x: auto;
+}
+.pro-tab {
+  padding: 12px 18px;
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem; letter-spacing: 0.1em;
+  text-transform: uppercase; font-weight: 500;
+  color: var(--text-light); cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.pro-tab:hover { color: var(--text); }
+.pro-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--text);
+  font-weight: 600;
+}
+
+/* Lista de templates pra carregar */
+.pro-load-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.pro-load-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--detail, #C9A882);
+  background: var(--bg-primary, #fff);
+  transition: background 0.1s;
+}
+.pro-load-item:hover { background: rgba(184,147,106,0.04); }
+.pro-load-info { flex: 1; min-width: 0; }
+.pro-load-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; font-weight: 400;
+  color: var(--text);
+}
+.pro-load-sub {
+  font-size: 0.7rem; color: var(--text-light);
+  margin-top: 2px;
+}
+.pro-load-desc {
+  font-size: 0.74rem; color: var(--text);
+  margin-top: 4px;
+  font-style: italic;
+}
+.pro-load-macros {
+  display: flex; gap: 12px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text);
+}
+.pro-load-macros strong { font-weight: 600; }
+.pro-btn-sm {
+  padding: 7px 14px;
+  font-size: 0.68rem;
+  flex-shrink: 0;
+}
+.pro-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+.pro-empty p {
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
 /* ════════════════════════════════════════════════════════════
    SIDEBAR DE MACROS (fixa no canto direito)
    ════════════════════════════════════════════════════════════ */

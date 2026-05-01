@@ -305,8 +305,27 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
 
   const renderRows = () => {
     const lista = blockEl._proAlimentos;
+    // Barra de ações sempre presente (Carregar / Salvar como modelo)
+    const acoesTopoHtml = `
+      <div class="pro-ref-acoes">
+        <button type="button" class="pro-btn pro-btn-ghost-sm pro-btn-carregar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Carregar refeição
+        </button>
+        <button type="button" class="pro-btn pro-btn-ghost-sm pro-btn-salvar-modelo" ${lista.length ? '' : 'disabled'}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar como modelo
+        </button>
+      </div>`;
+    const bindAcoesTopo = () => {
+      const carregarBtn = mount.querySelector('.pro-btn-carregar');
+      const salvarBtn   = mount.querySelector('.pro-btn-salvar-modelo');
+      carregarBtn?.addEventListener('click', () => abrirModalCarregar(blockEl, renderRows));
+      salvarBtn?.addEventListener('click',   () => abrirModalSalvarModelo(blockEl));
+    };
+
     if (!lista.length) {
-      mount.innerHTML = `
+      mount.innerHTML = acoesTopoHtml + `
         <div class="pro-alim-vazio">
           <p>Nenhum alimento adicionado.</p>
           <button type="button" class="pro-btn pro-btn-primary pro-btn-add">
@@ -315,6 +334,7 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
         </div>`;
       mount.querySelector('.pro-btn-add').addEventListener('click', () =>
         adicionarAlimento(blockEl, mount, renderRows));
+      bindAcoesTopo();
       atualizarMacrosRefeicao(blockEl);
       window._planoSidebar?.atualizar();
       return;
@@ -328,7 +348,7 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
       return acc;
     }, { ptn:0, cho:0, lip:0, kcal:0, qty_g:0 });
 
-    mount.innerHTML = `
+    mount.innerHTML = acoesTopoHtml + `
       <div class="pro-alim-tabela">
         <div class="pro-alim-thead">
           <div class="pro-alim-col pro-alim-col-nome">Alimento</div>
@@ -391,11 +411,350 @@ export function renderTabelaAlimentos(blockEl, alimentos = []) {
       });
     });
 
+    bindAcoesTopo();
     atualizarMacrosRefeicao(blockEl);
     window._planoSidebar?.atualizar();
   };
 
   renderRows();
+}
+
+// ════════════════════════════════════════════════════════════
+// MODAL SALVAR REFEIÇÃO COMO MODELO
+// ════════════════════════════════════════════════════════════
+async function abrirModalSalvarModelo(blockEl) {
+  const lista = blockEl._proAlimentos || [];
+  if (!lista.length) {
+    alert('Adicione ao menos um alimento antes de salvar como modelo.');
+    return;
+  }
+  const nomeAtual = blockEl.querySelector('input[name="ref-nome"]')?.value || '';
+  const horaAtual = blockEl.querySelector('input[name="ref-horario"]')?.value || '';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pro-modal-overlay';
+  overlay.innerHTML = `
+    <div class="pro-modal" style="max-width:480px;">
+      <div class="pro-modal-header">
+        <div>
+          <p class="pro-modal-eyebrow">Templates · Salvar para reutilizar</p>
+          <p class="pro-modal-titulo">Salvar como modelo</p>
+        </div>
+        <button type="button" class="pro-modal-close">×</button>
+      </div>
+      <div class="pro-modal-body">
+        <div class="pro-form-group">
+          <label class="pro-form-label">Nome do modelo</label>
+          <input type="text" class="pro-form-input" id="pro-modelo-nome" value="${escapeHtml(nomeAtual)}" placeholder="Ex: Café da manhã low carb">
+        </div>
+        <div class="pro-form-row">
+          <div class="pro-form-group">
+            <label class="pro-form-label">Tipo de refeição</label>
+            <select class="pro-form-input" id="pro-modelo-tipo">
+              <option value="cafe_manha">Café da manhã</option>
+              <option value="lanche_manha">Lanche da manhã</option>
+              <option value="almoco">Almoço</option>
+              <option value="lanche_tarde">Lanche da tarde</option>
+              <option value="jantar">Jantar</option>
+              <option value="ceia">Ceia</option>
+              <option value="pre_treino">Pré-treino</option>
+              <option value="pos_treino">Pós-treino</option>
+            </select>
+          </div>
+          <div class="pro-form-group">
+            <label class="pro-form-label">Horário sugerido</label>
+            <input type="text" class="pro-form-input" id="pro-modelo-hora" value="${escapeHtml(horaAtual)}" placeholder="07h30">
+          </div>
+        </div>
+        <div class="pro-form-group">
+          <label class="pro-form-label">Descrição (opcional)</label>
+          <textarea class="pro-form-input" id="pro-modelo-desc" rows="2" placeholder="Observações sobre quando usar este modelo..."></textarea>
+        </div>
+        <div class="pro-form-group">
+          <label class="pro-form-label">Tags (separadas por vírgula)</label>
+          <input type="text" class="pro-form-input" id="pro-modelo-tags" placeholder="alto_proteico, sem_gluten, pre_treino">
+        </div>
+        <p class="pro-form-hint">${lista.length} alimento(s) serão salvos no modelo.</p>
+      </div>
+      <div class="pro-modal-footer">
+        <button type="button" class="pro-btn pro-btn-ghost" id="pro-modelo-cancel">Cancelar</button>
+        <button type="button" class="pro-btn pro-btn-primary" id="pro-modelo-confirm">Salvar modelo</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector('.pro-modal-close').onclick = fechar;
+  overlay.querySelector('#pro-modelo-cancel').onclick = fechar;
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+
+  // Tenta inferir o tipo a partir do horário
+  const inferTipo = (hora) => {
+    if (!hora) return 'cafe_manha';
+    const h = parseInt(hora.replace(/[^0-9]/g, '').slice(0, 2)) || 0;
+    if (h <= 9)  return 'cafe_manha';
+    if (h <= 11) return 'lanche_manha';
+    if (h <= 14) return 'almoco';
+    if (h <= 17) return 'lanche_tarde';
+    if (h <= 21) return 'jantar';
+    return 'ceia';
+  };
+  overlay.querySelector('#pro-modelo-tipo').value = inferTipo(horaAtual);
+
+  overlay.querySelector('#pro-modelo-confirm').onclick = async () => {
+    const nome = overlay.querySelector('#pro-modelo-nome').value.trim();
+    const tipo = overlay.querySelector('#pro-modelo-tipo').value;
+    const hora = overlay.querySelector('#pro-modelo-hora').value.trim();
+    const desc = overlay.querySelector('#pro-modelo-desc').value.trim();
+    const tagsStr = overlay.querySelector('#pro-modelo-tags').value.trim();
+    if (!nome) { alert('Informe um nome para o modelo.'); return; }
+
+    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const macros = lista.reduce((acc, a) => ({
+      kcal:   (acc.kcal   || 0) + (a.kcal   || 0),
+      ptn_g:  (acc.ptn_g  || 0) + (a.ptn    || 0),
+      cho_g:  (acc.cho_g  || 0) + (a.cho    || 0),
+      lip_g:  (acc.lip_g  || 0) + (a.lip    || 0),
+      fibras_g: (acc.fibras_g || 0) + (a.fibras || 0),
+    }), {});
+
+    const payload = {
+      nome,
+      tipo,
+      descricao: desc || null,
+      horario_sugerido: hora || null,
+      alimentos: lista,           // mesma estrutura usada no plano
+      macros,
+      tags,
+    };
+
+    const btn = overlay.querySelector('#pro-modelo-confirm');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    const { error } = await supabase.from('refeicoes_template').insert(payload);
+    if (error) {
+      alert('Erro ao salvar modelo: ' + error.message);
+      btn.disabled = false; btn.textContent = 'Salvar modelo';
+      return;
+    }
+    fechar();
+    if (window._showToast) window._showToast('Modelo salvo com sucesso.');
+    else alert('Modelo salvo com sucesso.');
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// MODAL CARREGAR REFEIÇÃO (4 abas)
+// ════════════════════════════════════════════════════════════
+async function abrirModalCarregar(blockEl, renderRows) {
+  const overlay = document.createElement('div');
+  overlay.className = 'pro-modal-overlay';
+  overlay.innerHTML = `
+    <div class="pro-modal" style="max-width:760px;">
+      <div class="pro-modal-header">
+        <div>
+          <p class="pro-modal-eyebrow">Templates de refeição</p>
+          <p class="pro-modal-titulo">Carregar refeição</p>
+        </div>
+        <button type="button" class="pro-modal-close">×</button>
+      </div>
+
+      <div class="pro-tab-bar">
+        <button type="button" class="pro-tab active" data-tab="meus">Meus modelos</button>
+        <button type="button" class="pro-tab" data-tab="erg">Modelos ERG</button>
+        <button type="button" class="pro-tab" data-tab="paciente">Planos do paciente</button>
+        <button type="button" class="pro-tab" data-tab="recordatorios">Recordatórios</button>
+      </div>
+
+      <div class="pro-modal-body" id="pro-tab-content">
+        <p class="pro-form-hint" style="text-align:center;padding:24px;">Carregando...</p>
+      </div>
+
+      <div class="pro-modal-footer">
+        <button type="button" class="pro-btn pro-btn-ghost" id="pro-load-cancel">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = () => overlay.remove();
+  overlay.querySelector('.pro-modal-close').onclick = fechar;
+  overlay.querySelector('#pro-load-cancel').onclick = fechar;
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+
+  let abaAtiva = 'meus';
+  const trocarAba = (aba) => {
+    abaAtiva = aba;
+    overlay.querySelectorAll('.pro-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.tab === aba));
+    carregarAba();
+  };
+  overlay.querySelectorAll('.pro-tab').forEach(t =>
+    t.addEventListener('click', () => trocarAba(t.dataset.tab)));
+
+  const tabContent = overlay.querySelector('#pro-tab-content');
+
+  const carregarAba = async () => {
+    tabContent.innerHTML = `<p class="pro-form-hint" style="text-align:center;padding:24px;">Carregando...</p>`;
+    const patientId = document.getElementById('patient-id')?.value;
+    let items = [];
+
+    try {
+      if (abaAtiva === 'meus') {
+        const { data } = await supabase.from('refeicoes_template')
+          .select('id, nome, tipo, descricao, horario_sugerido, alimentos, macros, tags')
+          .order('created_at', { ascending: false }).limit(50);
+        items = (data || []).map(r => ({
+          id: r.id,
+          titulo: r.nome,
+          subtitulo: `${labelTipo(r.tipo)}${r.horario_sugerido ? ' · ' + r.horario_sugerido : ''}`,
+          desc: r.descricao || (r.tags?.length ? r.tags.join(' · ') : ''),
+          macros: r.macros,
+          alimentos: r.alimentos || [],
+        }));
+      } else if (abaAtiva === 'erg') {
+        // Templates oficiais do sistema (mesma tabela, filtra por tag 'erg_oficial')
+        const { data } = await supabase.from('refeicoes_template')
+          .select('id, nome, tipo, descricao, horario_sugerido, alimentos, macros, tags')
+          .contains('tags', ['erg_oficial']);
+        items = (data || []).map(r => ({
+          id: r.id,
+          titulo: r.nome,
+          subtitulo: `${labelTipo(r.tipo)} · ERG`,
+          desc: r.descricao || '',
+          macros: r.macros,
+          alimentos: r.alimentos || [],
+        }));
+      } else if (abaAtiva === 'paciente' && patientId) {
+        const { data } = await supabase.from('planos_alimentares')
+          .select('id, descricao, data_elaboracao, refeicoes')
+          .eq('patient_id', patientId)
+          .order('data_elaboracao', { ascending: false }).limit(20);
+        // Cada refeição de cada plano vira um item
+        const expandido = [];
+        (data || []).forEach(p => {
+          const refs = Array.isArray(p.refeicoes) ? p.refeicoes : [];
+          refs.forEach((r, idx) => {
+            if (!Array.isArray(r.alimentos) || r.alimentos.length === 0) return;
+            expandido.push({
+              id: `${p.id}_${idx}`,
+              titulo: r.nome || `Refeição ${idx+1}`,
+              subtitulo: `${p.descricao || 'Plano'} · ${formatDate(p.data_elaboracao)}${r.horario ? ' · ' + r.horario : ''}`,
+              desc: `${r.alimentos.length} alimento(s)`,
+              macros: r.macros,
+              alimentos: r.alimentos,
+            });
+          });
+        });
+        items = expandido;
+      } else if (abaAtiva === 'recordatorios') {
+        // Recordatórios do paciente — vem da tabela diario_alimentar (se existir)
+        if (!patientId) items = [];
+        else {
+          try {
+            const { data } = await supabase.from('diario_alimentar')
+              .select('id, data, cafe, lanche_manha, almoco, lanche_tarde, jantar, ceia, observacoes')
+              .eq('patient_id', patientId)
+              .order('data', { ascending: false }).limit(15);
+            // Recordatórios são em texto livre — exibe como "Carregar como texto"
+            const expand = [];
+            (data || []).forEach(d => {
+              ['cafe','lanche_manha','almoco','lanche_tarde','jantar','ceia'].forEach(tipo => {
+                const txt = d[tipo];
+                if (!txt) return;
+                expand.push({
+                  id: `rec_${d.id}_${tipo}`,
+                  titulo: `${labelTipo(tipo)} (${formatDate(d.data)})`,
+                  subtitulo: 'Recordatório do paciente',
+                  desc: txt.slice(0, 120) + (txt.length > 120 ? '…' : ''),
+                  textoLivre: txt,    // não tem alimentos[] estruturado
+                });
+              });
+            });
+            items = expand;
+          } catch (e) {
+            items = [];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[carregar] erro:', e);
+      items = [];
+    }
+
+    if (!items.length) {
+      tabContent.innerHTML = `
+        <div class="pro-empty">
+          <p>Nenhum item disponível nesta aba.</p>
+          ${abaAtiva === 'meus' ? `<p class="pro-form-hint">Use "Salvar como modelo" em qualquer refeição pra criar seu primeiro template.</p>` : ''}
+        </div>`;
+      return;
+    }
+
+    tabContent.innerHTML = `
+      <div class="pro-load-list">
+        ${items.map(it => `
+          <div class="pro-load-item" data-id="${it.id}">
+            <div class="pro-load-info">
+              <p class="pro-load-titulo">${escapeHtml(it.titulo)}</p>
+              <p class="pro-load-sub">${escapeHtml(it.subtitulo || '')}</p>
+              ${it.desc ? `<p class="pro-load-desc">${escapeHtml(it.desc)}</p>` : ''}
+              ${it.macros ? `<p class="pro-load-macros">
+                <span><strong>${round1(it.macros.kcal||0)}</strong> kcal</span>
+                <span class="m-ptn"><strong>${round1(it.macros.ptn_g||it.macros.ptn||0)}</strong>g P</span>
+                <span class="m-cho"><strong>${round1(it.macros.cho_g||it.macros.cho||0)}</strong>g C</span>
+                <span class="m-lip"><strong>${round1(it.macros.lip_g||it.macros.lip||0)}</strong>g L</span>
+              </p>` : ''}
+            </div>
+            <button type="button" class="pro-btn pro-btn-primary pro-btn-sm pro-load-btn" data-id="${it.id}">
+              Carregar
+            </button>
+          </div>
+        `).join('')}
+      </div>`;
+
+    tabContent.querySelectorAll('.pro-load-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const item = items.find(x => x.id === btn.dataset.id);
+        if (!item) return;
+        if (item.textoLivre) {
+          alert('Recordatórios em texto livre não podem ser carregados como tabela. ' +
+                'Use o texto como referência manual:\n\n' + item.textoLivre);
+          return;
+        }
+        if (!Array.isArray(item.alimentos) || item.alimentos.length === 0) {
+          alert('Este item não tem alimentos calculados pra carregar.');
+          return;
+        }
+        // Confirmação se já houver alimentos
+        if ((blockEl._proAlimentos || []).length > 0) {
+          if (!confirm('Substituir os alimentos atuais pelos do modelo?')) return;
+        }
+        blockEl._proAlimentos = JSON.parse(JSON.stringify(item.alimentos));
+        // Atualiza nome/hora se vazios
+        const refNome = blockEl.querySelector('input[name="ref-nome"]');
+        const refHora = blockEl.querySelector('input[name="ref-horario"]');
+        if (refNome && !refNome.value) refNome.value = item.titulo;
+        if (refHora && !refHora.value) {
+          const m = (item.subtitulo || '').match(/\d{1,2}h?\d{0,2}|\d{1,2}:\d{2}/);
+          if (m) refHora.value = m[0];
+        }
+        fechar();
+        renderRows();
+      }));
+  };
+
+  carregarAba();
+}
+
+function labelTipo(t) {
+  return ({
+    cafe_manha: 'Café da manhã', lanche_manha: 'Lanche da manhã',
+    almoco: 'Almoço', lanche_tarde: 'Lanche da tarde',
+    jantar: 'Jantar', ceia: 'Ceia',
+    pre_treino: 'Pré-treino', pos_treino: 'Pós-treino', cafe: 'Café da manhã',
+  })[t] || t;
+}
+function formatDate(s) {
+  if (!s) return '';
+  try { return new Date(s + 'T00:00:00').toLocaleDateString('pt-BR'); } catch { return s; }
 }
 
 async function adicionarAlimento(blockEl, mount, renderRows) {
