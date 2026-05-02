@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/sobre.css">
   <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="stylesheet" href="css/sobre-extras.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#F7F6F2">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,7 +16,11 @@
 </head>
 <body id="sobre-root">
 
+  <!-- Scroll progress (V1) -->
+  <div id="sobre-scroll-progress" aria-hidden="true"></div>
+
   <!-- Header -->
+  <div id="sobre-scroll-sentinel" aria-hidden="true"></div>
   <header class="sobre-header">
     <button class="checkin-back" onclick="window.location.href='dashboard.html'">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -234,5 +239,6 @@
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     }
   </script>
+  <script src="js/sobre-extras.js" defer></script>
 </body>
 </html>

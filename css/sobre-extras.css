@@ -1,0 +1,201 @@
+/* ═══ POLIMENTO V1 ═══ */
+
+/* 1. Scroll progress bar */
+#sobre-scroll-progress {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--detail);
+  transform: scaleX(0);
+  transform-origin: left;
+  z-index: 200;
+  transition: transform 0.1s linear;
+  pointer-events: none;
+}
+
+/* 2. Header blur + shadow on scroll */
+.sobre-header--scrolled {
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  background: rgba(247, 246, 242, 0.92) !important;
+  box-shadow: 0 1px 0 var(--border), var(--shadow-sm) !important;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+/* 3. Section reveal animation */
+.sobre-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.sobre-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 4. Pilar card staggered reveal */
+.pilar-card--hidden {
+  opacity: 0;
+  transform: translateX(-14px);
+  transition: opacity 0.5s ease, transform 0.5s ease, background 0.3s ease;
+}
+.pilar-card--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.pilar-card:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: -2px;
+  background: var(--accent-dim);
+}
+
+/* 5. Razões staggered reveal */
+.sobre-razao--hidden {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.sobre-razao--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 6. Steps staggered reveal */
+.sobre-step--hidden {
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.sobre-step--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 7. Quote reveal */
+.sobre-quote--hidden {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.75s ease, transform 0.75s ease;
+}
+.sobre-quote--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 8. CTA button ripple */
+.sobre-cta-btn {
+  transition: opacity 0.3s, box-shadow 0.3s, transform 0.2s !important;
+}
+.sobre-cta-btn:hover {
+  box-shadow: 0 6px 24px rgba(45, 106, 86, 0.28) !important;
+  transform: translateY(-1px) !important;
+}
+.sobre-cta-btn:active {
+  transform: translateY(0) !important;
+}
+.sobre-btn-ripple {
+  position: absolute;
+  width: 0; height: 0;
+  border-radius: 50%;
+  background: rgba(247, 246, 242, 0.28);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: sobre-ripple 0.55s ease-out forwards;
+}
+@keyframes sobre-ripple {
+  to { width: 320px; height: 320px; opacity: 0; }
+}
+
+/* 9. Reading time badge */
+.sobre-reading-time {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--detail);
+  margin-top: 20px;
+  opacity: 0.75;
+}
+
+/* 10. Skip link */
+.sobre-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  text-decoration: none;
+  z-index: 9999;
+  transition: top 0.2s ease;
+}
+.sobre-skip-link:focus {
+  top: calc(8px + env(safe-area-inset-top));
+}
+
+/* 11. Hero entrance animation */
+.sobre-hero-enter {
+  animation: sobre-hero-in 0.7s ease both;
+}
+@keyframes sobre-hero-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 12. Hero dividing line grow */
+.sobre-hero-line--animate {
+  transform-origin: center;
+  animation: sobre-line-grow 1s 0.55s ease both;
+}
+@keyframes sobre-line-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* 13. Step number pulse on reveal */
+.sobre-step--visible .sobre-step-num {
+  animation: sobre-num-pulse 0.4s 0.3s ease both;
+}
+@keyframes sobre-num-pulse {
+  0%   { color: var(--text-light); }
+  50%  { color: var(--detail); transform: scale(1.08); }
+  100% { color: var(--detail); transform: scale(1); }
+}
+
+/* 14. Pilar card hover accent shift */
+.pilar-card:hover .pilar-num {
+  color: var(--accent);
+  transition: color 0.25s;
+}
+.pilar-card:hover .pilar-nome {
+  color: var(--accent);
+  transition: color 0.25s;
+}
+
+/* 15. Sentinel (invisible spacer for IntersectionObserver) */
+#sobre-scroll-sentinel {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px; height: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* 16. CTA link hover underline animate */
+.sobre-cta-link {
+  background-image: linear-gradient(var(--detail), var(--detail));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: left bottom;
+  transition: background-size 0.3s ease, color 0.3s;
+  text-decoration: none !important;
+}
+.sobre-cta-link:hover {
+  background-size: 100% 1px;
+  color: var(--accent) !important;
+}
