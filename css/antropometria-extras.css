@@ -1,0 +1,396 @@
+/* ============================================================
+   antropometria-extras.css — Polimento V1
+   Melhorias UX para a página de Antropometria
+   ============================================================ */
+
+/* ═══ POLIMENTO V1 ═══ */
+
+/* 1 — Focus ring aprimorado em inputs */
+.form-input:focus {
+  outline: none;
+  border-color: var(--detail) !important;
+  box-shadow: 0 0 0 3px var(--accent-dim), 0 1px 4px rgba(76,184,160,0.15);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* 2 — Validação inline: campo válido */
+.form-input.erg-valid {
+  border-color: rgba(45,106,86,0.45) !important;
+  background: rgba(45,106,86,0.03);
+}
+
+/* 3 — Validação inline: campo com aviso */
+.form-input.erg-warn {
+  border-color: rgba(201,168,76,0.65) !important;
+  background: rgba(201,168,76,0.04);
+}
+
+/* 4 — Validação inline: campo inválido */
+.form-input.erg-error {
+  border-color: rgba(224,82,82,0.55) !important;
+  background: rgba(224,82,82,0.04);
+}
+
+/* 5 — Micro mensagem de validação abaixo do campo */
+.erg-field-msg {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  margin-top: 4px;
+  line-height: 1.4;
+  transition: opacity 0.2s ease;
+}
+.erg-field-msg.valid { color: #2D6A56; }
+.erg-field-msg.warn  { color: #8a6d00; }
+.erg-field-msg.error { color: var(--error); }
+
+/* 6 — Banner de rascunho salvo */
+#erg-draft-banner {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  box-shadow: 0 2px 8px rgba(45,106,86,0.25);
+  animation: ergSlideDown 0.3s ease;
+}
+@keyframes ergSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+#erg-draft-banner .erg-draft-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#erg-draft-banner button {
+  padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+#erg-draft-banner button.erg-draft-restore {
+  background: rgba(255,255,255,0.18);
+  font-weight: 600;
+}
+#erg-draft-banner button:hover { background: rgba(255,255,255,0.25); }
+
+/* 7 — Chip flutuante de IMC */
+#erg-imc-chip {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--detail);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: scale(0.8) translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+#erg-imc-chip.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+#erg-imc-chip .chip-val {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1;
+}
+#erg-imc-chip .chip-lbl {
+  font-family: var(--font-sans);
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+#erg-imc-chip.chip-ok    { border-color: #2D6A56; }
+#erg-imc-chip.chip-atenc { border-color: var(--gold); }
+#erg-imc-chip.chip-ruim  { border-color: var(--error); }
+
+/* 8 — Contador de campos por seção */
+.erg-section-counter {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  color: var(--subtitle);
+  letter-spacing: 0.08em;
+  margin-left: auto;
+  opacity: 0.75;
+}
+
+/* 9 — Marcas de seção completa na sidebar */
+.nav-item .erg-step-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--detail);
+  color: #fff;
+  font-size: 0.6rem;
+  margin-left: auto;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.nav-item.erg-step-done .erg-step-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 10 — Botão de copiar lado D→E */
+.erg-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.erg-copy-btn:hover {
+  background: rgba(76,184,160,0.2);
+  border-color: var(--detail);
+}
+
+/* 11 — Botões de ação no resultado */
+.erg-result-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.erg-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.erg-action-btn:hover {
+  border-color: var(--detail);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.erg-action-btn svg { flex-shrink: 0; }
+
+/* 12 — Tooltip em métricas */
+.erg-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: help;
+}
+.erg-tooltip-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.erg-tooltip-box {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1A1A16;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  max-width: 240px;
+  white-space: normal;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  box-shadow: var(--shadow-md);
+}
+.erg-tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1A1A16;
+}
+.erg-tooltip-wrap:hover .erg-tooltip-box,
+.erg-tooltip-wrap:focus-within .erg-tooltip-box {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 13 — Indicador de percentual de conclusão global */
+#erg-completion-bar {
+  position: relative;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 8px 0 16px;
+}
+#erg-completion-bar .erg-completion-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--detail), var(--accent));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+#erg-completion-pct {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: var(--subtitle);
+  letter-spacing: 0.06em;
+  text-align: right;
+  margin-bottom: 8px;
+}
+
+/* 14 — Badge delta de peso */
+#erg-peso-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  margin-top: 4px;
+  transition: opacity 0.2s ease;
+}
+#erg-peso-delta.delta-pos { background: rgba(224,82,82,0.1);  color: #A04030; border: 1px solid rgba(224,82,82,0.25); }
+#erg-peso-delta.delta-neg { background: rgba(45,106,86,0.1);  color: #2D6A56; border: 1px solid rgba(45,106,86,0.25); }
+#erg-peso-delta.delta-ok  { background: rgba(76,184,160,0.1); color: #1a7a65; border: 1px solid var(--accent-border); }
+
+/* 15 — Highlight na linha da tabela de resultado ao hover */
+.resultado-tabela tbody tr {
+  transition: background 0.15s ease;
+}
+.resultado-tabela tbody tr:hover {
+  background: linear-gradient(90deg, var(--accent-dim), transparent) !important;
+}
+
+/* 16 — Shortcut hint nos botões de navegação */
+.erg-shortcut-hint {
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  color: var(--subtitle);
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* 17 — Animação de entrada dos campos do step ativo */
+.form-step.active .form-group {
+  animation: ergFadeUp 0.35s ease both;
+}
+@keyframes ergFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.form-step.active .form-group:nth-child(1) { animation-delay: 0.04s; }
+.form-step.active .form-group:nth-child(2) { animation-delay: 0.08s; }
+.form-step.active .form-group:nth-child(3) { animation-delay: 0.12s; }
+.form-step.active .form-group:nth-child(4) { animation-delay: 0.16s; }
+.form-step.active .form-group:nth-child(5) { animation-delay: 0.20s; }
+.form-step.active .form-group:nth-child(6) { animation-delay: 0.24s; }
+
+/* 18 — Mobile: previne zoom em inputs (fonte mínima 16px) */
+@media (max-width: 768px) {
+  .form-input {
+    font-size: max(16px, 0.85rem) !important;
+  }
+  #erg-imc-chip {
+    bottom: 80px;
+    width: 56px;
+    height: 56px;
+  }
+  #erg-imc-chip .chip-val { font-size: 1rem; }
+}
+
+/* 19 — Indicador de autosave */
+#erg-save-indicator {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: rgba(26,26,22,0.82);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  z-index: 201;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  white-space: nowrap;
+}
+#erg-save-indicator.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* 20 — Wrapper de section-title com counter */
+.section-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.section-title-row .section-title {
+  margin-bottom: 0;
+}
