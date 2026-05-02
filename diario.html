@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/diario.css">
   <link rel="stylesheet" href="css/ux-improvements.css">
   <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="stylesheet" href="css/diario-extras.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#F7F6F2">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,6 +37,7 @@
       <p class="diario-eyebrow">Registro do dia</p>
       <h1 class="diario-title">Diário Alimentar</h1>
       <p class="diario-sub" id="diario-date-full"></p>
+      <div class="diario-streak-badge" id="diario-streak-badge" aria-live="polite" hidden></div>
     </div>
 
     <!-- Seletor de data -->
@@ -47,6 +49,16 @@
       <button class="diario-nav-btn" onclick="changeDate(1)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
+    </div>
+
+    <!-- Progresso de refeições -->
+    <div class="diario-progress-wrap" id="diario-progress-wrap"
+         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="6"
+         aria-label="Refeições registradas hoje">
+      <div class="diario-progress-track">
+        <div class="diario-progress-bar" id="diario-progress-bar"></div>
+      </div>
+      <span class="diario-progress-text" id="diario-progress-text" aria-hidden="true">0 / 6 refeições</span>
     </div>
 
     <!-- Formulário -->
@@ -161,5 +173,7 @@
     }
   </script>
   <script type="module" src="js/diario.js"></script>
+  <script type="module" src="js/diario-extras.js"></script>
+  <div id="diario-toast" role="status" aria-live="polite" aria-atomic="true" class="diario-toast"></div>
 </body>
 </html>

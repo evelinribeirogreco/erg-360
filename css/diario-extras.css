@@ -1,0 +1,140 @@
+/* css/diario-extras.css */
+/* ═══ POLIMENTO V1 ═══ */
+
+/* ── Progress bar ── */
+.diario-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(201,168,130,0.18);
+}
+
+.diario-progress-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(201,168,130,0.22);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.diario-progress-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--gold);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.4s;
+}
+
+.diario-progress-bar--half { background: var(--detail); }
+.diario-progress-bar--full { background: var(--accent); }
+
+.diario-progress-text {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Toast ── */
+.diario-toast {
+  position: fixed;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text);
+  color: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  padding: 12px 22px;
+  border-radius: var(--radius-md, 0.3rem);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  z-index: 9999;
+  max-width: calc(100vw - 48px);
+  text-align: center;
+}
+
+.diario-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.diario-toast--success { background: var(--accent); color: #fff; }
+.diario-toast--error   { background: var(--error);  color: #fff; }
+
+/* ── Streak badge ── */
+.diario-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border: 1px solid var(--gold-border, rgba(201,168,76,0.28));
+  border-radius: 40px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.diario-streak-badge::before {
+  content: '●';
+  font-size: 0.38rem;
+}
+
+/* ── Badge "Hoje" ── */
+.diario-today-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--detail);
+  background: var(--accent-dim, rgba(76,184,160,0.12));
+  border: 1px solid var(--accent-border, rgba(76,184,160,0.28));
+  padding: 3px 9px;
+  border-radius: 40px;
+}
+
+/* ── Animação staggered dos cards ── */
+@keyframes _diarioRefEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.diario-ref--enter {
+  animation: _diarioRefEnter 0.32s ease-out both;
+}
+
+/* ── Adesão: cor dinâmica no botão ativo ── */
+.diario-adesao-scale .diario-adesao-btn.active {
+  background: var(--adesao-clr, var(--text));
+  border-color: var(--adesao-clr, var(--text));
+}
+
+/* ── Focus visible explícito ── */
+.diario-textarea:focus-visible,
+.diario-nav-btn:focus-visible,
+.diario-adesao-btn:focus-visible,
+.ci-btn-next:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* ── Textarea: overflow auto para crescer ── */
+.diario-textarea {
+  overflow: hidden;
+}
