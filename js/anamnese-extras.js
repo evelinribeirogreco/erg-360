@@ -935,3 +935,187 @@ window._anamneseExtras = {
 };
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ═══ POLIMENTO V2 ═══
+// 10 micro-interações: ripple, step-slide, textarea-resize, char-counter,
+// field-success, stepper-progress, smart-fill-spinner, typing-indicator,
+// section-entrance, dom-watch
+
+// V2-1 — Ripple effect nos botões interativos
+function _v2Ripple(e) {
+  const btn = e.currentTarget;
+  const r = btn.getBoundingClientRect();
+  const size = Math.max(r.width, r.height) * 2.2;
+  const span = document.createElement('span');
+  span.className = 'v2-ripple';
+  span.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - r.left - size / 2}px;top:${e.clientY - r.top - size / 2}px`;
+  btn.appendChild(span);
+  span.addEventListener('animationend', () => span.remove(), { once: true });
+}
+function _v2AttachRipples() {
+  document.querySelectorAll('.tb-btn, .toggle-btn, .patologia-btn, .stepper-dot').forEach(el => {
+    if (el.dataset.v2r) return;
+    el.dataset.v2r = '1';
+    el.style.overflow = 'hidden';
+    el.addEventListener('click', _v2Ripple);
+  });
+}
+
+// V2-2 — Slide animado ao mudar de step
+let _v2PrevStepIdx = 0;
+function _v2AnimateStepIn(stepId, dir) {
+  const el = document.getElementById(stepId);
+  if (!el) return;
+  const cls = (dir >= 0) ? 'step-enter-right' : 'step-enter-left';
+  el.classList.remove('step-enter-right', 'step-enter-left');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  const cleanup = () => el.classList.remove(cls);
+  setTimeout(cleanup, 400);
+  el.addEventListener('animationend', cleanup, { once: true });
+}
+
+// V2-3 — Textarea auto-resize suave
+function _v2Resize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+function _v2InitAutoResize() {
+  document.querySelectorAll('#anamnese-form textarea').forEach(ta => {
+    if (ta.dataset.ar) return;
+    ta.dataset.ar = '1';
+    ta.style.overflow = 'hidden';
+    ta.style.resize = 'none';
+    ta.style.transition = 'height 0.13s ease';
+    _v2Resize(ta);
+    ta.addEventListener('input', () => _v2Resize(ta));
+  });
+}
+
+// V2-4 — Contador de caracteres com aria-live
+const V2_CHAR_LIMITS = { motivo: 500, caso_clinico: 1200, observacoes: 800, exames_obs: 600 };
+function _v2Counter(ta) {
+  const limit = V2_CHAR_LIMITS[ta.id];
+  if (!limit) return;
+  let el = document.getElementById(`v2cc-${ta.id}`);
+  if (!el) {
+    el = document.createElement('span');
+    el.id = `v2cc-${ta.id}`;
+    el.className = 'v2-char-counter';
+    el.setAttribute('aria-live', 'polite');
+    ta.closest('.form-group')?.appendChild(el);
+  }
+  const len = ta.value.length;
+  el.textContent = `${len} / ${limit}`;
+  el.className = 'v2-char-counter' + (len > limit ? ' over-limit' : len / limit >= 0.88 ? ' near-limit' : '');
+}
+function _v2InitCounters() {
+  document.querySelectorAll('#anamnese-form textarea').forEach(ta => {
+    if (!V2_CHAR_LIMITS[ta.id]) return;
+    _v2Counter(ta);
+    ta.addEventListener('input', () => _v2Counter(ta));
+  });
+}
+
+// V2-5 — Campo válido: borda verde + glow animado no blur
+function _v2FieldOk(el) {
+  const wrap = el.closest('.form-group') || el.parentElement;
+  if (!wrap || wrap.classList.contains('has-error') || !el.value.trim()) return;
+  wrap.classList.remove('v2-field-ok');
+  void wrap.offsetWidth;
+  wrap.classList.add('v2-field-ok');
+  setTimeout(() => wrap.classList.remove('v2-field-ok'), 2200);
+}
+document.addEventListener('blur', (e) => {
+  const el = e.target;
+  if (el.matches?.('#anamnese-form input:not([type="hidden"]), #anamnese-form textarea')) {
+    setTimeout(() => _v2FieldOk(el), 25);
+  }
+}, true);
+
+// V2-6 — Linhas do stepper coloridas por progresso
+function _v2StepperLines(currentIdx) {
+  const stepper = document.getElementById('anamnese-stepper');
+  if (!stepper) return;
+  stepper.querySelectorAll('.stepper-line').forEach((line, i) => {
+    line.classList.toggle('v2-line-done',    i < currentIdx);
+    line.classList.toggle('v2-line-current', i === currentIdx - 1);
+  });
+}
+
+// V2-7 — Spinner animado no botão smart-fill
+function _v2SmartFillSpinner() {
+  const btn = document.getElementById('btn-smart-fill');
+  if (!btn || btn.dataset.v2sf || !window._anamneseExtras?.copyFromLast) return;
+  btn.dataset.v2sf = '1';
+  const orig = window._anamneseExtras.copyFromLast;
+  window._anamneseExtras.copyFromLast = async function(...args) {
+    const prev = btn.innerHTML;
+    btn.innerHTML = '<span class="v2-spinner" aria-hidden="true"></span> Buscando…';
+    btn.disabled = true;
+    try { await orig.apply(this, args); }
+    finally { btn.disabled = false; btn.innerHTML = prev; }
+  };
+}
+
+// V2-8 — Typing indicator no badge de autosave
+let _v2TypingT = null;
+function _v2Typing() {
+  const badge = document.getElementById('autosave-badge');
+  if (!badge) return;
+  badge.classList.add('v2-typing');
+  clearTimeout(_v2TypingT);
+  _v2TypingT = setTimeout(() => badge.classList.remove('v2-typing'), 900);
+}
+
+// V2-9 — Seções entram com fade+slide staggered
+function _v2EnterSections(root) {
+  (root || document).querySelectorAll?.('.section:not([data-v2in])').forEach((s, i) => {
+    s.dataset.v2in = '1';
+    s.style.animationDelay = `${Math.min(i * 40, 120)}ms`;
+    s.classList.add('v2-section-enter');
+    s.addEventListener('animationend', () => { s.style.animationDelay = ''; }, { once: true });
+  });
+}
+
+// V2-10 — MutationObserver: re-aplica ripples em elementos dinâmicos
+function _v2WatchDOM() {
+  let _dbt = null;
+  new MutationObserver(() => {
+    clearTimeout(_dbt);
+    _dbt = setTimeout(_v2AttachRipples, 120);
+  }).observe(document.getElementById('anamnese-form') || document.body, { childList: true, subtree: true });
+}
+
+// ── Estende onStepChange para V2 ──
+const _v2OrigStep = window._anamneseExtras?.onStepChange;
+if (window._anamneseExtras) {
+  window._anamneseExtras.onStepChange = function(idx, total, stepId) {
+    const dir = idx - _v2PrevStepIdx;
+    _v2PrevStepIdx = idx;
+    _v2AnimateStepIn(stepId || `step-${idx}`, dir);
+    _v2StepperLines(idx);
+    _v2OrigStep?.call(this, idx, total, stepId);
+    setTimeout(() => _v2EnterSections(document.getElementById(stepId || `step-${idx}`)), 30);
+  };
+}
+
+function _initV2() {
+  _v2AttachRipples();
+  _v2InitAutoResize();
+  _v2InitCounters();
+  _v2SmartFillSpinner();
+  _v2EnterSections();
+  _v2WatchDOM();
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('#anamnese-form input, #anamnese-form textarea, #anamnese-form select')) {
+      _v2Typing();
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV2);
+} else {
+  _initV2();
+}
