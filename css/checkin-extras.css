@@ -1,0 +1,298 @@
+/* css/checkin-extras.css */
+/* ═══ POLIMENTO V1 ═══ */
+/* 18 micro-melhorias: orientação, polimento, segurança, acessibilidade, mobile, deleite */
+
+/* ── 1. Step dots ────────────────────────────────────────────────────────── */
+.ci-step-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 2px;
+  position: relative;
+  z-index: 99;
+}
+
+.ci-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.2);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.ci-dot.done {
+  background: var(--detail, #4CB8A0);
+  transform: scale(0.85);
+}
+
+.ci-dot.active {
+  background: var(--text, #1A1A16);
+  transform: scale(1.4);
+}
+
+/* ── 2. Stagger de entrada ───────────────────────────────────────────────── */
+.ci-stagger-in {
+  animation: ci-stagger-fade 0.22s ease both;
+  animation-delay: calc(var(--stagger-i, 0) * 35ms);
+}
+
+@keyframes ci-stagger-fade {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 3. Shake validation ─────────────────────────────────────────────────── */
+.ci-shake {
+  animation: ci-shake-x 0.38s ease;
+}
+
+@keyframes ci-shake-x {
+  0%, 100% { transform: translateX(0); }
+  18%      { transform: translateX(-7px); }
+  36%      { transform: translateX(7px); }
+  54%      { transform: translateX(-4px); }
+  72%      { transform: translateX(4px); }
+  90%      { transform: translateX(-2px); }
+}
+
+/* ── 4–5. Inline hint e contextual hint ─────────────────────────────────── */
+.ci-inline-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: #7A5A10;
+  padding: 8px 12px;
+  background: var(--gold-dim, rgba(201, 168, 76, 0.10));
+  border-left: 3px solid var(--gold, #C9A84C);
+  margin: 6px 0 4px;
+  animation: ci-fade 0.2s ease;
+  line-height: 1.4;
+}
+
+.ci-context-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.71rem;
+  color: var(--text-light, #6B6659);
+  padding: 7px 11px;
+  background: var(--accent-dim, rgba(76, 184, 160, 0.10));
+  border-left: 2px solid var(--detail, #4CB8A0);
+  margin: 6px 0 4px;
+  animation: ci-fade 0.2s ease;
+  line-height: 1.4;
+}
+
+/* ── 6. Draft recovery banner ────────────────────────────────────────────── */
+.ci-draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(76, 184, 160, 0.08);
+  border: 1px solid var(--accent-border, rgba(76, 184, 160, 0.28));
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem;
+  color: var(--text, #1A1A16);
+  margin: 0 0 16px;
+  animation: ci-fade 0.25s ease;
+  flex-wrap: wrap;
+}
+
+.ci-draft-banner > svg {
+  color: var(--detail, #4CB8A0);
+  flex-shrink: 0;
+}
+
+.ci-draft-restore {
+  margin-left: auto;
+  padding: 5px 12px;
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.ci-draft-restore:hover {
+  opacity: 0.88;
+}
+
+.ci-draft-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-light, #6B6659);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── 7. Bristol tooltip ──────────────────────────────────────────────────── */
+.ci-bristol-tooltip {
+  background: var(--text, #1A1A16);
+  color: var(--bg-primary, #F7F6F2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.67rem;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 4px;
+  max-width: 190px;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: none;
+  animation: ci-fade 0.15s ease;
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.06));
+}
+
+/* ── 10. Teclado + foco visível ──────────────────────────────────────────── */
+.ci-scale-btn:focus-visible,
+.ci-opt:focus-visible,
+.ci-chip:focus-visible,
+.bristol-btn:focus-visible,
+.ci-next:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* ── 11. Streak badge ────────────────────────────────────────────────────── */
+.ci-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  background: var(--gold-dim, rgba(201, 168, 76, 0.10));
+  border: 1px solid var(--gold-border, rgba(201, 168, 76, 0.28));
+  border-radius: 100px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: #7A5A10;
+  margin-bottom: 20px;
+}
+
+.ci-streak-badge svg {
+  flex-shrink: 0;
+  color: var(--gold, #C9A84C);
+}
+
+.ci-streak-badge strong {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.ci-streak-badge span {
+  font-weight: 300;
+}
+
+/* ── 12. Auth skeleton ───────────────────────────────────────────────────── */
+.ci-auth-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 8px;
+  align-items: center;
+}
+
+.ci-skel-line {
+  height: 9px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(76, 184, 160, 0.07) 25%,
+    rgba(76, 184, 160, 0.18) 50%,
+    rgba(76, 184, 160, 0.07) 75%
+  );
+  background-size: 200% 100%;
+  animation: ci-shimmer 1.6s ease infinite;
+}
+
+.ci-skel-w55 { width: 55%; }
+.ci-skel-w38 { width: 38%; }
+
+@keyframes ci-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* ── 13. Ripple ──────────────────────────────────────────────────────────── */
+.ci-opt,
+.ci-chip,
+.ci-next,
+.bristol-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.ci-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.22);
+  transform: scale(0);
+  animation: ci-ripple-out 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+.ci-opt.active .ci-ripple,
+.ci-next:not(.skip) .ci-ripple {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes ci-ripple-out {
+  to {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* ── 17–18. Score pop + confetti ─────────────────────────────────────────── */
+.ci-score-pop {
+  animation: ci-score-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes ci-score-pop {
+  0%   { transform: scale(0.75); opacity: 0.5; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.ci-confetti-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.ci-confetti-piece {
+  position: absolute;
+  top: -10px;
+  animation: ci-confetti-fall linear forwards;
+}
+
+@keyframes ci-confetti-fall {
+  to {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ── Botão desabilitado ──────────────────────────────────────────────────── */
+.ci-next[disabled] {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
