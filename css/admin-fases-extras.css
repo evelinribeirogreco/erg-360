@@ -1,0 +1,338 @@
+/* === admin-fases-extras.css ===================================================
+   Polimento UX incremental para admin-fases.html
+============================================================================= */
+
+/* ═══ POLIMENTO V1 ═══ */
+
+/* ── View fade-in ─────────────────────────────────────────────────────────── */
+@keyframes adminFasesViewIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.view-extras-fade {
+  animation: adminFasesViewIn 0.2s ease-out both;
+}
+
+/* ── Form dirty indicator ─────────────────────────────────────────────────── */
+#form-dirty-indicator {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  color: #7A5E00;
+  margin-bottom: 12px;
+}
+#form-dirty-indicator.visible { display: flex; }
+#form-dirty-indicator .pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  animation: pulseDot 1.4s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.7); }
+}
+
+/* ── Autosave badge ───────────────────────────────────────────────────────── */
+#autosave-badge {
+  position: fixed;
+  bottom: 72px;
+  right: 20px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--detail);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--detail);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  z-index: 500;
+}
+#autosave-badge.visible { opacity: 1; }
+
+/* ── Form completion meter ────────────────────────────────────────────────── */
+#form-completion-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.fcm-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  white-space: nowrap;
+}
+.fcm-track {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.fcm-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.35s ease;
+}
+
+/* ── Inline field validation ──────────────────────────────────────────────── */
+.form-input.field-error {
+  border-color: var(--error) !important;
+  background: var(--error-dim) !important;
+}
+.field-error-msg {
+  display: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--error);
+  margin-top: 4px;
+}
+.field-error-msg.visible { display: block; }
+
+/* ── Submit button spinner ────────────────────────────────────────────────── */
+.btn-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-top-color: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -1px;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Confirm modal ────────────────────────────────────────────────────────── */
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,22,0.52);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: confirmFadeIn 0.15s ease;
+}
+@keyframes confirmFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.confirm-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  max-width: 360px;
+  width: 100%;
+  padding: 28px 24px 22px;
+  box-shadow: var(--shadow-lg);
+  animation: confirmSlideUp 0.15s ease-out;
+}
+@keyframes confirmSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.confirm-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.confirm-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  line-height: 1.65;
+  margin-bottom: 22px;
+}
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.confirm-cancel {
+  padding: 9px 20px;
+  border: 1px solid var(--border);
+  background: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  transition: border-color 0.15s, color 0.15s;
+}
+.confirm-cancel:hover { border-color: var(--subtitle); color: var(--text); }
+.confirm-ok {
+  padding: 9px 20px;
+  border: none;
+  background: var(--error);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  transition: opacity 0.15s;
+}
+.confirm-ok:hover { opacity: 0.85; }
+
+/* ── No-active-phase alert ────────────────────────────────────────────────── */
+#no-active-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 16px;
+  border-left: 3px solid var(--gold);
+  background: var(--gold-dim);
+  margin-bottom: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.73rem;
+  color: var(--text);
+  line-height: 1.6;
+  animation: adminFasesViewIn 0.3s ease-out both;
+}
+
+/* ── Plano progress bar ───────────────────────────────────────────────────── */
+#plano-progress-wrap {
+  margin-bottom: 16px;
+}
+#plano-progress-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 6px;
+}
+#plano-progress-bar {
+  display: flex;
+  height: 4px;
+  gap: 1px;
+  overflow: hidden;
+}
+#plano-progress-bar > div {
+  height: 100%;
+  transition: width 0.7s ease;
+}
+
+/* ── Fase ativa progress ──────────────────────────────────────────────────── */
+.fase-progress-wrap { margin-top: 10px; }
+.fase-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.fase-progress-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+.dias-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  padding: 2px 9px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+.fase-progress-track {
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.fase-progress-fill {
+  height: 100%;
+  background: var(--detail);
+  transition: width 0.7s ease;
+}
+
+/* ── KPI tooltips ─────────────────────────────────────────────────────────── */
+.kpi-tip {
+  position: relative;
+  cursor: help;
+}
+.kpi-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  padding: 5px 10px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+.kpi-tip:hover::after,
+.kpi-tip:focus::after { opacity: 1; }
+
+/* ── Skip link ────────────────────────────────────────────────────────────── */
+.extras-skip-link {
+  position: fixed;
+  top: -40px;
+  left: 0;
+  background: var(--text);
+  color: var(--bg-primary);
+  padding: 8px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  z-index: 9999;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.extras-skip-link:focus { top: 0; }
+
+/* ── Screen-reader only ───────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Template card micro-hover ────────────────────────────────────────────── */
+.tpl-enhanced {
+  transition: background 0.15s, border-color 0.15s, transform 0.12s !important;
+}
+.tpl-enhanced:hover {
+  background: var(--bg-card) !important;
+  transform: scale(1.015);
+}
+.tpl-enhanced:active { transform: scale(0.99); }
+
+/* ── Mobile: full-width action btns ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  .fase-action-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .fase-action-row button {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+}
