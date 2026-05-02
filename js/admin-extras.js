@@ -906,3 +906,275 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabSwipe();
   updateGreeting(); // antes do load: só mostra a data
 });
+
+// ═══ POLIMENTO V2 ═══
+// 10 micro-melhorias: ripple, toast, KPI contador animado,
+// row fade-in, skeleton, palette animation, hover preview,
+// fav heartbeat, alert slide-in, CSV feedback
+
+// ── V2.1 Ripple effect ───────────────────────────────────────
+function _v2CreateRipple(e, el) {
+  const circle = document.createElement('span');
+  const rect   = el.getBoundingClientRect();
+  const size   = Math.max(rect.width, rect.height);
+  const x = (e.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
+  const y = (e.clientY ?? rect.top  + rect.height / 2) - rect.top  - size / 2;
+  circle.className  = 'ripple-wave';
+  circle.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+  el.querySelector('.ripple-wave')?.remove();
+  el.appendChild(circle);
+  circle.addEventListener('animationend', () => circle.remove(), { once: true });
+}
+function _v2InitRipple() {
+  const SEL = '.recent-chip,.agenda-day,.cmd-item,.row-action,.smart-alert-btn,.admin-link-btn';
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest(SEL);
+    if (el) _v2CreateRipple(e, el);
+  });
+}
+
+// ── V2.2 Toast notifications ─────────────────────────────────
+function _v2EnsureToastContainer() {
+  let c = document.getElementById('erg-toast-container');
+  if (!c) { c = document.createElement('div'); c.id = 'erg-toast-container'; document.body.appendChild(c); }
+  return c;
+}
+function _v2Toast(msg, type = 'ok', durationMs = 3000) {
+  const icons = {
+    ok:   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+    warn: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>',
+    info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>',
+  };
+  const t = document.createElement('div');
+  t.className = `erg-toast erg-toast-${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg">${escapeHTML(msg)}</span>`;
+  _v2EnsureToastContainer().appendChild(t);
+  requestAnimationFrame(() => t.classList.add('toast-show'));
+  const dismiss = () => {
+    t.classList.remove('toast-show');
+    t.addEventListener('transitionend', () => t.remove(), { once: true });
+  };
+  const timer = setTimeout(dismiss, durationMs);
+  t.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
+}
+
+// ── V2.3 KPI contador animado ────────────────────────────────
+function _v2AnimateCount(el, target, suffix = '') {
+  if (!el || isNaN(target) || target <= 0) return;
+  const dur = 600;
+  const t0  = performance.now();
+  const tick = (now) => {
+    const p    = Math.min((now - t0) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * ease) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+    else el.classList.add('kpi-pop');
+  };
+  requestAnimationFrame(tick);
+}
+function _v2AnimateKPIsFromDOM() {
+  [
+    { id: 'kpi-adesao',        suffix: '%' },
+    { id: 'kpi-score-medio',   suffix: '' },
+    { id: 'kpi-checkins-hoje', suffix: '' },
+    { id: 'kpi-aniversarios',  suffix: '' },
+  ].forEach(({ id, suffix }) => {
+    const el  = document.getElementById(id);
+    if (!el) return;
+    const txt = el.textContent.trim();
+    const num = parseFloat(txt.replace('%', ''));
+    if (!isNaN(num) && num > 0) _v2AnimateCount(el, num, suffix);
+  });
+}
+
+// ── V2.4 Row stagger fade-in via MutationObserver ────────────
+let _v2RowObserver = null;
+function _v2InitRowAnimation() {
+  const tbody = document.querySelector('.patients-table tbody');
+  if (!tbody) return;
+  _v2RowObserver?.disconnect();
+  _v2RowObserver = new MutationObserver(() => {
+    tbody.querySelectorAll('tr.patient-row:not([data-v2-animated])').forEach((row, i) => {
+      row.dataset.v2Animated = '1';
+      row.classList.add('patient-row-entering');
+      row.style.animationDelay = `${i * 22}ms`;
+      row.addEventListener('animationend', () => {
+        row.classList.remove('patient-row-entering');
+        row.style.animationDelay = '';
+      }, { once: true });
+    });
+  });
+  _v2RowObserver.observe(tbody, { childList: true });
+}
+
+// ── V2.5 Command palette open animation ──────────────────────
+function _v2InitCmdAnimation() {
+  const overlay = document.getElementById('cmd-overlay');
+  const modal   = document.querySelector('.cmd-modal');
+  if (!overlay || !modal) return;
+  new MutationObserver(() => {
+    if (overlay.style.display === 'flex') {
+      modal.classList.remove('cmd-modal-entering');
+      void modal.offsetWidth;
+      modal.classList.add('cmd-modal-entering');
+      modal.addEventListener('animationend', () => modal.classList.remove('cmd-modal-entering'), { once: true });
+    }
+  }).observe(overlay, { attributes: true, attributeFilter: ['style'] });
+}
+
+// ── V2.6 Skeleton loading state ──────────────────────────────
+function _v2ShowSkeleton() {
+  const tbody = document.querySelector('.patients-table tbody');
+  if (!tbody || tbody.querySelector('tr.patient-row')) return;
+  tbody.innerHTML = Array.from({ length: 5 }, () => `
+    <tr class="skeleton-row">
+      <td><div class="skel skel-w-200"></div></td>
+      <td><div class="skel skel-w-120"></div></td>
+      <td><div class="skel skel-w-80"></div></td>
+      <td><div class="skel skel-w-80"></div></td>
+    </tr>`).join('');
+}
+function _v2HideSkeleton() {
+  document.querySelectorAll('.skeleton-row').forEach(r => r.remove());
+}
+
+// ── V2.7 Patient row hover preview card ──────────────────────
+let _v2HoverTimer = null;
+let _v2HoverRow   = null;
+function _v2InitHoverPreview() {
+  document.addEventListener('mouseover', (e) => {
+    const row = e.target.closest('tr.patient-row');
+    if (!row) return;
+    if (row === _v2HoverRow) return;
+    clearTimeout(_v2HoverTimer);
+    _v2HoverRow = row;
+    _v2HoverTimer = setTimeout(() => _v2ShowHoverCard(row, e), 400);
+  });
+  document.addEventListener('mouseout', (e) => {
+    const leaving = e.target.closest('tr.patient-row');
+    const entering = e.relatedTarget?.closest('tr.patient-row') || e.relatedTarget?.closest('#row-hover-card');
+    if (leaving && !entering) { clearTimeout(_v2HoverTimer); _v2HoverRow = null; _v2HideHoverCard(); }
+  });
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('#row-hover-card') && !e.relatedTarget?.closest('#row-hover-card') && !e.relatedTarget?.closest('tr.patient-row')) {
+      _v2HideHoverCard();
+    }
+  });
+}
+function _v2ShowHoverCard(row, e) {
+  const id = row.dataset.id;
+  if (!id) return;
+  const p = getPatients().find(x => x.id === id);
+  if (!p) return;
+  let card = document.getElementById('row-hover-card');
+  if (!card) { card = document.createElement('div'); card.id = 'row-hover-card'; document.body.appendChild(card); }
+  const diasCi = p.ultimo_checkin
+    ? Math.ceil((Date.now() - new Date(p.ultimo_checkin + 'T12:00:00')) / 86400000)
+    : null;
+  card.innerHTML = `
+    <div class="hover-card-inner">
+      <div class="hover-card-top">
+        ${avatarHTML(p.nome, 'lg')}
+        <div>
+          <div class="hover-card-name">${escapeHTML(p.nome)}</div>
+          <div class="hover-card-email">${escapeHTML(p.email || '—')}</div>
+        </div>
+      </div>
+      <div class="hover-card-grid">
+        <div class="hover-card-item"><span class="hover-card-label">Último check-in</span><span>${diasCi != null ? diasCi + 'd atrás' : '—'}</span></div>
+        <div class="hover-card-item"><span class="hover-card-label">Próx. consulta</span><span>${escapeHTML(p.data_proxima_consulta || '—')}</span></div>
+        <div class="hover-card-item"><span class="hover-card-label">Score 7d</span><span>${p.score_medio_7d ?? '—'}</span></div>
+        <div class="hover-card-item"><span class="hover-card-label">Fase</span><span>${escapeHTML(p.fase_atual_nome || '—')}</span></div>
+      </div>
+      ${p.observacoes ? `<div class="hover-card-obs">${escapeHTML(p.observacoes.slice(0, 120))}${p.observacoes.length > 120 ? '…' : ''}</div>` : ''}
+    </div>`;
+  const rect = row.getBoundingClientRect();
+  const cardH = 180;
+  let top = rect.top - 10;
+  if (top + cardH > window.innerHeight) top = window.innerHeight - cardH - 10;
+  card.style.top       = Math.max(10, top) + 'px';
+  card.style.left      = Math.min(e.clientX + 16, window.innerWidth - 278) + 'px';
+  card.style.opacity   = '0';
+  card.style.transform = 'translateY(4px)';
+  requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
+}
+function _v2HideHoverCard() {
+  const card = document.getElementById('row-hover-card');
+  if (!card) return;
+  card.style.opacity = '0';
+  card.addEventListener('transitionend', () => card.remove(), { once: true });
+}
+
+// ── V2.8 Filter results flash ────────────────────────────────
+let _v2LastCount = -1;
+function _v2FlashFilterResults(count) {
+  if (_v2LastCount === count) return;
+  _v2LastCount = count;
+  const el = document.getElementById('patients-count');
+  if (!el) return;
+  el.classList.remove('count-flash');
+  void el.offsetWidth;
+  el.classList.add('count-flash');
+  el.addEventListener('animationend', () => el.classList.remove('count-flash'), { once: true });
+}
+
+// ── V2.9–10 Patch window._adminExtras ────────────────────────
+function _v2PatchExtras() {
+  const ex = window._adminExtras;
+  if (!ex) return;
+
+  // onPatientsLoaded → anima KPIs depois do render
+  const origLoad = ex.onPatientsLoaded.bind(ex);
+  ex.onPatientsLoaded = (patients) => {
+    origLoad(patients);
+    requestAnimationFrame(_v2AnimateKPIsFromDOM);
+  };
+
+  // onTableRender → esconde skeleton + flash count
+  const origRender = ex.onTableRender.bind(ex);
+  ex.onTableRender = (patients) => {
+    origRender(patients);
+    _v2HideSkeleton();
+    _v2FlashFilterResults(patients.length);
+  };
+
+  // toggleFav → heartbeat + toast
+  const origFav = ex.toggleFav.bind(ex);
+  ex.toggleFav = (id) => {
+    origFav(id);
+    const isFav = !!getFavs()[id];
+    _v2Toast(isFav ? 'Adicionada aos favoritos ★' : 'Removida dos favoritos', 'ok', 2000);
+    requestAnimationFrame(() => {
+      const btn = document.querySelector(`.row-fav[data-id="${id}"]`);
+      if (!btn) return;
+      btn.classList.remove('fav-beat');
+      void btn.offsetWidth;
+      btn.classList.add('fav-beat');
+      btn.addEventListener('animationend', () => btn.classList.remove('fav-beat'), { once: true });
+    });
+  };
+
+  // exportCSV → toast de feedback
+  const origExport = ex.exportCSV.bind(ex);
+  ex.exportCSV = () => {
+    const count = (window._extrasFilteredPatients || getPatients()).length;
+    origExport();
+    _v2Toast(`${count} paciente${count !== 1 ? 's' : ''} exportado${count !== 1 ? 's' : ''} para CSV`, 'ok');
+  };
+
+  // Expõe novas APIs
+  ex.toast             = _v2Toast;
+  ex.showSkeleton      = _v2ShowSkeleton;
+  ex.hideSkeleton      = _v2HideSkeleton;
+  ex.flashFilterCount  = _v2FlashFilterResults;
+}
+
+// ── V2 DOMContentLoaded ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v2InitRipple();
+  _v2InitRowAnimation();
+  _v2InitHoverPreview();
+  setTimeout(_v2InitCmdAnimation, 80);
+  _v2PatchExtras();
+  _v2ShowSkeleton(); // skeleton imediato enquanto pacientes carregam
+});
