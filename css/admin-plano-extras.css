@@ -91,3 +91,113 @@
     right: 12px !important;
   }
 }
+
+/* ═══ POLIMENTO V2 ═══ */
+/* micro-interações: ripple, keyboard-nav, stagger, count-up,
+   loading-state, shake, macro-badge, row-hover, block-hover */
+
+/* ── V2.1 Ripple ─────────────────────────────────────────── */
+.ap-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.28);
+  pointer-events: none;
+  animation: ap-ripple-anim 0.5s ease-out forwards;
+}
+@keyframes ap-ripple-anim {
+  from { transform: scale(0); opacity: 0.9; }
+  to   { transform: scale(1); opacity: 0; }
+}
+
+/* ── V2.5 Loading spinner ────────────────────────────────── */
+.ap-spinner {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(45, 106, 86, 0.25);
+  border-top-color: #2D6A56;
+  border-radius: 50%;
+  animation: ap-spin 0.65s linear infinite;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+@keyframes ap-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── V2.6 Shake de erro ──────────────────────────────────── */
+@keyframes ap-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.ap-shake {
+  animation: ap-shake 0.38s ease-in-out;
+  border-color: #E05252 !important;
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.18) !important;
+}
+
+/* ── V2.2 Keyboard nav — item focado no dropdown ─────────── */
+.alim-autocomplete-opt.alim-ac-focused {
+  background: rgba(76, 184, 160, 0.14);
+  outline: 2px solid rgba(76, 184, 160, 0.40);
+  outline-offset: -2px;
+}
+
+/* ── V2.9 Row hover highlight ────────────────────────────── */
+.refeicao-item-row {
+  transition: background 0.12s ease;
+  border-radius: 4px;
+}
+.refeicao-item-row:hover {
+  background: rgba(76, 184, 160, 0.05);
+}
+
+/* ── V2.10 Block hover — borda esquerda animada ──────────── */
+.dynamic-block[data-refid] {
+  border-left: 3px solid transparent;
+  transition: border-color 0.22s ease;
+}
+.dynamic-block[data-refid]:hover {
+  border-left-color: rgba(76, 184, 160, 0.45);
+}
+
+/* ── V2.8 Macro badge popup ──────────────────────────────── */
+.ap-macro-badge {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 12px;
+  background: #1A1A16;
+  border-radius: 100px;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.67rem;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.65);
+}
+.ap-macro-badge .ap-mb-kcal {
+  color: #7EDCC8;
+  font-weight: 600;
+}
+.ap-macro-badge--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── V2.4 Count-up flash no campo de kcal ────────────────── */
+@keyframes ap-value-pop {
+  0%   { background: rgba(76, 184, 160, 0.28); }
+  100% { background: transparent; }
+}
+.ap-value-updated {
+  animation: ap-value-pop 0.9s ease-out forwards;
+  border-radius: 3px;
+}

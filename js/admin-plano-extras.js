@@ -645,3 +645,181 @@ window._adminPlanoExtras = {
   salvarRascunho: salvarRascunhoLocal,
   abrirSubstituicoes: window.abrirSubstituicoes,
 };
+
+// ═══ POLIMENTO V2 ═══
+// 10 micro-interações: ripple, keyboard-nav, stagger, count-up, loading-state,
+// shake, macro-badge, row-hover, block-hover, scroll-to-error
+
+// ── V2.1 RIPPLE NOS BOTÕES ──────────────────────────────────
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#btn-calc-tmb, .btn-subst-inline, [data-ripple]');
+  if (!btn) return;
+  if (getComputedStyle(btn).position === 'static') btn.style.position = 'relative';
+  btn.style.overflow = 'hidden';
+  const r = document.createElement('span');
+  r.className = 'ap-ripple';
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 2;
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;top:${e.clientY - rect.top - size / 2}px`;
+  btn.appendChild(r);
+  r.addEventListener('animationend', () => r.remove(), { once: true });
+});
+
+// ── V2.2 KEYBOARD NAVIGATION NO AUTOCOMPLETE (↑ ↓ Enter Esc) ──
+document.addEventListener('keydown', (e) => {
+  const dropdown = document.querySelector('.alim-autocomplete-dropdown');
+  if (!dropdown) return;
+  const opts = Array.from(dropdown.querySelectorAll('.alim-autocomplete-opt'));
+  if (!opts.length) return;
+  const active = dropdown.querySelector('.alim-ac-focused');
+  const idx = active ? opts.indexOf(active) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    active?.classList.remove('alim-ac-focused');
+    const next = opts[(idx + 1) % opts.length];
+    next.classList.add('alim-ac-focused');
+    next.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    active?.classList.remove('alim-ac-focused');
+    const prev = opts[(idx - 1 + opts.length) % opts.length];
+    prev.classList.add('alim-ac-focused');
+    prev.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && active) {
+    e.preventDefault();
+    active.click();
+  } else if (e.key === 'Escape') {
+    fecharDropdownAutocomplete();
+  }
+});
+
+// ── V2.3 STAGGER DE ENTRADA NAS OPÇÕES DO DROPDOWN ──────────
+new MutationObserver((muts) => {
+  for (const m of muts) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (!node.classList.contains('alim-autocomplete-dropdown')) continue;
+      node.querySelectorAll('.alim-autocomplete-opt').forEach((opt, i) => {
+        opt.style.opacity = '0';
+        opt.style.transform = 'translateY(-5px)';
+        opt.style.transition = `opacity 0.14s ${i * 25}ms ease, transform 0.14s ${i * 25}ms ease`;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          opt.style.opacity = '1';
+          opt.style.transform = 'translateY(0)';
+        }));
+      });
+    }
+  }
+}).observe(document.body, { childList: true });
+
+// ── V2.4 COUNT-UP NOS CAMPOS DE KCAL ────────────────────────
+function _animarCountUp(el, alvo, duracao = 600) {
+  if (!el) return;
+  const inicio = parseFloat(el.value) || 0;
+  if (Math.abs(alvo - inicio) < 1) return;
+  const t0 = performance.now();
+  function tick(t) {
+    const p = Math.min((t - t0) / duracao, 1);
+    el.value = Math.round(inicio + (alvo - inicio) * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      el.classList.add('ap-value-updated');
+      el.addEventListener('animationend', () => el.classList.remove('ap-value-updated'), { once: true });
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── V2.5 LOADING STATE NO BTN-CALC-TMB + WRAP COUNT-UP ──────
+const _origCalcTMB = window.calcularTMBGETPaciente;
+window.calcularTMBGETPaciente = async function () {
+  const kcalEl = document.getElementById('f-kcal-alvo') ||
+                 document.getElementById('f-vet') ||
+                 document.getElementById('f-kcal-dia');
+  const valorAntes = parseFloat(kcalEl?.value) || 0;
+  const btn = document.getElementById('btn-calc-tmb');
+  if (btn && !btn._v2Loading) {
+    btn._v2Loading = true;
+    btn.disabled = true;
+    btn._v2Html = btn.innerHTML;
+    btn.innerHTML = '<span class="ap-spinner"></span> Calculando…';
+  }
+  try {
+    const resultado = await _origCalcTMB();
+    if (resultado && kcalEl) {
+      kcalEl.value = valorAntes;
+      _animarCountUp(kcalEl, resultado.kcalAlvo);
+    }
+    return resultado;
+  } finally {
+    if (btn && btn._v2Loading) {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = btn._v2Html;
+        btn._v2Loading = false;
+      }, 700);
+    }
+  }
+};
+
+// ── V2.6 SHAKE EM CAMPOS COM ERRO NA VALIDAÇÃO ───────────────
+function _shakeEl(el) {
+  if (!el) return;
+  el.classList.remove('ap-shake');
+  void el.offsetWidth; // força reflow para reiniciar animation
+  el.classList.add('ap-shake');
+  el.addEventListener('animationend', () => el.classList.remove('ap-shake'), { once: true });
+}
+
+// ── V2.7 SCROLL SUAVE PARA PRIMEIRO BLOCO COM ERRO ───────────
+const _origAbrirModalVal = window.abrirModalValidacao;
+window.abrirModalValidacao = function () {
+  const { erros } = window.validarPlanoAntesPublicar();
+  if (erros.length) {
+    // Shake nos campos de nome de refeição vazios
+    document.querySelectorAll('.dynamic-block[data-refid] input[name="ref-nome"]').forEach(el => {
+      if (!el.value.trim()) _shakeEl(el);
+    });
+    // Scroll suave para o primeiro bloco de refeição
+    setTimeout(() => {
+      const primeiro = document.querySelector('#refeicoes-container .dynamic-block, .dynamic-block[data-refid]');
+      primeiro?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+  }
+  return _origAbrirModalVal.call(this);
+};
+
+// ── V2.8 MACRO BADGE POPUP AO SELECIONAR ALIMENTO ───────────
+let _lastItemNomeInput = null;
+document.addEventListener('focus', (e) => {
+  if (e.target.matches('input[name="item-nome"]')) _lastItemNomeInput = e.target;
+}, true);
+
+document.addEventListener('click', (e) => {
+  const opt = e.target.closest('.alim-autocomplete-opt');
+  if (!opt || !_lastItemNomeInput || !opt.dataset.kcal) return;
+  const badge = document.createElement('div');
+  badge.className = 'ap-macro-badge';
+  badge.innerHTML = `
+    <span class="ap-mb-kcal">${Math.round(+opt.dataset.kcal)} kcal</span>
+    <span>P ${opt.dataset.ptn}g</span>
+    <span>C ${opt.dataset.cho}g</span>
+    <span>L ${opt.dataset.lip}g</span>
+  `;
+  const rect = _lastItemNomeInput.getBoundingClientRect();
+  badge.style.cssText = `position:fixed;top:${rect.top - 46}px;left:${Math.max(8, rect.left)}px;z-index:3500;`;
+  document.body.appendChild(badge);
+  requestAnimationFrame(() => requestAnimationFrame(() => badge.classList.add('ap-macro-badge--visible')));
+  setTimeout(() => {
+    badge.classList.remove('ap-macro-badge--visible');
+    badge.addEventListener('transitionend', () => badge.remove(), { once: true });
+  }, 2200);
+}, true); // capture: roda antes do handler que fecha o dropdown
+
+// ── V2.9 ROW HOVER + V2.10 BLOCK HOVER (ver css/admin-plano-extras.css) ─
+
+// ── EXPÕE EXTENSÕES V2 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v2: { animarCountUp: _animarCountUp, shakeEl: _shakeEl },
+});
