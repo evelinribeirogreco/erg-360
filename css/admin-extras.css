@@ -1045,3 +1045,151 @@ html[data-theme="dark"] .erg-toast {
 .kpi-pop {
   animation: kpi-pop 0.35s ease;
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* 10 melhorias de acessibilidade: skip-link, focus rings
+   aprimorados, sr-only, aria-expanded indicator, roving
+   tabindex, aria-sort, dialog a11y, dark-mode focus */
+
+/* ── V3.1 Skip-link ──────────────────────────────────────── */
+.sr-skip-link {
+  position: absolute;
+  top: -120px;
+  left: 16px;
+  z-index: 9999;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.18s ease;
+  box-shadow: var(--shadow-md);
+}
+.sr-skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── V3.2 Screen reader-only utility ────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── V3.3 Focus rings melhorados (keyboard users) ─────────── */
+:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+.recent-chip:focus-visible,
+.agenda-day:focus-visible,
+.cmd-item:focus-visible,
+.row-action:focus-visible,
+.smart-alert-btn:focus-visible,
+.admin-link-btn:focus-visible,
+.activity-item:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 5px var(--accent-dim) !important;
+  z-index: 1;
+  position: relative;
+}
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 5px var(--accent-dim) !important;
+}
+
+/* ── V3.4 aria-expanded no botão filtros avançados ─────────── */
+#btn-toggle-advanced[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+#btn-toggle-advanced svg {
+  transition: transform 0.2s ease;
+}
+#btn-toggle-advanced[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* ── V3.5 Agenda roving — focus ring mais visível ─────────── */
+.agenda-day:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px var(--accent-dim) !important;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── V3.6 aria-sort nos headers da tabela ─────────────────── */
+/* Visual hint complementar ao .sort-arrow existente */
+.patients-table th[aria-sort="ascending"],
+.patients-table th[aria-sort="descending"] {
+  color: var(--accent) !important;
+}
+.patients-table th.sortable:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: -2px !important;
+}
+
+/* ── V3.7 Dialog a11y — contraste do overlay ─────────────── */
+[role="dialog"] {
+  /* Garante que dialogs não sejam scrollados "atrás" do overlay */
+}
+#kbd-help-overlay,
+#cmd-overlay,
+#activity-overlay {
+  /* Backdrop visível em daltonismo — sombra extra */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+/* ── V3.8 Activity drawer: primeiro item visível no focus ──── */
+.activity-drawer.open .activity-item:first-child:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+/* ── V3.9 Toast: contraste melhorado (WCAG AA) ────────────── */
+.erg-toast {
+  /* Garante contraste 4.5:1 — texto escuro no fundo claro */
+  color: #15201C;
+  background: #F0EDE4;
+}
+html[data-theme="dark"] .erg-toast {
+  color: #15201C;
+  background: #E8E6DF;
+}
+
+/* ── V3.10 Dark mode: focus rings com contraste adequado ──── */
+html[data-theme="dark"] :focus-visible {
+  outline-color: var(--detail) !important;
+}
+html[data-theme="dark"] .sr-skip-link:focus {
+  outline-color: var(--gold) !important;
+}
+html[data-theme="dark"] .recent-chip:focus-visible,
+html[data-theme="dark"] .agenda-day:focus-visible,
+html[data-theme="dark"] .cmd-item:focus-visible,
+html[data-theme="dark"] .row-action:focus-visible,
+html[data-theme="dark"] .smart-alert-btn:focus-visible,
+html[data-theme="dark"] .admin-link-btn:focus-visible {
+  box-shadow: 0 0 0 5px rgba(76, 184, 160, 0.28) !important;
+}

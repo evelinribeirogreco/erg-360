@@ -1178,3 +1178,315 @@ document.addEventListener('DOMContentLoaded', () => {
   _v2PatchExtras();
   _v2ShowSkeleton(); // skeleton imediato enquanto pacientes carregam
 });
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade: skip-link, focus trap, ARIA live,
+// focus save/restore, aria-dialog, aria-expanded, aria-sort,
+// roving tabindex na agenda, sr-only labels, toast announcer
+
+// ── V3.1 Skip-link ───────────────────────────────────────────
+function _v3InitSkipLink() {
+  if (document.getElementById('erg-skip-link')) return;
+  const main = document.querySelector('main');
+  if (main && !main.id) main.id = 'main-content';
+  const link = document.createElement('a');
+  link.id        = 'erg-skip-link';
+  link.href      = '#main-content';
+  link.className = 'sr-skip-link';
+  link.textContent = 'Ir para o conteúdo principal';
+  link.addEventListener('click', (e) => {
+    const target = document.getElementById('main-content');
+    if (target) {
+      e.preventDefault();
+      target.setAttribute('tabindex', '-1');
+      target.focus();
+    }
+  });
+  document.body.insertAdjacentElement('afterbegin', link);
+}
+
+// ── V3.2 Focus trap helper ───────────────────────────────────
+const _V3_FOCUSABLE = 'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+function _v3GetFocusable(container) {
+  return Array.from(container.querySelectorAll(_V3_FOCUSABLE)).filter(el => {
+    const s = getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && !el.closest('[aria-hidden="true"]');
+  });
+}
+function _v3TrapFocus(container, e) {
+  const focusable = _v3GetFocusable(container);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+  } else {
+    if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+  }
+}
+function _v3InitFocusTrap() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const cmdOpen  = document.getElementById('cmd-overlay')?.style.display === 'flex';
+    const actOpen  = document.getElementById('activity-drawer')?.classList.contains('open');
+    const helpOpen = document.getElementById('kbd-help-overlay')?.style.display === 'flex';
+    if (cmdOpen) {
+      const modal = document.getElementById('cmd-overlay')?.querySelector('.cmd-modal');
+      if (modal) _v3TrapFocus(modal, e);
+    } else if (helpOpen) {
+      const modal = document.querySelector('.kbd-help-modal');
+      if (modal) _v3TrapFocus(modal, e);
+    } else if (actOpen) {
+      const drawer = document.getElementById('activity-drawer');
+      if (drawer) _v3TrapFocus(drawer, e);
+    }
+  });
+}
+
+// ── V3.3 Focus save/restore + aria-dialog via MutationObserver
+function _v3InitFocusSaveRestore() {
+  let focusBeforeCmd      = null;
+  let focusBeforeActivity = null;
+  let focusBeforeHelp     = null;
+
+  // Command palette
+  const cmdOverlay = document.getElementById('cmd-overlay');
+  const cmdModal   = cmdOverlay?.querySelector('.cmd-modal');
+  if (cmdOverlay && cmdModal) {
+    cmdModal.setAttribute('role', 'dialog');
+    cmdModal.setAttribute('aria-modal', 'true');
+    cmdModal.setAttribute('aria-label', 'Busca e comandos (Command Palette)');
+    new MutationObserver(() => {
+      const isOpen = cmdOverlay.style.display === 'flex';
+      if (isOpen && !focusBeforeCmd) {
+        focusBeforeCmd = document.activeElement;
+      } else if (!isOpen && focusBeforeCmd) {
+        focusBeforeCmd.focus?.();
+        focusBeforeCmd = null;
+      }
+    }).observe(cmdOverlay, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // Help modal
+  const helpOverlay = document.getElementById('kbd-help-overlay');
+  const helpModal   = document.querySelector('.kbd-help-modal');
+  if (helpOverlay && helpModal) {
+    helpModal.setAttribute('role', 'dialog');
+    helpModal.setAttribute('aria-modal', 'true');
+    helpModal.setAttribute('aria-label', 'Atalhos de teclado');
+    helpModal.setAttribute('aria-labelledby', 'kbd-help-title');
+    const h = helpModal.querySelector('h3');
+    if (h && !h.id) h.id = 'kbd-help-title';
+    new MutationObserver(() => {
+      const isOpen = helpOverlay.style.display === 'flex';
+      if (isOpen && !focusBeforeHelp) {
+        focusBeforeHelp = document.activeElement;
+        const firstFocusable = _v3GetFocusable(helpModal)[0];
+        firstFocusable?.focus();
+      } else if (!isOpen && focusBeforeHelp) {
+        focusBeforeHelp.focus?.();
+        focusBeforeHelp = null;
+      }
+    }).observe(helpOverlay, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // Activity drawer
+  const actDrawer = document.getElementById('activity-drawer');
+  if (actDrawer) {
+    actDrawer.setAttribute('role', 'dialog');
+    actDrawer.setAttribute('aria-modal', 'true');
+    actDrawer.setAttribute('aria-label', 'Feed de atividades recentes');
+    new MutationObserver(() => {
+      const isOpen = actDrawer.classList.contains('open');
+      if (isOpen && !focusBeforeActivity) {
+        focusBeforeActivity = document.activeElement;
+        const firstFocusable = _v3GetFocusable(actDrawer)[0];
+        firstFocusable?.focus();
+      } else if (!isOpen && focusBeforeActivity) {
+        focusBeforeActivity.focus?.();
+        focusBeforeActivity = null;
+      }
+    }).observe(actDrawer, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+// ── V3.4 ARIA live region para contagem de resultados ────────
+function _v3InitLiveCount() {
+  let live = document.getElementById('erg-live-count');
+  if (!live) {
+    live = document.createElement('div');
+    live.id = 'erg-live-count';
+    live.setAttribute('role', 'status');
+    live.setAttribute('aria-live', 'polite');
+    live.setAttribute('aria-atomic', 'true');
+    live.className = 'sr-only';
+    document.body.appendChild(live);
+  }
+  const ex = window._adminExtras;
+  if (!ex) return;
+  const origRender = ex.onTableRender.bind(ex);
+  ex.onTableRender = (patients) => {
+    origRender(patients);
+    const n = patients.length;
+    live.textContent = n
+      ? `${n} paciente${n !== 1 ? 's' : ''} ${n !== 1 ? 'encontrados' : 'encontrado'}`
+      : 'Nenhum resultado encontrado';
+  };
+}
+
+// ── V3.5 Toast container como live region ────────────────────
+function _v3PatchToastAria() {
+  const ensureAndPatch = () => {
+    const c = document.getElementById('erg-toast-container');
+    if (!c) return;
+    if (!c.hasAttribute('aria-live')) {
+      c.setAttribute('role', 'status');
+      c.setAttribute('aria-live', 'polite');
+      c.setAttribute('aria-atomic', 'false');
+    }
+  };
+  ensureAndPatch();
+  // Re-verifica após 150ms (o container pode ser criado na 1ª chamada de toast)
+  setTimeout(ensureAndPatch, 150);
+}
+
+// ── V3.6 aria-expanded no botão de filtros avançados ─────────
+function _v3InitAriaExpanded() {
+  const btn = document.getElementById('btn-toggle-advanced');
+  const adv = document.getElementById('admin-advanced-filters');
+  if (!btn || !adv) return;
+  adv.setAttribute('role', 'group');
+  adv.setAttribute('aria-label', 'Filtros avançados');
+  btn.setAttribute('aria-controls', 'admin-advanced-filters');
+  const sync = () => btn.setAttribute('aria-expanded', adv.style.display !== 'none' ? 'true' : 'false');
+  sync();
+  btn.addEventListener('click', () => requestAnimationFrame(sync));
+}
+
+// ── V3.7 aria-sort nos cabeçalhos de tabela ordenáveis ───────
+function _v3UpdateAriaSortHeaders() {
+  const sort = window._adminExtras?.getSort?.() || { col: 'nome', dir: 'asc' };
+  document.querySelectorAll('.patients-table th.sortable[data-sort]').forEach(th => {
+    const col = th.dataset.sort;
+    if (col === sort.col) {
+      th.setAttribute('aria-sort', sort.dir === 'asc' ? 'ascending' : 'descending');
+    } else {
+      th.setAttribute('aria-sort', 'none');
+    }
+  });
+}
+function _v3InitSortAria() {
+  // Aplica agora e re-aplica depois de qualquer render da tabela
+  const wrapper = document.getElementById('patients-table-wrapper');
+  if (wrapper) {
+    new MutationObserver(_v3UpdateAriaSortHeaders).observe(wrapper, { childList: true, subtree: true });
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.patients-table th.sortable')) {
+      requestAnimationFrame(_v3UpdateAriaSortHeaders);
+    }
+  });
+}
+
+// ── V3.8 Roving tabindex na widget de agenda (setas ←/→) ─────
+function _v3InitAgendaRoving() {
+  const grid = document.getElementById('admin-agenda');
+  if (!grid) return;
+  const getButtons = () => Array.from(grid.querySelectorAll('.agenda-day'));
+  const resetTabindex = () => {
+    const btns = getButtons();
+    if (!btns.length) return;
+    btns.forEach(b => b.setAttribute('tabindex', '-1'));
+    const today = btns.find(b => b.classList.contains('today')) || btns[0];
+    today.setAttribute('tabindex', '0');
+  };
+  resetTabindex();
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', 'Agenda da semana');
+  grid.addEventListener('keydown', (e) => {
+    const btns = getButtons();
+    const idx  = btns.indexOf(document.activeElement);
+    if (idx < 0) return;
+    let next = -1;
+    if (e.key === 'ArrowRight') next = Math.min(idx + 1, btns.length - 1);
+    else if (e.key === 'ArrowLeft')  next = Math.max(idx - 1, 0);
+    else if (e.key === 'Home')       next = 0;
+    else if (e.key === 'End')        next = btns.length - 1;
+    if (next >= 0) {
+      e.preventDefault();
+      btns.forEach(b => b.setAttribute('tabindex', '-1'));
+      btns[next].setAttribute('tabindex', '0');
+      btns[next].focus();
+    }
+  });
+  // Re-aplica depois de re-render
+  new MutationObserver(resetTabindex).observe(grid, { childList: true });
+}
+
+// ── V3.9 Labels sr-only para ícones de ação (MutationObserver)
+function _v3InitSrActionLabels() {
+  const LABEL_MAP = {
+    'Abrir WhatsApp':        'Abrir WhatsApp',
+    'Abrir dossiê':          'Abrir dossiê da paciente',
+    'Relatório de consulta': 'Ver relatório de consulta',
+    'Favoritar':             'Marcar como favorita',
+  };
+  const patchEl = (el) => {
+    if (el.dataset.v3Sr) return;
+    el.dataset.v3Sr = '1';
+    const title = el.getAttribute('title') || '';
+    const label = LABEL_MAP[title] || title;
+    if (label) el.setAttribute('aria-label', label);
+    // Marca SVGs internos como decorativos
+    el.querySelectorAll('svg').forEach(svg => {
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');
+    });
+  };
+  const patch = () => {
+    document.querySelectorAll('.row-action:not([data-v3-sr])').forEach(patchEl);
+    document.querySelectorAll('.sparkline:not([aria-hidden])').forEach(el => {
+      el.setAttribute('aria-hidden', 'true');
+      el.setAttribute('focusable', 'false');
+    });
+    document.querySelectorAll('.avatar:not([data-v3-sr])').forEach(el => {
+      el.setAttribute('data-v3-sr', '1');
+      // Já tem aria-hidden="true" do avatarHTML()
+    });
+  };
+  patch();
+  const tbody = document.querySelector('.patients-table tbody');
+  if (tbody) new MutationObserver(patch).observe(tbody, { childList: true, subtree: true });
+  const wrapper = document.getElementById('patients-table-wrapper');
+  if (wrapper) new MutationObserver(patch).observe(wrapper, { childList: true, subtree: true });
+}
+
+// ── V3.10 Região ARIA para alertas inteligentes ───────────────
+function _v3PatchAlertsAria() {
+  const sec = document.getElementById('admin-smart-alerts');
+  if (!sec) return;
+  sec.setAttribute('role', 'region');
+  sec.setAttribute('aria-label', 'Alertas inteligentes do dia');
+  // Re-anuncia quando alerts mudam
+  new MutationObserver(() => {
+    const list = sec.querySelector('.smart-alerts-list');
+    if (list && !list.hasAttribute('aria-live')) {
+      list.setAttribute('aria-live', 'polite');
+      list.setAttribute('aria-atomic', 'false');
+    }
+  }).observe(sec, { childList: true, subtree: false });
+}
+
+// ── V3 DOMContentLoaded ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v3InitSkipLink();
+  _v3InitFocusTrap();
+  _v3InitFocusSaveRestore();
+  _v3InitLiveCount();
+  _v3InitSortAria();
+  _v3InitAgendaRoving();
+  _v3InitSrActionLabels();
+  _v3PatchAlertsAria();
+  _v3InitAriaExpanded();
+  _v3PatchToastAria();
+});
