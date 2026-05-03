@@ -1,0 +1,896 @@
+/* ════════════════════════════════════════════════════════════════
+   admin-dossie-extras.css — 20 melhorias UX — ERG 360
+   Dossiê Clínico · Dra. Evelin Ribeiro Greco
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Skip link ──────────────────────────────────────────────── */
+.ded-skip-link {
+  position: absolute;
+  top: -120%;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 18px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 4px 4px;
+  transition: top 0.2s ease;
+}
+.ded-skip-link:focus {
+  top: 0;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── 2. Screen-reader only ─────────────────────────────────────── */
+.ded-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── 3. Loading progress toast ─────────────────────────────────── */
+.ded-toast {
+  position: fixed;
+  bottom: 72px;
+  right: 20px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-left: 3px solid var(--detail, #4CB8A0);
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem;
+  color: var(--text, #1A1A16);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.ded-toast.ded-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.ded-toast-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--detail, #4CB8A0);
+  flex-shrink: 0;
+  animation: ded-dot-pulse 1.1s ease-in-out infinite;
+}
+.ded-toast-ok {
+  color: #2E8B6A;
+  font-weight: 700;
+}
+@keyframes ded-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── 4. Reading progress bar ───────────────────────────────────── */
+.ded-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2100;
+  height: 3px;
+  background: var(--detail, #4CB8A0);
+  width: 0%;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* ── 5. Floating ToC button ────────────────────────────────────── */
+.ded-toc-btn {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-radius: 4px;
+  padding: 10px 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--subtitle, #6B6659);
+  text-transform: uppercase;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ded-toc-btn:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-color: var(--accent, #2D6A56);
+}
+.ded-toc-btn svg {
+  color: var(--detail, #4CB8A0);
+}
+
+/* ── 5. ToC slide-in panel ─────────────────────────────────────── */
+.ded-toc-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1500;
+  width: 280px;
+  background: var(--bg-card, #fff);
+  border-left: 1px solid var(--detail, #4CB8A0);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.ded-toc-panel.ded-toc-open {
+  transform: translateX(0);
+}
+.ded-toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--detail, #4CB8A0);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtitle, #6B6659);
+  flex-shrink: 0;
+}
+.ded-toc-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle, #6B6659);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 2px;
+  transition: color 0.15s ease;
+}
+.ded-toc-close:hover {
+  color: var(--text, #1A1A16);
+}
+.ded-toc-list {
+  padding: 10px 0;
+  flex: 1;
+}
+.ded-toc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: var(--sub, #6B6659);
+  text-align: left;
+  border: none;
+  background: none;
+  width: 100%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ded-toc-item:hover {
+  background: rgba(76, 184, 160, 0.07);
+  color: var(--text, #1A1A16);
+}
+.ded-toc-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1rem;
+  color: var(--detail, #4CB8A0);
+  font-weight: 400;
+  min-width: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ded-toc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1490;
+  background: rgba(0, 0, 0, 0.15);
+  display: none;
+}
+
+/* ── 6. Inline search bar ──────────────────────────────────────── */
+.ded-search-bar {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 1600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ded-search-bar.ded-search-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.ded-search-input {
+  border: none;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text, #1A1A16);
+  background: transparent;
+  min-width: 180px;
+}
+.ded-search-count {
+  font-size: 0.68rem;
+  color: var(--subtitle, #6B6659);
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+  min-width: 55px;
+}
+.ded-search-nav {
+  display: flex;
+  gap: 3px;
+}
+.ded-search-nav-btn {
+  background: none;
+  border: 1px solid var(--detail, #4CB8A0);
+  border-radius: 2px;
+  color: var(--sub, #6B6659);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  transition: background 0.15s ease;
+}
+.ded-search-nav-btn:hover {
+  background: rgba(76, 184, 160, 0.1);
+}
+.ded-search-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle, #6B6659);
+  padding: 2px 6px;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+.ded-search-close:hover {
+  color: var(--text, #1A1A16);
+}
+mark.ded-highlight {
+  background: rgba(201, 168, 76, 0.32);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+mark.ded-highlight-active {
+  background: rgba(201, 168, 76, 0.72);
+  outline: 1px solid var(--gold, #C9A84C);
+}
+
+/* ── 7. Section collapse ───────────────────────────────────────── */
+.ded-section-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.ded-chevron {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  transition: transform 0.25s ease;
+  color: var(--detail, #4CB8A0);
+  vertical-align: middle;
+}
+.ded-section-collapsed .ded-chevron {
+  transform: rotate(-90deg);
+}
+.ded-section-body {
+  overflow: hidden;
+  transition: max-height 0.38s ease-out, opacity 0.3s ease;
+}
+.ded-section-collapsed .ded-section-body {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+/* ── 8. Patient tags ───────────────────────────────────────────── */
+.ded-tags-area {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ded-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-family: 'DM Sans', sans-serif;
+}
+.ded-tag-vip       { background: rgba(201, 168, 76, 0.18); color: #9A7000; }
+.ded-tag-complexo  { background: rgba(179, 48, 48, 0.10);  color: #B33030; }
+.ded-tag-pos-op    { background: rgba(76, 184, 160, 0.15); color: #2D6A56; }
+.ded-tag-gestante  { background: rgba(109, 90, 207, 0.12); color: #5A3E8B; }
+.ded-tag-pediatrico{ background: rgba(58, 94, 139, 0.12);  color: #3A5E8B; }
+.ded-tags-btn {
+  background: none;
+  border: 1px dashed var(--detail, #4CB8A0);
+  border-radius: 2px;
+  color: var(--subtitle, #6B6659);
+  cursor: pointer;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.ded-tags-btn:hover {
+  color: var(--detail, #4CB8A0);
+}
+.ded-tags-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.38);
+}
+.ded-tags-modal-box {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-radius: 6px;
+  padding: 24px;
+  min-width: 300px;
+  max-width: 380px;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+.ded-tags-modal-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--subtitle, #6B6659);
+  margin: 0 0 16px;
+}
+.ded-tags-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.ded-tags-option {
+  border: 1px solid var(--detail, #4CB8A0);
+  border-radius: 2px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: 'DM Sans', sans-serif;
+  background: none;
+  color: var(--sub, #6B6659);
+  transition: all 0.15s ease;
+}
+.ded-tags-option:hover {
+  background: rgba(76, 184, 160, 0.08);
+}
+.ded-tags-option.ded-tags-option-active {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border-color: var(--detail, #4CB8A0);
+}
+.ded-tags-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ded-btn-sm {
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  font-family: 'DM Sans', sans-serif;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-weight: 600;
+}
+.ded-btn-cancel {
+  background: none;
+  border: 1px solid var(--detail, #4CB8A0);
+  color: var(--sub, #6B6659);
+}
+.ded-btn-cancel:hover {
+  background: rgba(76, 184, 160, 0.07);
+}
+.ded-btn-confirm {
+  background: var(--detail, #4CB8A0);
+  border: 1px solid var(--detail, #4CB8A0);
+  color: #fff;
+}
+.ded-btn-confirm:hover {
+  background: var(--accent, #2D6A56);
+  border-color: var(--accent, #2D6A56);
+}
+
+/* ── 9–12 + 18–20. Action toolbar ─────────────────────────────── */
+.ded-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  background: var(--bg-card, #fff);
+  border-bottom: 1px solid rgba(76, 184, 160, 0.35);
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+.ded-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.67rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(76, 184, 160, 0.4);
+  border-radius: 2px;
+  background: none;
+  color: var(--sub, #6B6659);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.ded-toolbar-btn:hover {
+  background: rgba(76, 184, 160, 0.09);
+  color: var(--text, #1A1A16);
+  border-color: var(--detail, #4CB8A0);
+}
+.ded-toolbar-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.ded-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(76, 184, 160, 0.3);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+.ded-toolbar-spacer {
+  flex: 1;
+}
+.ded-font-indicator {
+  font-size: 0.64rem;
+  color: var(--subtitle, #6B6659);
+  font-family: 'DM Sans', sans-serif;
+  padding: 0 3px;
+  min-width: 34px;
+  text-align: center;
+}
+
+/* ── 13. Dark mode ─────────────────────────────────────────────── */
+body.ded-dark {
+  --bg-primary:   #181c22;
+  --bg-secondary: #1e242c;
+  --bg-card:      #22282f;
+  --bg2:          #272d35;
+  --text:         #e4e4e0;
+  --text-light:   #a0a090;
+  --subtitle:     #7a7a70;
+  --sub:          #a0a090;
+  --detail:       #3d9c88;
+  --accent:       #2a5e4c;
+  --border:       #303840;
+}
+body.ded-dark .sidebar {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--detail) !important;
+}
+body.ded-dark .ded-toolbar {
+  background: var(--bg-card) !important;
+  border-bottom-color: rgba(61, 156, 136, 0.3) !important;
+}
+body.ded-dark .ded-toc-panel {
+  background: var(--bg-card) !important;
+  border-left-color: var(--detail) !important;
+}
+body.ded-dark .ded-search-bar {
+  background: var(--bg-card) !important;
+  border-color: var(--detail) !important;
+}
+body.ded-dark .ded-toc-btn,
+body.ded-dark .ded-toast {
+  background: var(--bg-card) !important;
+  border-color: var(--detail) !important;
+  color: var(--text) !important;
+}
+body.ded-dark .dos-documento,
+body.ded-dark .dos-perfil-bloco,
+body.ded-dark .dos-acomp-bloco,
+body.ded-dark .dos-cenario-card,
+body.ded-dark .dos-dx-item,
+body.ded-dark .dos-subobj-item,
+body.ded-dark .dos-risco-card,
+body.ded-dark .dos-gargalos-lista,
+body.ded-dark .dos-fases-doc,
+body.ded-dark .dos-recs-grid,
+body.ded-dark .dos-ajustes-grid,
+body.ded-dark .dos-proximos-lista,
+body.ded-dark .dos-kcal-destaque,
+body.ded-dark .dos-ind-card,
+body.ded-dark .dos-tl-kpi,
+body.ded-dark .dos-fisio-item,
+body.ded-dark .dos-rec-item {
+  background: var(--bg-card) !important;
+}
+body.ded-dark .dos-kv,
+body.ded-dark .dos-secao,
+body.ded-dark .dos-capa,
+body.ded-dark .dos-sec-header,
+body.ded-dark .dos-gargalo-linha,
+body.ded-dark .dos-fase-doc,
+body.ded-dark .dos-ajuste-card,
+body.ded-dark .dos-acomp-item,
+body.ded-dark .dos-rec-item,
+body.ded-dark .dos-proximo-item {
+  border-color: var(--border) !important;
+}
+
+/* ── 14. Presentation mode ─────────────────────────────────────── */
+body.ded-presentation .dos-documento {
+  font-size: 1.18em;
+}
+body.ded-presentation .dos-capa-nome  { font-size: 3.6rem !important; }
+body.ded-presentation .dos-sec-titulo { font-size: 1.5rem  !important; }
+body.ded-presentation .dos-kv-label,
+body.ded-presentation .dos-kv-valor   { font-size: 0.86rem !important; }
+body.ded-presentation .dos-perfil-desc,
+body.ded-presentation .dos-gargalo-mec,
+body.ded-presentation .dos-risco-desc,
+body.ded-presentation .dos-conclusao-texto { font-size: 0.88rem !important; }
+body.ded-presentation .sidebar { display: none !important; }
+body.ded-presentation .mobile-header { display: none !important; }
+body.ded-presentation .dashboard-layout { display: block !important; }
+body.ded-presentation .main-content { padding: 16px 48px 48px !important; margin: 0 !important; }
+body.ded-presentation .ded-toc-btn { display: none !important; }
+
+.ded-presentation-exit {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 2200;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  padding: 6px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: none;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+body.ded-presentation .ded-presentation-exit {
+  display: block;
+}
+
+/* ── 15. Sticky notes ──────────────────────────────────────────── */
+.ded-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px dashed rgba(201, 168, 76, 0.6);
+  border-radius: 2px;
+  color: #C9A84C;
+  padding: 2px 8px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s ease;
+  margin-left: 10px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.ded-note-btn:hover {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: #C9A84C;
+}
+.ded-note-area {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(201, 168, 76, 0.06);
+  border: 1px dashed rgba(201, 168, 76, 0.5);
+  border-radius: 2px;
+}
+.ded-note-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #C9A84C;
+  margin-bottom: 6px;
+}
+.ded-note-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  color: var(--text, #1A1A16);
+  resize: vertical;
+  min-height: 56px;
+  outline: none;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+/* ── 16. Back-to-top button ────────────────────────────────────── */
+.ded-back-top {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 900;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease;
+  transform: translateY(8px);
+}
+.ded-back-top.ded-back-top-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.ded-back-top:hover {
+  background: var(--detail, #4CB8A0);
+}
+
+/* ── 17. Smart insights panel ──────────────────────────────────── */
+.ded-insights-panel {
+  margin-bottom: 20px;
+  border: 1px solid rgba(76, 184, 160, 0.4);
+  border-left: 3px solid var(--detail, #4CB8A0);
+  background: rgba(76, 184, 160, 0.04);
+  padding: 14px 18px;
+  border-radius: 0 2px 2px 0;
+}
+.ded-insights-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ded-insights-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--subtitle, #6B6659);
+  margin: 0;
+  flex: 1;
+}
+.ded-insights-count {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem;
+  color: var(--detail, #4CB8A0);
+  line-height: 1;
+  font-weight: 400;
+}
+.ded-insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ded-insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.71rem;
+  color: var(--sub, #6B6659);
+  line-height: 1.45;
+}
+.ded-insight-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.ded-insight-critico .ded-insight-dot { background: #B33030; }
+.ded-insight-atencao .ded-insight-dot { background: #B8860B; }
+.ded-insight-info    .ded-insight-dot { background: var(--detail, #4CB8A0); }
+
+/* ── 19. Keyboard help overlay ─────────────────────────────────── */
+.ded-kb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.ded-kb-box {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-radius: 6px;
+  padding: 28px;
+  min-width: 340px;
+  max-width: 440px;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+.ded-kb-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--subtitle, #6B6659);
+  margin: 0 0 18px;
+}
+.ded-kb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.ded-kb-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.74rem;
+  color: var(--sub, #6B6659);
+}
+.ded-kb-key {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.66rem;
+  background: rgba(76, 184, 160, 0.09);
+  border: 1px solid rgba(76, 184, 160, 0.3);
+  border-radius: 2px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  min-width: 72px;
+  text-align: center;
+  color: var(--text, #1A1A16);
+}
+.ded-kb-close-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 8px;
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+.ded-kb-close-btn:hover {
+  background: var(--accent, #2D6A56);
+}
+
+/* ── General notification toast ────────────────────────────────── */
+.ded-notif {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3100;
+  padding: 9px 18px;
+  border-radius: 4px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.ded-notif.ded-notif-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.ded-notif-error {
+  background: #B33030;
+}
+
+/* ── Print: hide extras UI ─────────────────────────────────────── */
+@media print {
+  .ded-toolbar,
+  .ded-toc-btn,
+  .ded-toc-panel,
+  .ded-toc-overlay,
+  .ded-search-bar,
+  .ded-back-top,
+  .ded-presentation-exit,
+  .ded-note-btn,
+  .ded-progress-bar,
+  .ded-toast,
+  .ded-notif,
+  .ded-insights-panel { display: none !important; }
+
+  .ded-section-collapsed .ded-section-body {
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+  .ded-chevron { display: none !important; }
+  .ded-note-area {
+    border: 1px solid #C9A84C !important;
+    background: rgba(201, 168, 76, 0.05) !important;
+  }
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ded-toc-btn  { right: 6px; padding: 8px 6px; font-size: 0; }
+  .ded-toc-btn span { display: none; }
+  .ded-toc-panel { width: min(280px, 90vw); }
+  .ded-toolbar   { padding: 5px 8px; gap: 4px; }
+  .ded-toolbar-btn { padding: 3px 8px; font-size: 0.62rem; }
+  .ded-search-bar { left: 12px; right: 12px; transform: none; width: calc(100% - 24px); }
+  .ded-search-bar.ded-search-open { transform: none; }
+  .ded-search-input { min-width: 100px; }
+}
