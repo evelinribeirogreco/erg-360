@@ -161,9 +161,13 @@
     }
   </style>  <link rel="stylesheet" href="css/theme-nutri.css">
   <link rel="stylesheet" href="css/plano-extras.css">
+  <link rel="stylesheet" href="css/plano-paciente-extras.css">
   <script type="module" src="js/plano-extras.js"></script>
+  <script type="module" src="js/plano-paciente-extras.js"></script>
 </head>
 <body>
+
+<a href="#main-content" class="skip-nav">Ir ao conteúdo</a>
 
 <div class="page-header">
   <div class="page-header-name" id="paciente-nome">—</div>
@@ -175,7 +179,7 @@
   <div class="tab active" data-ref="resumo" onclick="mudarTab('resumo', this)">Resumo</div>
 </div>
 
-<div class="page-content">
+<div class="page-content" id="main-content">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
     <a href="dashboard.html" class="back-link">← Meu painel</a>
     <div id="pp-pdf-actions" style="display:none;gap:8px;">
