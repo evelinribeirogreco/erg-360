@@ -254,10 +254,12 @@
       .editor-layout { grid-template-columns: 1fr; height: auto; }
       .panel-left, .panel-right { border: none; border-bottom: 1px solid var(--detail); }
     }
-  </style>  <link rel="stylesheet" href="css/theme-nutri.css">
+  </style>
+  <link rel="stylesheet" href="css/theme-nutri.css">
+  <link rel="stylesheet" href="css/plano-editor-extras.css">
 
 </head>
-<body>
+<body class="plano-editor-page">
 
 <header class="header">
   <div class="header-left">
@@ -736,5 +738,6 @@ function mostrarStatus(msg, tipo) {
   setTimeout(() => el.className = 'status-msg', 4000);
 }
 </script>
+<script src="js/plano-editor-extras.js"></script>
 </body>
 </html>

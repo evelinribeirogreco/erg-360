@@ -1,0 +1,237 @@
+/* ============================================================
+   ERG 360 — plano-editor-extras.css
+   V1 — 20 melhorias UX: toast, ripple, pulse, pct labels,
+        busca, skip link, draft banner, print, aria, focus
+   ============================================================ */
+
+/* ═══ POLIMENTO V1 ═══ */
+
+/* ── SKIP LINK ────────────────────────────────────────────── */
+.pe-skip-link {
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  background: var(--text, #1A1A16);
+  color: var(--bg, #F7F6F2);
+  padding: 8px 18px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.pe-skip-link:focus { top: 8px; }
+
+/* ── TOAST SYSTEM ─────────────────────────────────────────── */
+#pe-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.pe-toast {
+  padding: 10px 18px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  background: var(--sub, #6B6659);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.22s, transform 0.22s;
+  pointer-events: none;
+  min-width: 180px;
+}
+.pe-toast--show   { opacity: 1; transform: none; }
+.pe-toast--ok     { background: var(--ok, #5A8A6A); }
+.pe-toast--err    { background: var(--danger, #B85C38); }
+.pe-toast--info   { background: var(--sub, #6B6659); }
+
+/* ── RIPPLE ───────────────────────────────────────────────── */
+.save-btn,
+.btn-add,
+.btn-cancel,
+.modelo-item,
+.back-btn {
+  position: relative;
+  overflow: hidden;
+}
+.pe-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(0);
+  animation: pe-ripple-anim 0.6s linear forwards;
+  pointer-events: none;
+}
+@keyframes pe-ripple-anim {
+  from { transform: scale(0); opacity: 0.4; }
+  to   { transform: scale(4); opacity: 0; }
+}
+
+/* ── PULSE AO ADICIONAR ───────────────────────────────────── */
+@keyframes pe-pulse-anim {
+  0%   { box-shadow: 0 0 0 0   rgba(76, 184, 160, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(76, 184, 160, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(76, 184, 160, 0); }
+}
+.pe-pulse { animation: pe-pulse-anim 0.7s ease; }
+
+/* ── LABELS DE % DA META ──────────────────────────────────── */
+.pe-bar-pct {
+  font-size: 0.63rem;
+  letter-spacing: 0.08em;
+  color: var(--sub, #6B6659);
+  min-height: 14px;
+  margin-top: 3px;
+  transition: color 0.25s;
+}
+.pe-pct--good { color: var(--ok, #5A8A6A); }
+.pe-pct--over { color: var(--danger, #B85C38); font-weight: 400; }
+
+/* ── BOTÃO LIMPAR BUSCA ───────────────────────────────────── */
+.pe-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--sub, #6B6659);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s;
+}
+.pe-search-clear:hover { color: var(--danger, #B85C38); }
+
+/* ── FOCO VIA TECLADO NA BUSCA ────────────────────────────── */
+.pe-search-focused {
+  background: var(--bg2, #F0EDE6) !important;
+  outline: 1px solid var(--detail, #4CB8A0);
+  outline-offset: -1px;
+}
+
+/* ── BANNER RASCUNHO ──────────────────────────────────────── */
+.pe-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: #EDF4EE;
+  border-left: 3px solid var(--detail, #4CB8A0);
+  font-size: 0.8rem;
+  color: var(--text, #1A1A16);
+}
+.pe-draft-msg { flex: 1; }
+.pe-draft-btns { display: flex; gap: 8px; }
+.pe-draft-yes,
+.pe-draft-no {
+  padding: 6px 14px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s, background 0.15s;
+}
+.pe-draft-yes {
+  background: var(--text, #1A1A16);
+  color: var(--bg, #F7F6F2);
+}
+.pe-draft-yes:hover { opacity: 0.82; }
+.pe-draft-no {
+  background: transparent;
+  color: var(--sub, #6B6659);
+  border-color: var(--detail, #4CB8A0);
+}
+.pe-draft-no:hover { background: var(--bg2, #F0EDE6); }
+
+/* ── BOTÃO IMPRIMIR + GRUPO DE AÇÕES ─────────────────────── */
+.pe-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pe-print-btn {
+  font-family: 'Jost', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sub, #6B6659);
+  background: transparent;
+  border: 1px solid var(--bg2, #F0EDE6);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.pe-print-btn:hover {
+  border-color: var(--detail, #4CB8A0);
+  color: var(--text, #1A1A16);
+}
+
+/* ── FOCUS RING MELHORADO ─────────────────────────────────── */
+.plano-editor-page :focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* ── ESTILOS DE IMPRESSÃO ─────────────────────────────────── */
+@media print {
+  .header,
+  .panel-left,
+  .panel-right,
+  .qty-popup,
+  #pe-toast-container,
+  .pe-print-btn,
+  .item-delete,
+  .pe-draft-banner,
+  .pe-skip-link {
+    display: none !important;
+  }
+  .editor-layout {
+    display: block !important;
+    height: auto !important;
+  }
+  .panel-center {
+    padding: 12px !important;
+    overflow: visible !important;
+  }
+  body { background: #fff !important; }
+  .refeicao-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .plano-title-input {
+    font-size: 1.4rem !important;
+  }
+}
+
+/* ── MOBILE: sticky totais ────────────────────────────────── */
+@media (max-width: 900px) {
+  .panel-right {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    box-shadow: 0 -2px 12px rgba(74, 60, 46, 0.08);
+  }
+  .pe-print-btn { display: none; }
+}
