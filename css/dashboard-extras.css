@@ -1,0 +1,224 @@
+/* ═══ POLIMENTO V1 ═══ */
+/* 20 melhorias visuais: skip-link, scroll-progress, section-reveal,
+   card-stagger, ripple, score-pulse, toast-bar, hamburger-active,
+   bottom-nav-hide, tip-stagger, nav-indicator, date-rel, sr-only,
+   dark-transition, card-lift, grid-focus, fab-pulse, a11y-outline */
+
+/* ── Skip link ─────────────────────────────────────────────────────────── */
+.db-skip-link {
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transition: top 0.15s;
+}
+.db-skip-link:focus {
+  top: 16px;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── Scroll progress bar ────────────────────────────────────────────────── */
+#db-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--detail);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.1s linear;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+/* ── Section reveal ─────────────────────────────────────────────────────── */
+.db-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+.db-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Quick card stagger ─────────────────────────────────────────────────── */
+.db-card-hidden {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease, background 0.15s, border-color 0.15s, box-shadow 0.2s;
+}
+.db-card-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Quick card lift on hover/focus ─────────────────────────────────────── */
+.db-quick-card:hover,
+.db-quick-card:focus-visible {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  outline: none;
+}
+.db-quick-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Ripple ─────────────────────────────────────────────────────────────── */
+.db-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.18);
+  transform: scale(0);
+  animation: db-ripple-anim 0.55s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes db-ripple-anim {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* ── Score circle pulse ─────────────────────────────────────────────────── */
+.db-score-pulse {
+  animation: db-score-pulse-anim 0.9s ease-out;
+}
+@keyframes db-score-pulse-anim {
+  0%   { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0.5); }
+  60%  { box-shadow: 0 0 0 10px rgba(76, 184, 160, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0); }
+}
+
+/* ── Toast progress bar ─────────────────────────────────────────────────── */
+.db-toast-bar {
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  transform-origin: left;
+}
+@keyframes db-toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* ── Hamburger active animation ─────────────────────────────────────────── */
+.hamburger--active span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburger--active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger--active span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+.hamburger span {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* ── Bottom nav auto-hide ────────────────────────────────────────────────── */
+.bottom-nav {
+  transition: transform 0.28s ease;
+}
+.bottom-nav--hidden {
+  transform: translateY(100%);
+}
+
+/* ── Tip cards stagger ──────────────────────────────────────────────────── */
+.db-tip-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.db-tip-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Sidebar nav indicator ──────────────────────────────────────────────── */
+.db-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  background: var(--detail);
+  border-radius: 0 2px 2px 0;
+  animation: db-indicator-in 0.25s ease;
+}
+@keyframes db-indicator-in {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.sidebar .nav-item {
+  position: relative;
+}
+
+/* ── Relative date badge ────────────────────────────────────────────────── */
+.db-date-rel {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 20px;
+  vertical-align: middle;
+}
+
+/* ── Screen reader only ──────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Dark mode smooth transition ────────────────────────────────────────── */
+.db-theme-transition,
+.db-theme-transition * {
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease !important;
+}
+
+/* ── FAB hover enhancement ──────────────────────────────────────────────── */
+.fab-checkin:hover,
+.fab-checkin:focus-visible {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: var(--shadow-lg);
+}
+.fab-checkin:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* ── Grid focus outline ─────────────────────────────────────────────────── */
+.bottom-nav-item:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
