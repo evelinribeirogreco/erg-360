@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/admin.css">
   <link rel="stylesheet" href="css/theme-nutri.css">
   <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/admin-relatorio-extras.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body id="admin-root">
@@ -55,7 +56,7 @@
       </div>
     </nav>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content" role="main" aria-label="Relatório de consulta">
       <div id="rel-mount">
         <!-- Loading state -->
         <div class="page-header fade-up">
@@ -360,6 +361,7 @@
     });
   </script>
 
+  <script src="js/admin-relatorio-extras.js" defer></script>
   <script type="module" src="js/relatorio-consulta.js"></script>
 </body>
 </html>
