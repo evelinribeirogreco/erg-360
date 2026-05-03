@@ -545,3 +545,221 @@
     init();
   }
 })();
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade avançada
+// Não duplica: aria-live polite, skip-link, focus-trap modal confirm/gerador,
+//              aria-label botões, role=progressbar, role=alert, role=status, sr-only, validação inline.
+
+(function () {
+  'use strict';
+
+  // V3-1. Anunciar mudança de view via MutationObserver ─────────────────────
+  function initViewAnnouncer() {
+    const VIEWS = { 'view-lista': 'Lista de Fases', 'view-nova': 'Formulário de Fase' };
+    Object.entries(VIEWS).forEach(([id, name]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(() => {
+        if (el.style.display === 'none') return;
+        const live = document.getElementById('extras-aria-live');
+        if (live) { live.textContent = ''; requestAnimationFrame(() => { live.textContent = `Visualizando: ${name}`; }); }
+      }).observe(el, { attributes: true, attributeFilter: ['style'] });
+    });
+  }
+
+  // V3-2. aria-busy durante carregamento dos cards de fase ──────────────────
+  function initAriaLoadingStates() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+    let prevBusy = !!wrapper.querySelector('.admin-table-skeleton');
+    if (prevBusy) wrapper.setAttribute('aria-busy', 'true');
+    new MutationObserver(() => {
+      const busy = !!wrapper.querySelector('.admin-table-skeleton');
+      if (busy === prevBusy) return;
+      prevBusy = busy;
+      wrapper.setAttribute('aria-busy', String(busy));
+      if (!busy) {
+        const n = wrapper.querySelectorAll('[data-v3-card]').length;
+        if (n > 0) {
+          const live = document.getElementById('extras-aria-live');
+          if (live) { live.textContent = ''; requestAnimationFrame(() => { live.textContent = `${n} fase${n !== 1 ? 's' : ''} carregada${n !== 1 ? 's' : ''}.`; }); }
+        }
+      }
+    }).observe(wrapper, { childList: true, subtree: true });
+  }
+
+  // V3-3. Restaurar foco após fechar modal confirm ───────────────────────────
+  function initFocusRestoreOnModalClose() {
+    let lastFocus = null;
+    document.addEventListener('focusin', (e) => {
+      if (document.querySelector('.confirm-backdrop')) return;
+      if (['BUTTON','A','INPUT','SELECT','TEXTAREA'].includes(e.target?.tagName)) lastFocus = e.target;
+    }, true);
+    new MutationObserver((mutations) => {
+      mutations.forEach(m => m.removedNodes.forEach(node => {
+        if (node.nodeType === 1 && node.classList?.contains('confirm-backdrop')) {
+          if (lastFocus && document.contains(lastFocus)) requestAnimationFrame(() => lastFocus.focus());
+        }
+      }));
+    }).observe(document.body, { childList: true });
+  }
+
+  // V3-4. Roving tabindex nos cards de fase ─────────────────────────────────
+  function initCardRovingTabindex() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+
+    function tagCards() {
+      wrapper.querySelectorAll('[style*="border:1px solid"]:not([data-v3-card])').forEach(card => {
+        card.setAttribute('data-v3-card', '');
+        card.setAttribute('role', 'listitem');
+        if (!card.getAttribute('tabindex')) card.setAttribute('tabindex', '-1');
+      });
+      const all = wrapper.querySelectorAll('[data-v3-card]');
+      if (all.length && all[0].getAttribute('tabindex') === '-1') all[0].setAttribute('tabindex', '0');
+    }
+
+    wrapper.addEventListener('keydown', (e) => {
+      if (!['ArrowUp','ArrowDown','Home','End'].includes(e.key)) return;
+      const all = Array.from(wrapper.querySelectorAll('[data-v3-card]'));
+      const idx = all.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      const next = e.key === 'ArrowDown' ? Math.min(idx + 1, all.length - 1)
+                 : e.key === 'ArrowUp'   ? Math.max(idx - 1, 0)
+                 : e.key === 'End'       ? all.length - 1 : 0;
+      all.forEach((c, i) => c.setAttribute('tabindex', i === next ? '0' : '-1'));
+      all[next].focus();
+    });
+
+    new MutationObserver(tagCards).observe(wrapper, { childList: true });
+    tagCards();
+  }
+
+  // V3-5. aria-controls + aria-expanded nos nav items ──────────────────────
+  function enrichNavAriaControls() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const MAP = { "showView('lista')": 'view-lista', "showView('nova')": 'view-nova' };
+    navItems.forEach(item => {
+      const oc = item.getAttribute('onclick') || '';
+      const key = Object.keys(MAP).find(k => oc.includes(k));
+      if (!key) return;
+      const panelId = MAP[key];
+      item.setAttribute('aria-controls', panelId);
+      const panel = document.getElementById(panelId);
+      if (panel) {
+        item.setAttribute('aria-expanded', String(panel.style.display !== 'none'));
+        new MutationObserver(() => {
+          item.setAttribute('aria-expanded', String(panel.style.display !== 'none'));
+        }).observe(panel, { attributes: true, attributeFilter: ['style'] });
+      }
+    });
+  }
+
+  // V3-6. aria-describedby nos campos com dica contextual ───────────────────
+  function enrichFieldDescriptions() {
+    const HINTS = [
+      { id: 'f-fim',       text: 'Calculada automaticamente com base na data de início e duração' },
+      { id: 'f-dicas',     text: 'Cada linha se torna um item de dica visível para a paciente' },
+      { id: 'f-duracao',   text: 'Entre 1 e 52 semanas' },
+      { id: 'f-meta-peso', text: 'Use valor negativo para meta de perda. Exemplo: -2.5 para perder 2,5 kg' },
+      { id: 'f-restricoes',text: 'Separe os alimentos por vírgula' },
+      { id: 'f-permitidos',text: 'Separe os alimentos por vírgula' },
+    ];
+    HINTS.forEach(({ id, text }) => {
+      const field = document.getElementById(id);
+      if (!field || document.getElementById(`${id}-v3d`)) return;
+      const p = document.createElement('p');
+      p.id = `${id}-v3d`;
+      p.className = 'sr-only';
+      p.textContent = text;
+      field.parentNode?.appendChild(p);
+      const prev = (field.getAttribute('aria-describedby') || '').trim();
+      field.setAttribute('aria-describedby', prev ? `${prev} ${id}-v3d` : `${id}-v3d`);
+    });
+  }
+
+  // V3-7. Atalhos Alt+N / Alt+L + aria-keyshortcuts ─────────────────────────
+  function initKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+      if ((e.key === 'n' || e.key === 'N') && typeof window.showView === 'function') {
+        e.preventDefault(); window.showView('nova');
+      } else if ((e.key === 'l' || e.key === 'L') && typeof window.showView === 'function') {
+        e.preventDefault(); window.showView('lista');
+      }
+    });
+    document.querySelectorAll('.nav-item').forEach(item => {
+      const oc = item.getAttribute('onclick') || '';
+      if (oc.includes("showView('lista')")) item.setAttribute('aria-keyshortcuts', 'Alt+L');
+      if (oc.includes("showView('nova')"))  item.setAttribute('aria-keyshortcuts', 'Alt+N');
+    });
+  }
+
+  // V3-8. Live region assertiva para erros de validação ─────────────────────
+  function injectAndPatchFormErrors() {
+    if (!document.getElementById('v3-assertive-live')) {
+      const el = document.createElement('div');
+      el.id = 'v3-assertive-live';
+      el.className = 'sr-only';
+      el.setAttribute('aria-live', 'assertive');
+      el.setAttribute('aria-atomic', 'true');
+      el.setAttribute('role', 'alert');
+      document.body.appendChild(el);
+    }
+    const form = document.getElementById('fase-form');
+    if (!form) return;
+    form.addEventListener('submit', () => {
+      setTimeout(() => {
+        const errs = Array.from(form.querySelectorAll('.field-error-msg.visible'))
+          .map(e => e.textContent.trim()).filter(Boolean);
+        if (!errs.length) return;
+        const live = document.getElementById('v3-assertive-live');
+        if (!live) return;
+        live.textContent = '';
+        requestAnimationFrame(() => { live.textContent = `${errs.length} erro${errs.length > 1 ? 's' : ''}: ${errs.join('; ')}`; });
+      }, 300);
+    });
+  }
+
+  // V3-9. Semântica de lista no wrapper de fases ────────────────────────────
+  function enrichListSemantics() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper || wrapper.getAttribute('role') === 'list') return;
+    wrapper.setAttribute('role', 'list');
+    wrapper.setAttribute('aria-label', 'Fases do plano de tratamento');
+  }
+
+  // V3-10. aria-label nos landmarks principais ──────────────────────────────
+  function enrichLandmarks() {
+    const main = document.querySelector('.main-content');
+    if (main && !main.getAttribute('aria-label')) {
+      main.setAttribute('aria-label', 'Gerenciamento de fases');
+      if (main.tagName !== 'MAIN' && !main.getAttribute('role')) main.setAttribute('role', 'main');
+    }
+    const nav = document.querySelector('.sidebar');
+    if (nav && !nav.getAttribute('aria-label')) nav.setAttribute('aria-label', 'Navegação de fases');
+  }
+
+  // ── Init V3 ───────────────────────────────────────────────────────────────
+  function initV3() {
+    enrichLandmarks();
+    enrichListSemantics();
+    enrichNavAriaControls();
+    enrichFieldDescriptions();
+    initKeyboardShortcuts();
+    initViewAnnouncer();
+    initAriaLoadingStates();
+    initFocusRestoreOnModalClose();
+    initCardRovingTabindex();
+    injectAndPatchFormErrors();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV3);
+  } else {
+    initV3();
+  }
+})();

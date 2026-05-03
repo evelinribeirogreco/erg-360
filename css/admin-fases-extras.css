@@ -336,3 +336,88 @@
     text-align: center;
   }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* V3-1. prefers-reduced-motion — desativa animações para quem prefere ────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .view-extras-fade,
+  .confirm-backdrop,
+  .confirm-box,
+  #no-active-alert {
+    animation: none !important;
+  }
+}
+
+/* V3-2. prefers-contrast — reforça bordas e pesos para alto contraste ───── */
+@media (prefers-contrast: more) {
+  .confirm-box {
+    border: 2px solid var(--text);
+  }
+  .confirm-cancel {
+    border: 2px solid var(--text);
+    color: var(--text);
+  }
+  .confirm-ok {
+    background: #000;
+    border: 2px solid #000;
+  }
+  #no-active-alert {
+    border-left-width: 4px;
+    font-weight: 600;
+  }
+  .field-error-msg.visible {
+    font-weight: 600;
+  }
+  #form-dirty-indicator.visible {
+    border-width: 2px;
+    font-weight: 600;
+  }
+  .extras-skip-link:focus {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* V3-3. focus-visible aprimorado nos cards de fase ─────────────────────── */
+[data-v3-card]:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 3px;
+}
+[data-v3-card]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* V3-4. aria-busy — feedback visual durante carregamento ───────────────── */
+#fases-lista-wrapper[aria-busy="true"] {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+#fases-lista-wrapper[aria-busy="false"] {
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+/* V3-5. Atalhos de teclado visíveis no sidebar quando em foco ───────────── */
+.nav-item[aria-keyshortcuts]::after {
+  content: attr(aria-keyshortcuts);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.5rem;
+  letter-spacing: 0.07em;
+  color: var(--subtitle);
+  opacity: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.sidebar:focus-within .nav-item[aria-keyshortcuts]::after {
+  opacity: 0.7;
+}
