@@ -1,24 +1,31 @@
 // js/admin-checkins-extras.js
-// ═══ POLIMENTO V1 ═══
-// 18 melhorias UX: skip-link, aria-live, toast global, atalhos de teclado,
-// ripple nav, persistência de período, scroll-progress, back-to-top,
-// export CSV, filtros rápidos, trend indicators, streak treino,
-// melhor/pior dia, completude, correlação sono-energia,
-// ordenação de colunas, row quality gradient, rich tooltips
+// ═══ POLIMENTO V2 ═══
+// 25 melhorias UX — V1 (18) + V2 (7)
+// V1: skip-link, aria-live, toast, atalhos (1-4+Esc), ripple, scroll-progress,
+//     back-to-top, período persistente, trends, streak, melhor/pior, completude,
+//     correlação sono↔energia, export CSV, filtros rápidos, ordenação colunas,
+//     row-quality gradient, rich tooltips
+// V2: dark mode (D), modo apresentação (P), smart alerts, badge de risco,
+//     heatmap de adesão, busca textual no diário, painel de atalhos (?)
 
 const _PERIOD_KEY = 'erg_acheckins_period';
+const _DARK_KEY   = 'erg_acheckins_dark';
+const _APRES_KEY  = 'erg_acheckins_apres';
 
-window._adminCheckinsExtras = { version: 1, showToast };
+window._adminCheckinsExtras = { version: 2, showToast };
 
 document.addEventListener('DOMContentLoaded', () => {
-  initSkipLink();
-  initAriaLive();
-  initToastSystem();
-  initKeyboardShortcuts();
-  initRippleNavItems();
-  initScrollProgress();
-  initBackToTop();
-  restorePeriodPreference();
+  initSkipLink();            // 1
+  initAriaLive();            // 2
+  initToastSystem();         // 3
+  initKeyboardShortcuts();   // 4 (+ D, P, ?)
+  initRippleNavItems();      // 5
+  initScrollProgress();      // 6
+  initBackToTop();           // 7
+  restorePeriodPreference(); // 8
+  initDarkMode();            // 19
+  initModoApresentacao();    // 20
+  initPainelAtalhos();       // 25
   watchContentMutation();
 });
 
@@ -37,7 +44,6 @@ function initAriaLive() {
   const content = document.getElementById('ci-content');
   const empty   = document.getElementById('ci-empty');
   const main    = document.getElementById('ci-main');
-
   loading?.setAttribute('aria-live', 'polite');
   content?.setAttribute('aria-live', 'polite');
   empty?.setAttribute('aria-live', 'polite');
@@ -70,7 +76,8 @@ function showToast(msg, type = 'info', duration = 3500) {
 }
 window.showToast = showToast;
 
-// ── 4. Keyboard shortcuts (1-4 para períodos, Escape para sidebar) ────────
+// ── 4. Keyboard shortcuts ─────────────────────────────────────────────────
+// 1-4=período | Esc=fechar | D=dark | P=apresentação | ?=atalhos
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea, select, [contenteditable]')) return;
@@ -83,7 +90,11 @@ function initKeyboardShortcuts() {
       case 'Escape':
         document.getElementById('sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('open');
+        closePainelAtalhos();
         break;
+      case 'd': case 'D': toggleDarkMode(); break;
+      case 'p': case 'P': toggleModoApresentacao(); break;
+      case '?': togglePainelAtalhos(); break;
     }
   });
 }
@@ -103,7 +114,7 @@ function initRippleNavItems() {
   });
 }
 
-// ── 6. Scroll progress bar ─────────────────────────────────────────────────
+// ── 6. Scroll progress bar ────────────────────────────────────────────────
 function initScrollProgress() {
   const bar = document.createElement('div');
   bar.className = 'aci-scroll-progress';
@@ -181,10 +192,11 @@ function watchContentMutation() {
 
 // ── Features dependentes de dados ─────────────────────────────────────────
 function onContentReady() {
-  // Limpa injeções anteriores para idempotência
+  // Limpa injeções anteriores (idempotência)
   document.querySelectorAll(
     '.aci-trend, .aci-streak-badge, .aci-bestworst, .aci-completude, ' +
-    '.aci-insight-card, .aci-export-btn, .aci-filter-pills'
+    '.aci-insight-card, .aci-export-btn, .aci-filter-pills, ' +
+    '.aci-smart-alerts, .aci-risco-badge, .aci-heatmap, .aci-busca-diario'
   ).forEach(el => el.remove());
 
   const rows = Array.from(document.querySelectorAll('#tabela-checkins tbody tr'));
@@ -192,6 +204,7 @@ function onContentReady() {
 
   const data = parseTableRows(rows);
 
+  // V1
   addTrendIndicators(data);
   addStreakBadge(data);
   addMelhorPiorDia(data);
@@ -202,10 +215,16 @@ function onContentReady() {
   initColunasSorting();
   addRowQualityGradient(rows, data);
   initRichTooltips();
+  // V2
+  addSmartAlerts(data);    // 21
+  addBadgeRisco(data);     // 22
+  addHeatmapAdesao(data);  // 23
+  initBuscaDiario();       // 24
 }
 
-// ── Parseia linhas da tabela em objetos ────────────────────────────────────
+// ── Parseia linhas da tabela (V2: + fome, naoEvacou, dateStr) ─────────────
 function parseTableRows(rows) {
+  const FOME_MAP = { 'sem fome': 1, 'pouca': 2, 'normal': 3, 'muita': 4, 'excessiva': 5 };
   return rows.map(row => {
     const cells = row.querySelectorAll('td');
     const txt   = (i) => cells[i]?.textContent.trim() || '';
@@ -217,10 +236,17 @@ function parseTableRows(rows) {
     const energia   = parseFloat(txt(3)) || null;
     const humor     = parseFloat(txt(4)) || null;
     const agua      = parseFloat(txt(5)) || null;
+    const fome      = FOME_MAP[txt(6).toLowerCase()] || null;
     const treinou   = txt(9).toLowerCase().includes('sim');
     const evacuou   = txt(7).toLowerCase().includes('sim');
+    const naoEvacou = txt(7).toLowerCase().includes('não');
 
-    return { data: txt(0), sono, qualidade, energia, humor, agua, treinou, evacuou, _row: row };
+    // Extrai apenas DD/MM (ignora badge "retro" inline)
+    const rawDate  = cells[0]?.textContent || '';
+    const dateMatch = rawDate.match(/(\d{2}\/\d{2})/);
+    const dataStr  = dateMatch ? dateMatch[1] : txt(0);
+
+    return { data: dataStr, sono, qualidade, energia, humor, agua, fome, treinou, evacuou, naoEvacou, _row: row };
   });
 }
 
@@ -229,7 +255,7 @@ function addTrendIndicators(data) {
   if (data.length < 4) return;
 
   const half   = Math.floor(data.length / 2);
-  const recent = data.slice(0, half);   // data[0] é o mais recente
+  const recent = data.slice(0, half);
   const older  = data.slice(half);
 
   const avg = (arr, field) => {
@@ -267,7 +293,7 @@ function addTrendIndicators(data) {
 
 // ── 10. Streak de treinos consecutivos ────────────────────────────────────
 function addStreakBadge(data) {
-  const asc = [...data].reverse(); // mais antigo → mais recente
+  const asc = [...data].reverse();
 
   let maxStreak = 0, cur = 0;
   for (const d of asc) {
@@ -366,7 +392,6 @@ function addCompletudeBadge(data) {
     <span class="aci-comp-label">${pct}% completo — ${complete}/${data.length} dias com todas as métricas</span>
   `;
   header.appendChild(div);
-  // Anima a barra após inserção
   requestAnimationFrame(() => requestAnimationFrame(() => {
     div.querySelector('.aci-comp-bar-fill').style.width = pct + '%';
   }));
@@ -391,8 +416,8 @@ function addCorrelacaoInsight(data) {
 
   const strength = Math.abs(r) > 0.6 ? 'forte' : 'moderada';
   const msg = r > 0
-    ? `Noites com mais sono tendem a resultar em maior energia no dia seguinte (correlação ${strength}, r=${r.toFixed(2)}).`
-    : `Sono e energia têm correlação negativa ${strength} neste período (r=${r.toFixed(2)}) — a qualidade do sono pode ser mais relevante que a duração.`;
+    ? `Noites com mais sono tendem a resultar em maior energia (correlação ${strength}, r=${r.toFixed(2)}).`
+    : `Sono e energia têm correlação negativa ${strength} (r=${r.toFixed(2)}) — a qualidade pode ser mais relevante que a duração.`;
 
   const resumoSection = document.getElementById('resumo-grid')?.closest('.section');
   if (!resumoSection) return;
@@ -460,7 +485,7 @@ function initFiltrosRapidos(rows) {
   if (!section) return;
 
   const filters = [
-    { id: 'all',     label: 'Todos',          fn: () => true },
+    { id: 'all',     label: 'Todos',           fn: () => true },
     {
       id: 'treinou', label: '🏋️ Treinou',
       fn: (r) => r.querySelectorAll('td')[9]?.textContent.trim().toLowerCase().includes('sim'),
@@ -474,8 +499,8 @@ function initFiltrosRapidos(rows) {
     },
     {
       id: 'retro',   label: '📅 Retroativos',
-      fn: (r) => !!r.querySelector('[data-tip*="retroativo"], [title*="retroativo"], .aci-retro-marker') ||
-                 r.style.background?.includes('201,168,76'),
+      fn: (r) => !!r.querySelector('[data-tip*="retroativo"], [title*="retroativo"]') ||
+                 (r.style.background || '').includes('201,168,76'),
     },
   ];
 
@@ -508,9 +533,7 @@ function initFiltrosRapidos(rows) {
     pills.appendChild(btn);
   });
 
-  // Injeta após o título da seção
-  const title = section.querySelector('.section-title');
-  title?.after(pills);
+  section.querySelector('.section-title')?.after(pills);
 }
 
 // ── 16. Ordenação de colunas ──────────────────────────────────────────────
@@ -571,7 +594,6 @@ function addRowQualityGradient(rows, data) {
 let _tipEl = null;
 
 function initRichTooltips() {
-  // Converte data-tip attrs em rich tooltips (trend badges + outros)
   document.querySelectorAll('#ci-content [data-tip], #ci-content [title]').forEach(el => {
     const tip = el.dataset.tip || el.getAttribute('title');
     if (!tip) return;
@@ -603,4 +625,319 @@ function _showTip(e) {
 
 function _hideTip() {
   _tipEl?.classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// V2 — 7 novas melhorias
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── 19. Dark mode ─────────────────────────────────────────────────────────
+function initDarkMode() {
+  if (localStorage.getItem(_DARK_KEY) === '1') {
+    document.body.classList.add('aci-dark');
+  }
+}
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('aci-dark');
+  localStorage.setItem(_DARK_KEY, isDark ? '1' : '0');
+  showToast(isDark ? 'Modo escuro ativado' : 'Modo claro restaurado', 'info', 2000);
+}
+
+// ── 20. Modo apresentação (fonte ampliada para revisão com a paciente) ─────
+function initModoApresentacao() {
+  if (localStorage.getItem(_APRES_KEY) === '1') {
+    document.body.classList.add('aci-apresentacao');
+  }
+}
+
+function toggleModoApresentacao() {
+  const isOn = document.body.classList.toggle('aci-apresentacao');
+  localStorage.setItem(_APRES_KEY, isOn ? '1' : '0');
+  showToast(isOn ? 'Modo apresentação ativado — fonte ampliada' : 'Modo apresentação desativado', 'info', 2500);
+}
+
+// ── 21. Smart alerts — detecção automática de padrões clínicos ────────────
+function addSmartAlerts(data) {
+  if (data.length < 3) return;
+  const asc = [...data].reverse(); // mais antigo → mais recente
+  const alerts = [];
+
+  // Sono deficiente: 3+ noites consecutivas com sono < 6h ou qualidade ≤ 2
+  let poorRun = 0, maxPoor = 0;
+  for (const d of asc) {
+    const bad  = (d.sono !== null && d.sono < 6) || (d.qualidade !== null && d.qualidade <= 2);
+    const good = d.sono !== null && d.sono >= 6 && (d.qualidade === null || d.qualidade > 2);
+    if (bad)       { poorRun++; maxPoor = Math.max(maxPoor, poorRun); }
+    else if (good) { poorRun = 0; }
+  }
+  if (maxPoor >= 3) {
+    alerts.push({
+      icon: '😴',
+      label: 'Sono Deficiente',
+      text: `${maxPoor} noites consecutivas com sono inadequado (< 6h ou qualidade ≤ 2). Avaliar higiene do sono.`,
+      severity: maxPoor >= 5 ? 'high' : 'medium',
+    });
+  }
+
+  // Fome elevada: 3+ dias com fome ≥ 4 (Muita/Excessiva)
+  const highHunger = data.filter(d => d.fome !== null && d.fome >= 4).length;
+  if (highHunger >= 3) {
+    alerts.push({
+      icon: '🍽️',
+      label: 'Fome Elevada Frequente',
+      text: `${highHunger} dias com fome elevada no período. Revisar distribuição calórica e saciedade.`,
+      severity: highHunger >= 7 ? 'high' : 'medium',
+    });
+  }
+
+  // Sedentarismo: 7+ dias consecutivos sem atividade registrada
+  let noExRun = 0, maxNoEx = 0;
+  for (const d of asc) {
+    if (!d.treinou) { noExRun++; maxNoEx = Math.max(maxNoEx, noExRun); }
+    else            { noExRun = 0; }
+  }
+  if (maxNoEx >= 7) {
+    alerts.push({
+      icon: '🏃',
+      label: 'Sedentarismo Prolongado',
+      text: `${maxNoEx} dias consecutivos sem atividade física. Incluir estratégias de ativação.`,
+      severity: maxNoEx >= 14 ? 'high' : 'medium',
+    });
+  }
+
+  // Constipação: 3+ dias consecutivos sem evacuação
+  let noEvRun = 0, maxNoEv = 0;
+  for (const d of asc) {
+    if (d.naoEvacou)    { noEvRun++; maxNoEv = Math.max(maxNoEv, noEvRun); }
+    else if (d.evacuou) { noEvRun = 0; }
+  }
+  if (maxNoEv >= 3) {
+    alerts.push({
+      icon: '⚠️',
+      label: 'Constipação',
+      text: `${maxNoEv} dias consecutivos sem evacuação registrada. Verificar fibras e hidratação.`,
+      severity: maxNoEv >= 5 ? 'high' : 'medium',
+    });
+  }
+
+  if (!alerts.length) return;
+
+  const box = document.createElement('div');
+  box.className = 'aci-smart-alerts';
+  box.setAttribute('role', 'alert');
+  box.setAttribute('aria-label', `${alerts.length} alerta${alerts.length > 1 ? 's' : ''} automático${alerts.length > 1 ? 's' : ''}`);
+  box.innerHTML = `
+    <div class="aci-sa-header">
+      <span class="aci-sa-icon" aria-hidden="true">🔔</span>
+      <span class="aci-sa-title">Alertas Automáticos</span>
+      <span class="aci-sa-count">${alerts.length}</span>
+    </div>
+    ${alerts.map(a => `
+      <div class="aci-sa-item aci-sa-${a.severity}">
+        <span class="aci-sa-item-icon" aria-hidden="true">${a.icon}</span>
+        <div class="aci-sa-item-body">
+          <p class="aci-sa-item-label">${a.label}</p>
+          <p class="aci-sa-item-text">${a.text}</p>
+        </div>
+      </div>
+    `).join('')}
+  `;
+
+  const resumoSection = document.getElementById('resumo-grid')?.closest('.section');
+  resumoSection?.before(box);
+}
+
+// ── 22. Badge de risco no cabeçalho da página ──────────────────────────────
+function addBadgeRisco(data) {
+  if (data.length < 3) return;
+
+  const avgField = (field) => {
+    const vals = data.filter(d => d[field] !== null).map(d => d[field]);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+
+  let risk = 0;
+  const avgEnergia = avgField('energia');
+  const avgSono    = avgField('sono');
+  const highHunger = data.filter(d => d.fome !== null && d.fome >= 4).length;
+
+  if (avgEnergia !== null) {
+    if (avgEnergia < 2) risk += 3;
+    else if (avgEnergia < 3) risk += 1;
+  }
+  if (avgSono !== null) {
+    if (avgSono < 5.5) risk += 3;
+    else if (avgSono < 6.5) risk += 1;
+  }
+  if (highHunger >= 7) risk += 2;
+  else if (highHunger >= 3) risk += 1;
+
+  if (risk < 2) return;
+
+  let riskLabel, riskClass;
+  if (risk >= 6)      { riskLabel = 'Risco Alto';     riskClass = 'high'; }
+  else if (risk >= 3) { riskLabel = 'Risco Moderado'; riskClass = 'medium'; }
+  else                { riskLabel = 'Atenção Leve';   riskClass = 'low'; }
+
+  const header = document.querySelector('#ci-content .page-header');
+  if (!header) return;
+
+  const badge = document.createElement('span');
+  badge.className = `aci-risco-badge aci-risco-${riskClass}`;
+  badge.setAttribute('role', 'status');
+  badge.setAttribute('aria-label', `Nível de risco clínico: ${riskLabel}`);
+  badge.textContent = riskLabel;
+  header.appendChild(badge);
+}
+
+// ── 23. Heatmap de adesão (calendário visual dos últimos N dias) ───────────
+function addHeatmapAdesao(data) {
+  if (data.length < 2) return;
+  const period = getPeriodDays();
+
+  // Reconstrói datas ISO a partir de DD/MM (recua para ano anterior se futuro)
+  const today = new Date();
+  const dateMap = new Map();
+  data.forEach(d => {
+    const m = d.data.match(/(\d{2})\/(\d{2})/);
+    if (!m) return;
+    const dd = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10) - 1;
+    const candidate = new Date(today.getFullYear(), mm, dd);
+    if (candidate > today) candidate.setFullYear(today.getFullYear() - 1);
+    dateMap.set(candidate.toISOString().split('T')[0], d);
+  });
+
+  // Grade completa de N dias (do mais antigo ao mais recente)
+  const cells = [];
+  for (let i = period - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().split('T')[0];
+    cells.push({ iso, entry: dateMap.get(iso) || null });
+  }
+
+  const present = cells.filter(c => c.entry).length;
+  const section = document.getElementById('resumo-grid')?.closest('.section');
+  if (!section) return;
+
+  const hm = document.createElement('div');
+  hm.className = 'aci-heatmap';
+  hm.innerHTML = `
+    <div class="aci-heatmap-header">
+      <span class="aci-heatmap-label">Adesão: ${present}/${period} dias com check-in</span>
+      <div class="aci-heatmap-legend">
+        <span class="aci-hm-dot hm-excellent" aria-hidden="true"></span><span>Ótimo</span>
+        <span class="aci-hm-dot hm-good" aria-hidden="true"></span><span>Bom</span>
+        <span class="aci-hm-dot hm-poor" aria-hidden="true"></span><span>Regular</span>
+        <span class="aci-hm-dot hm-empty" aria-hidden="true"></span><span>Sem registro</span>
+      </div>
+    </div>
+    <div class="aci-heatmap-grid" role="img" aria-label="Grade de ${period} dias — ${present} com check-in">
+      ${cells.map(c => {
+        if (!c.entry) {
+          return `<div class="aci-hm-cell hm-empty" title="${c.iso}: sem check-in" aria-hidden="true"></div>`;
+        }
+        const vals  = [c.entry.energia, c.entry.humor].filter(v => v !== null);
+        const score = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        const cls   = score >= 4 ? 'hm-excellent' : score >= 2.5 ? 'hm-good' : score > 0 ? 'hm-poor' : 'hm-neutral';
+        const qual  = score >= 4 ? 'Ótimo' : score >= 2.5 ? 'Bom' : score > 0 ? 'Regular' : 'Sem métricas';
+        return `<div class="aci-hm-cell ${cls}" title="${c.iso}: ${qual}" aria-hidden="true"></div>`;
+      }).join('')}
+    </div>
+  `;
+
+  section.querySelector('.section-title')?.after(hm);
+}
+
+function getPeriodDays() {
+  const activeNav = document.querySelector('[id^="per-"].active');
+  return activeNav ? parseInt(activeNav.id.replace('per-', ''), 10) : 7;
+}
+
+// ── 24. Busca textual no diário alimentar ─────────────────────────────────
+function initBuscaDiario() {
+  const wrapper = document.getElementById('tabela-diario');
+  const section = wrapper?.closest('.section');
+  if (!section || section.querySelector('.aci-busca-diario')) return;
+
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.className = 'aci-busca-diario';
+  input.placeholder = 'Buscar no diário alimentar...';
+  input.setAttribute('aria-label', 'Filtrar entradas do diário alimentar');
+
+  let _searchTimer = null;
+  input.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+      const q = input.value.toLowerCase().trim();
+      const entries = wrapper ? Array.from(wrapper.querySelectorAll(':scope > div > div')) : [];
+      let visible = 0;
+      entries.forEach(entry => {
+        const show = !q || entry.textContent.toLowerCase().includes(q);
+        entry.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      if (q && entries.length > 0) {
+        showToast(`${visible} entrada${visible !== 1 ? 's' : ''} encontrada${visible !== 1 ? 's' : ''}`, 'info', 2000);
+      }
+    }, 250);
+  });
+
+  section.querySelector('.section-title')?.after(input);
+}
+
+// ── 25. Painel de atalhos de teclado ──────────────────────────────────────
+function initPainelAtalhos() {
+  if (document.getElementById('aci-atalhos-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'aci-atalhos-overlay';
+  overlay.className = 'aci-atalhos-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Atalhos de teclado');
+  overlay.setAttribute('hidden', '');
+
+  overlay.innerHTML = `
+    <div class="aci-atalhos-panel" tabindex="-1">
+      <div class="aci-atalhos-hdr">
+        <h3 class="aci-atalhos-title">Atalhos de Teclado</h3>
+        <button class="aci-atalhos-close" aria-label="Fechar painel de atalhos">&#x2715;</button>
+      </div>
+      <div class="aci-atalhos-body">
+        <div class="aci-atalho"><kbd>1</kbd><span>Últimos 7 dias</span></div>
+        <div class="aci-atalho"><kbd>2</kbd><span>Últimos 14 dias</span></div>
+        <div class="aci-atalho"><kbd>3</kbd><span>Últimos 30 dias</span></div>
+        <div class="aci-atalho"><kbd>4</kbd><span>Últimos 90 dias</span></div>
+        <div class="aci-atalho aci-atalho-sep"><kbd>D</kbd><span>Alternar modo escuro</span></div>
+        <div class="aci-atalho"><kbd>P</kbd><span>Modo apresentação</span></div>
+        <div class="aci-atalho"><kbd>?</kbd><span>Exibir / ocultar atalhos</span></div>
+        <div class="aci-atalho"><kbd>Esc</kbd><span>Fechar sidebar ou painel</span></div>
+      </div>
+      <p class="aci-atalhos-hint">Atalhos inativos quando um campo de texto está focado.</p>
+    </div>
+  `;
+
+  overlay.querySelector('.aci-atalhos-close').addEventListener('click', closePainelAtalhos);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closePainelAtalhos(); });
+
+  document.body.appendChild(overlay);
+}
+
+function togglePainelAtalhos() {
+  const overlay = document.getElementById('aci-atalhos-overlay');
+  if (!overlay) return;
+  if (overlay.hasAttribute('hidden')) {
+    overlay.removeAttribute('hidden');
+    overlay.querySelector('.aci-atalhos-panel')?.focus();
+  } else {
+    closePainelAtalhos();
+  }
+}
+
+function closePainelAtalhos() {
+  document.getElementById('aci-atalhos-overlay')?.setAttribute('hidden', '');
 }
