@@ -296,3 +296,140 @@
   opacity: 0.58;
   cursor: not-allowed;
 }
+
+/* ═══ POLIMENTO V2 ═══ */
+/* 10 micro-melhorias: ring burst, next pulse, char counter, slide direcional, chip bounce,
+   sub-section reveal, progress glow, Bristol ring, opt checkmark, back arrow */
+
+/* ── V2-1. Ring burst no scale-btn ──────────────────────────────────────── */
+@keyframes ci-scale-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(76, 184, 160, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0); }
+}
+
+.ci-scale-btn.ci-scale-ring {
+  animation: ci-scale-ring 0.45s ease-out;
+}
+
+/* ── V2-2. Botão Continuar: pulse quando tela respondida ─────────────────── */
+@keyframes ci-next-ready {
+  0%   { box-shadow: 0 0 0 0 rgba(45, 106, 86, 0.45); transform: scale(1); }
+  45%  { box-shadow: 0 0 0 14px rgba(45, 106, 86, 0); transform: scale(1.012); }
+  100% { box-shadow: 0 0 0 0 rgba(45, 106, 86, 0); transform: scale(1); }
+}
+
+.ci-next.ci-next-ready {
+  animation: ci-next-ready 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── V2-3. Contador de caracteres ────────────────────────────────────────── */
+.ci-char-counter {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.63rem;
+  color: var(--text-light, #6B6659);
+  text-align: right;
+  margin-top: -12px;
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+
+.ci-char-counter.ci-char-warn  { color: var(--gold, #C9A84C); }
+.ci-char-counter.ci-char-limit { color: #7A2E2E; font-weight: 500; }
+
+/* ── V2-4. Slide direcional entre telas ──────────────────────────────────── */
+@keyframes ci-slide-in-forward {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ci-slide-in-back {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Especificidade 0-2-0 supera .ci-screen { animation: ci-fade } (0-1-0) no <style> inline */
+.ci-screen.ci-slide-forward {
+  animation: ci-slide-in-forward 0.22s ease both;
+}
+
+.ci-screen.ci-slide-back {
+  animation: ci-slide-in-back 0.22s ease both;
+}
+
+/* ── V2-5. Chip: micro-bounce ao ativar ──────────────────────────────────── */
+@keyframes ci-chip-bounce {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.88); }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.ci-chip.ci-chip-bounce {
+  animation: ci-chip-bounce 0.22s ease;
+}
+
+/* ── V2-7. Ponto de brilho na ponta da barra de progresso ────────────────── */
+.ci-progress-fill {
+  position: relative;
+}
+
+.ci-progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 8px 3px rgba(76, 184, 160, 0.75);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.ci-progress-fill.ci-progress-has-value::after {
+  opacity: 1;
+}
+
+/* ── V2-8. Bristol: anel colorido no hover ───────────────────────────────── */
+.bristol-btn.b-ok:hover {
+  box-shadow: 0 0 0 2.5px rgba(61, 107, 79, 0.38);
+  border-color: #3D6B4F;
+}
+
+.bristol-btn.b-ruim:hover {
+  box-shadow: 0 0 0 2.5px rgba(122, 46, 46, 0.32);
+  border-color: rgba(122, 46, 46, 0.7);
+}
+
+/* ── V2-9. ci-opt active: checkmark pop-in ───────────────────────────────── */
+.ci-opt.active::after {
+  content: '✓';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--bg-primary, #F7F6F2);
+  animation: ci-check-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) 0.04s forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes ci-check-pop {
+  to { transform: translateY(-50%) scale(1); }
+}
+
+/* ── V2-10. Botão voltar: seta desliza no hover ──────────────────────────── */
+.ci-back-btn svg {
+  transition: transform 0.18s ease;
+}
+
+.ci-back-btn:hover svg {
+  transform: translateX(-3px);
+}

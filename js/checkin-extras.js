@@ -438,3 +438,146 @@ window._checkinExtras = {
 };
 
 export {};
+
+// ═══ POLIMENTO V2 ═══
+// 10 micro-melhorias: ring burst, next pulse, char counter, slide direcional, chip bounce,
+//                     sub-section reveal, progress glow, Bristol ring, opt checkmark, back arrow
+
+let _lastDirection = 'forward';
+
+document.addEventListener('DOMContentLoaded', () => {
+  initScaleBtnRing();
+  initNextReadyPulse();
+  initTextareaCounter();
+  initScreenSlideDirection();
+  initChipBounce();
+  initSubSectionReveal();
+  initProgressGlow();
+});
+
+// ── V2-1. Ring burst no scale-btn ao clicar ───────────────────────────────
+function initScaleBtnRing() {
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.ci-scale-btn');
+    if (!btn) return;
+    btn.classList.remove('ci-scale-ring');
+    void btn.offsetWidth;
+    btn.classList.add('ci-scale-ring');
+    btn.addEventListener('animationend', () => btn.classList.remove('ci-scale-ring'), { once: true });
+  });
+}
+
+// ── V2-2. Botão Continuar pulsa quando tela é completamente respondida ────
+function initNextReadyPulse() {
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ci-scale-btn, .ci-opt')) return;
+    requestAnimationFrame(checkScreenComplete);
+  });
+}
+
+function checkScreenComplete() {
+  const active = document.querySelector('.ci-screen.active');
+  if (!active || active.id === 'screen-0' || active.id === 'screen-done') return;
+  const nextBtn = active.querySelector('.ci-next:not(.skip)');
+  if (!nextBtn || !active.querySelector('.ci-scale-wrap')) return;
+  if (!getFirstUnansweredScale(active)) {
+    nextBtn.classList.remove('ci-next-ready');
+    void nextBtn.offsetWidth;
+    nextBtn.classList.add('ci-next-ready');
+    nextBtn.addEventListener('animationend', () => nextBtn.classList.remove('ci-next-ready'), { once: true });
+  }
+}
+
+// ── V2-3. Contador de caracteres no textarea de observação ────────────────
+function initTextareaCounter() {
+  const ta = document.getElementById('obs');
+  if (!ta) return;
+  const MAX = 500;
+  ta.setAttribute('maxlength', MAX);
+  const counter = document.createElement('p');
+  counter.className = 'ci-char-counter';
+  counter.setAttribute('aria-live', 'polite');
+  counter.setAttribute('aria-atomic', 'true');
+  counter.textContent = `0 / ${MAX}`;
+  ta.after(counter);
+  ta.addEventListener('input', () => {
+    const len = ta.value.length;
+    counter.textContent = `${len} / ${MAX}`;
+    counter.classList.toggle('ci-char-warn', len > MAX * 0.85);
+    counter.classList.toggle('ci-char-limit', len >= MAX);
+  });
+}
+
+// ── V2-4. Slide direcional ao navegar entre telas ────────────────────────
+function initScreenSlideDirection() {
+  const prevAvancar = window.avancarStep;
+  const prevVoltar  = window.voltarStep;
+  if (prevAvancar) {
+    window.avancarStep = function () {
+      _lastDirection = 'forward';
+      prevAvancar.apply(this, arguments);
+      applySlideClass();
+    };
+  }
+  if (prevVoltar) {
+    window.voltarStep = function () {
+      _lastDirection = 'back';
+      prevVoltar.apply(this, arguments);
+      applySlideClass();
+    };
+  }
+}
+
+function applySlideClass() {
+  requestAnimationFrame(() => {
+    const active = document.querySelector('.ci-screen.active');
+    if (!active) return;
+    active.classList.remove('ci-slide-forward', 'ci-slide-back');
+    void active.offsetWidth;
+    active.classList.add(_lastDirection === 'back' ? 'ci-slide-back' : 'ci-slide-forward');
+    active.addEventListener('animationend', () => {
+      active.classList.remove('ci-slide-forward', 'ci-slide-back');
+    }, { once: true });
+  });
+}
+
+// ── V2-5. Chip: micro-bounce ao ativar ────────────────────────────────────
+function initChipBounce() {
+  document.addEventListener('click', e => {
+    const chip = e.target.closest('.ci-chip');
+    if (!chip) return;
+    chip.classList.remove('ci-chip-bounce');
+    void chip.offsetWidth;
+    chip.classList.add('ci-chip-bounce');
+    chip.addEventListener('animationend', () => chip.classList.remove('ci-chip-bounce'), { once: true });
+  });
+}
+
+// ── V2-6. Sub-seção condicional: scroll suave ao revelar ──────────────────
+function initSubSectionReveal() {
+  document.querySelectorAll('.ci-sub-section').forEach(section => {
+    let wasVisible = section.classList.contains('visible');
+    new MutationObserver(() => {
+      const isNowVisible = section.classList.contains('visible');
+      if (isNowVisible && !wasVisible) {
+        setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+      }
+      wasVisible = isNowVisible;
+    }).observe(section, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
+// ── V2-7. Ponto de brilho na ponta da barra de progresso ─────────────────
+function initProgressGlow() {
+  const fill = document.getElementById('ci-progress');
+  if (!fill) return;
+  new MutationObserver(() => {
+    fill.classList.toggle('ci-progress-has-value', parseFloat(fill.style.width) > 0);
+  }).observe(fill, { attributes: true, attributeFilter: ['style'] });
+}
+
+// Estende o objeto de exports do V1
+if (window._checkinExtras) {
+  window._checkinExtras.version = 'V2';
+  window._checkinExtras.checkScreenComplete = checkScreenComplete;
+}
