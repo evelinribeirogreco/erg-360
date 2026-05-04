@@ -1193,3 +1193,77 @@ html[data-theme="dark"] .smart-alert-btn:focus-visible,
 html[data-theme="dark"] .admin-link-btn:focus-visible {
   box-shadow: 0 0 0 5px rgba(76, 184, 160, 0.28) !important;
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* Performance: prefers-reduced-motion, CSS contain,
+   overscroll-behavior, scroll-behavior, will-change seletivo,
+   GPU-accelerated skeleton, compositing isolation, scroll-padding */
+
+/* ── V4.1 Respeita prefers-reduced-motion (preferência do SO) ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+  .activity-drawer {
+    transition: none !important;
+  }
+}
+
+/* ── V4.2 Scroll suave + scroll-padding para skip-link ─────── */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 56px;
+}
+
+/* ── V4.3 CSS contain nas linhas da tabela (escopa repaint) ─── */
+.patients-table tbody tr.patient-row {
+  contain: layout style;
+}
+
+/* ── V4.4 contain no wrapper da tabela ────────────────────── */
+#patients-table-wrapper {
+  contain: layout;
+}
+
+/* ── V4.5 overscroll-behavior nos containers scrolláveis ───── */
+.cmd-results,
+.activity-feed {
+  overscroll-behavior-y: contain;
+}
+
+/* ── V4.6 Activity drawer: containment + overscroll ─────────── */
+.activity-drawer {
+  contain: layout style;
+  overscroll-behavior-y: contain;
+}
+
+/* ── V4.7 Hover card: compositing e paint containment ────────── */
+#row-hover-card {
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+/* ── V4.8 Skeleton: backface-visibility para GPU acceleration ── */
+.skel {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: background-position;
+}
+
+/* ── V4.9 FAB e botão feed: will-change seletivo ────────────── */
+.admin-fab,
+.admin-feed-btn {
+  will-change: transform;
+}
+
+/* ── V4.10 Cmd overlay: isolation de stacking context ──────── */
+.cmd-overlay {
+  isolation: isolate;
+}

@@ -1490,3 +1490,161 @@ document.addEventListener('DOMContentLoaded', () => {
   _v3InitAriaExpanded();
   _v3PatchToastAria();
 });
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: requestIdleCallback polyfill,
+// debounce nos filtros dropdown, IntersectionObserver para KPIs,
+// memoize avatarHTML, prefetch dossier/relatório, Page Visibility
+// API, debounced resize, RAF-coalesced filterPatients,
+// idle-deferred setup, IntersectionObserver na tabela
+
+// ── V4.1 requestIdleCallback polyfill + util ──────────────────
+const _v4rIC = typeof requestIdleCallback !== 'undefined'
+  ? requestIdleCallback
+  : (fn, o) => setTimeout(() => fn({ timeRemaining: () => 50, didTimeout: false }), (o?.timeout ?? 1));
+
+// ── V4.2 Debounce nos selects de filtro (status, objetivo etc.)
+function _v4InitFilterDebounce() {
+  const ids = ['filter-status', 'filter-objetivo', 'filter-favoritos', 'filter-plano', 'filter-consulta'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.v4db) return;
+    el.dataset.v4db = '1';
+    let t;
+    el.addEventListener('change', () => {
+      clearTimeout(t);
+      t = setTimeout(() => window.filterPatients?.(), 150);
+    });
+  });
+}
+
+// ── V4.3 IntersectionObserver: anima KPIs só quando visíveis ──
+function _v4InitKPIObserver() {
+  if (!('IntersectionObserver' in window)) return;
+  const ids = ['kpi-adesao', 'kpi-score-medio', 'kpi-checkins-hoje', 'kpi-aniversarios'];
+  const els = ids.map(id => document.getElementById(id)).filter(Boolean);
+  if (!els.length) return;
+  const anchor = els[0].closest('[class*="kpi"]') || els[0].parentElement?.parentElement || els[0].parentElement;
+  if (!anchor) return;
+  let triggered = false;
+  const obs = new IntersectionObserver(entries => {
+    if (triggered || !entries.some(e => e.isIntersecting)) return;
+    triggered = true;
+    obs.disconnect();
+    typeof _v2AnimateKPIsFromDOM === 'function' && _v2AnimateKPIsFromDOM();
+  }, { threshold: 0.3 });
+  obs.observe(anchor);
+}
+
+// ── V4.4 Memoize avatarHTML (evita recalcular em re-renders) ──
+const _v4AvatarMemo = new Map();
+function _v4PatchAvatarMemo() {
+  const ex = window._adminExtras;
+  if (!ex?.avatarHTML || ex._v4AvatarMemoized) return;
+  ex._v4AvatarMemoized = true;
+  const orig = ex.avatarHTML;
+  ex.avatarHTML = (nome, size = 'md') => {
+    const k = nome + '|' + size;
+    if (!_v4AvatarMemo.has(k)) _v4AvatarMemo.set(k, orig(nome, size));
+    return _v4AvatarMemo.get(k);
+  };
+}
+
+// ── V4.5 Prefetch dossier + relatório ao passar mouse na linha
+const _v4Prefetched = new Set();
+function _v4Prefetch(url) {
+  if (!url || _v4Prefetched.has(url)) return;
+  _v4Prefetched.add(url);
+  const l = document.createElement('link');
+  l.rel = 'prefetch'; l.href = url; l.as = 'document';
+  document.head.appendChild(l);
+}
+function _v4InitPrefetch() {
+  document.addEventListener('mouseover', e => {
+    const row = e.target.closest('tr.patient-row[data-id]');
+    if (!row) return;
+    const id = encodeURIComponent(row.dataset.id);
+    _v4rIC(() => {
+      _v4Prefetch('admin-dossie.html?id=' + id);
+      _v4Prefetch('admin-relatorio.html?id=' + id);
+    }, { timeout: 800 });
+  }, { passive: true });
+}
+
+// ── V4.6 Page Visibility API — pausa atualizações quando oculto
+let _v4PageHidden = false;
+function _v4InitPageVisibility() {
+  if (!('visibilityState' in document)) return;
+  document.addEventListener('visibilitychange', () => {
+    _v4PageHidden = document.hidden;
+    if (!_v4PageHidden) {
+      typeof updateGreeting === 'function' && updateGreeting();
+      typeof updateExtendedKPIs === 'function' && updateExtendedKPIs();
+    }
+  }, { passive: true });
+  // Atualiza saudação a cada minuto só quando aba está visível
+  setInterval(() => {
+    if (!_v4PageHidden) typeof updateGreeting === 'function' && updateGreeting();
+  }, 60_000);
+}
+
+// ── V4.7 Debounced window resize (evita layout thrash) ────────
+function _v4InitResizeDebounce() {
+  let t;
+  window.addEventListener('resize', () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      document.getElementById('row-hover-card')?.remove();
+      // _v2HoverRow pode ter referência stale após resize
+      if (typeof _v2HoverRow !== 'undefined') _v2HoverRow = null;
+    }, 200);
+  }, { passive: true });
+}
+
+// ── V4.8 RAF-coalesced filterPatients (agrupa chamadas rápidas)
+function _v4PatchFilterCoalesce() {
+  if (!window.filterPatients || window._v4FilterCoalesced) return;
+  window._v4FilterCoalesced = true;
+  const orig = window.filterPatients;
+  let raf = null;
+  window.filterPatients = (...args) => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = null; orig(...args); });
+  };
+}
+
+// ── V4.9 Idle-deferred: setup não-crítico após load ──────────
+function _v4DeferredSetup() {
+  _v4rIC(() => {
+    _v4InitPrefetch();
+    _v4PatchAvatarMemo();
+  }, { timeout: 2000 });
+}
+
+// ── V4.10 IntersectionObserver na tabela — limpa hover ao sair
+function _v4InitTableIntersect() {
+  if (!('IntersectionObserver' in window)) return;
+  const wrapper = document.getElementById('patients-table-wrapper')
+    || document.querySelector('.patients-table')?.parentElement;
+  if (!wrapper) return;
+  const obs = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) {
+      document.getElementById('row-hover-card')?.remove();
+    }
+  }, { threshold: 0 });
+  obs.observe(wrapper);
+}
+
+// ── V4 DOMContentLoaded ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v4InitFilterDebounce();
+  _v4InitKPIObserver();
+  _v4InitPageVisibility();
+  _v4InitResizeDebounce();
+  _v4InitTableIntersect();
+  requestAnimationFrame(() => {
+    _v4PatchFilterCoalesce();
+    _v4PatchAvatarMemo();
+  });
+  _v4DeferredSetup();
+});
