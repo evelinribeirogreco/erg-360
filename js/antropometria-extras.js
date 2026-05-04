@@ -590,3 +590,270 @@ if (document.readyState === 'loading') {
 } else {
   _init();
 }
+
+// ═══ POLIMENTO V3 ═══
+// Acessibilidade avançada: ARIA live, focus traps, skip-links, screen reader
+
+// ── V3.1 — SKIP NAVIGATION LINKS ────────────────────────────
+function _initSkipLinks() {
+  if (document.querySelector('.erg-skip-links')) return;
+  const nav = document.createElement('nav');
+  nav.className = 'erg-skip-links';
+  nav.setAttribute('aria-label', 'Atalhos de acessibilidade');
+  [
+    { href: '#antro-form',             label: 'Pular para o formulário'  },
+    { href: '#resultado-tabela-wrap',  label: 'Pular para os resultados' },
+  ].forEach(({ href, label }) => {
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'erg-skip-link';
+    a.textContent = label;
+    a.addEventListener('click', () => {
+      const target = document.querySelector(href);
+      if (!target) return;
+      if (!target.getAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: false });
+    });
+    nav.appendChild(a);
+  });
+  document.body.prepend(nav);
+}
+
+// ── V3.2 — FOCUS MANAGEMENT ON STEP CHANGE ──────────────────
+function _initStepFocusManagement() {
+  document.querySelectorAll('.form-step').forEach(step => {
+    new MutationObserver(mutations => {
+      mutations.forEach(m => {
+        if (m.attributeName !== 'class') return;
+        if (!step.classList.contains('active')) return;
+        const heading = step.querySelector('h2, h3, .section-title, [data-step-title]');
+        if (!heading) return;
+        if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+        requestAnimationFrame(() => heading.focus({ preventScroll: true }));
+      });
+    }).observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
+// ── V3.3 — ARIA-DESCRIBEDBY FOR VALIDATION MESSAGES ─────────
+function _initAriaDescribedBy() {
+  Object.keys(FIELD_RULES).forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    let msgEl = el.nextElementSibling;
+    if (!msgEl || !msgEl.classList.contains('erg-field-msg')) {
+      msgEl = document.createElement('p');
+      msgEl.className = 'erg-field-msg';
+      el.after(msgEl);
+    }
+    const msgId = `erg-msg-${id}`;
+    msgEl.id = msgId;
+    const existing = el.getAttribute('aria-describedby');
+    const ids = existing ? existing.split(' ').filter(s => s && s !== msgId) : [];
+    ids.push(msgId);
+    el.setAttribute('aria-describedby', ids.join(' '));
+  });
+}
+
+// ── V3.4 — FOCUS TRAP + ESCAPE DISMISS FOR DRAFT BANNER ─────
+function _trapFocusInBanner(banner) {
+  const focusable = () => Array.from(
+    banner.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')
+  );
+  function handleKey(e) {
+    const els = focusable();
+    if (!els.length) return;
+    if (e.key === 'Escape') {
+      const no = banner.querySelector('#erg-draft-no');
+      if (no) no.click();
+      document.removeEventListener('keydown', handleKey);
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+  document.addEventListener('keydown', handleKey);
+  requestAnimationFrame(() => { const els = focusable(); if (els[0]) els[0].focus(); });
+  new MutationObserver(() => {
+    if (!document.contains(banner)) document.removeEventListener('keydown', handleKey);
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+function _watchBannerForTrap() {
+  new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      m.addedNodes.forEach(node => {
+        if (node.id === 'erg-draft-banner') _trapFocusInBanner(node);
+      });
+    });
+  }).observe(document.body, { childList: true });
+}
+
+// ── V3.5 — ARIA LIVE ANNOUNCER FOR CALCULATED RESULTS ───────
+let _liveRegion = null;
+let _imcAnnounceTimer = null;
+
+function _initResultLiveRegion() {
+  _liveRegion = document.createElement('div');
+  _liveRegion.id = 'erg-result-announcer';
+  _liveRegion.setAttribute('role', 'status');
+  _liveRegion.setAttribute('aria-live', 'polite');
+  _liveRegion.setAttribute('aria-atomic', 'true');
+  document.body.appendChild(_liveRegion);
+}
+
+function _announceResult(msg) {
+  if (!_liveRegion) return;
+  _liveRegion.textContent = '';
+  requestAnimationFrame(() => { _liveRegion.textContent = msg; });
+}
+
+function _watchIMCForAnnouncement() {
+  const imcEl = $('imc');
+  if (!imcEl) return;
+  let _lastAnnounced = '';
+  imcEl.addEventListener('input', () => {
+    const val = parseFloat(imcEl.value);
+    if (isNaN(val)) return;
+    let cat = val < 18.5 ? 'abaixo do peso'
+            : val < 25   ? 'peso normal'
+            : val < 30   ? 'sobrepeso'
+            :               'obesidade';
+    const msg = `IMC ${val.toFixed(1)}: ${cat}`;
+    if (msg === _lastAnnounced) return;
+    _lastAnnounced = msg;
+    clearTimeout(_imcAnnounceTimer);
+    _imcAnnounceTimer = setTimeout(() => _announceResult(msg), 1400);
+  });
+}
+
+// ── V3.6 — PREFERS-REDUCED-MOTION ───────────────────────────
+function _initReducedMotion() {
+  if (!window.matchMedia) return;
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = r => document.documentElement.classList.toggle('erg-reduced-motion', r);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── V3.7 — KEYBOARD DISMISS + ARIA FOR TOOLTIPS ─────────────
+function _initTooltipKeyboard() {
+  document.querySelectorAll('.erg-tooltip-icon').forEach((icon, i) => {
+    const wrap = icon.closest('.erg-tooltip-wrap');
+    const box  = wrap?.querySelector('.erg-tooltip-box');
+    if (box && !box.id) box.id = `erg-tt-${i}`;
+    if (box) icon.setAttribute('aria-describedby', box.id);
+    icon.setAttribute('role', 'button');
+
+    icon.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); icon.blur(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); icon.focus(); }
+    });
+  });
+}
+
+// ── V3.8 — ROLE=REGION WITH ARIA-LABELLEDBY ON SECTIONS ─────
+function _initSectionRegions() {
+  document.querySelectorAll('.form-step, .section').forEach((sec, i) => {
+    if (sec.getAttribute('role')) return;
+    sec.setAttribute('role', 'region');
+    const heading = sec.querySelector('h2, h3, .section-title, [data-step-title]');
+    if (!heading) return;
+    if (!heading.id) heading.id = `erg-sec-hdg-${i}`;
+    sec.setAttribute('aria-labelledby', heading.id);
+  });
+}
+
+// ── V3.9 — COMPLETION MILESTONE ANNOUNCEMENTS ────────────────
+const _announcedMilestones = new Set();
+
+function _checkCompletionMilestone() {
+  let filled = 0;
+  ALL_FIELDS.forEach(id => { if ($(id)?.value) filled++; });
+  const pct = Math.round((filled / ALL_FIELDS.length) * 100);
+  const msgs = { 25: 'Formulário 25% preenchido.', 50: 'Metade do formulário preenchida.',
+                 75: 'Formulário 75% completo. Quase lá!', 100: 'Formulário completamente preenchido.' };
+  [25, 50, 75, 100].forEach(m => {
+    if (pct >= m && !_announcedMilestones.has(m)) {
+      _announcedMilestones.add(m);
+      setTimeout(() => _announceResult(msgs[m]), 500);
+    }
+  });
+}
+
+// ── V3.10 — ARIA-CURRENT ON ACTIVE STEP NAV ITEM ────────────
+function _initStepNavAriaCurrent() {
+  function sync() {
+    document.querySelectorAll('.nav-item[id^="snav-"]').forEach(item => {
+      const idx  = item.id.replace('snav-', '');
+      const step = $(`step-${idx}`);
+      const isActive = step?.classList.contains('active');
+      isActive ? item.setAttribute('aria-current', 'step')
+               : item.removeAttribute('aria-current');
+    });
+  }
+  document.querySelectorAll('.form-step').forEach(step => {
+    new MutationObserver(sync).observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+  sync();
+}
+
+// ── V3.11 — PREFERS-CONTRAST: MORE ──────────────────────────
+function _initHighContrastSupport() {
+  if (!window.matchMedia) return;
+  const mq = window.matchMedia('(prefers-contrast: more)');
+  const apply = hc => document.documentElement.classList.toggle('erg-high-contrast', hc);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── V3.12 — ARIA-INVALID ON VALIDATION FIELDS ───────────────
+function _initAriaInvalid() {
+  Object.keys(FIELD_RULES).forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.setAttribute('aria-invalid', 'false');
+    el.addEventListener('input', () => {
+      const val = parseFloat(el.value);
+      const rule = FIELD_RULES[id];
+      const invalid = el.value && (isNaN(val) || val < rule.min || val > rule.max);
+      el.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+    });
+  });
+}
+
+// ── V3 — INIT ────────────────────────────────────────────────
+function _initV3() {
+  _initSkipLinks();
+  _initStepFocusManagement();
+  _initAriaDescribedBy();
+  _watchBannerForTrap();
+  _initResultLiveRegion();
+  _watchIMCForAnnouncement();
+  _initReducedMotion();
+  _initTooltipKeyboard();
+  _initSectionRegions();
+  _initStepNavAriaCurrent();
+  _initHighContrastSupport();
+  _initAriaInvalid();
+
+  // Hook milestone check into existing form input events
+  document.getElementById('antro-form')?.addEventListener('input', _checkCompletionMilestone);
+}
+
+// Estende API pública com V3
+Object.assign(window._antropometriaExtras, {
+  announceResult: _announceResult,
+  checkMilestone: _checkCompletionMilestone,
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV3);
+} else {
+  _initV3();
+}
