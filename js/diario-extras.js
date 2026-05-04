@@ -295,3 +295,164 @@ window._diarioExtras = {
   saveDraft:      _saveDraft,
   clearDraft:     _clearDraft,
 };
+
+// ═══ POLIMENTO V3 ═══
+// 12 melhorias de acessibilidade: skip-links, ARIA live, radiogroup, reduced-motion, high-contrast
+
+// ── A1. Skip links (usuários de teclado/leitor de tela) ───────────────────────
+function _initSkipLinks() {
+  if (document.querySelector('.diario-skip-link')) return;
+  const targets = [
+    { href: '#diario-form',     label: 'Pular para o formulário' },
+    { href: '#diario-save-btn', label: 'Pular para salvar'        },
+  ];
+  const frag = document.createDocumentFragment();
+  targets.forEach(({ href, label }) => {
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'diario-skip-link';
+    a.textContent = label;
+    frag.appendChild(a);
+  });
+  document.body.insertBefore(frag, document.body.firstChild);
+}
+
+// ── A2. ARIA live region para anunciar mudanças de data ───────────────────────
+let _srDateEl = null;
+
+function _initSrAnnouncer() {
+  if (document.getElementById('diario-sr-date')) return;
+  _srDateEl = document.createElement('div');
+  _srDateEl.id = 'diario-sr-date';
+  _srDateEl.setAttribute('aria-live', 'polite');
+  _srDateEl.setAttribute('aria-atomic', 'true');
+  _srDateEl.className = 'diario-sr-only';
+  document.body.appendChild(_srDateEl);
+}
+
+function _announceDateChange() {
+  if (!_srDateEl) return;
+  const val = document.getElementById('diario-date-input')?.value;
+  if (!val) return;
+  try {
+    const d = new Date(val + 'T12:00:00');
+    const txt = d.toLocaleDateString('pt-BR', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+    _srDateEl.textContent = '';
+    requestAnimationFrame(() => { _srDateEl.textContent = txt; });
+  } catch (_) {}
+}
+
+// ── A3. Observa mudança na data exibida para anunciar via SR ──────────────────
+function _initDateObserverV3() {
+  const dateFull = document.getElementById('diario-date-full');
+  if (!dateFull) return;
+  new MutationObserver(() => {
+    _announceDateChange();
+    setTimeout(_syncAdesaoAria, 350);
+  }).observe(dateFull, { childList: true, subtree: true, characterData: true });
+}
+
+// ── A4. aria-labelledby nas textareas + role="group" nos cards ────────────────
+function _labelMeals() {
+  document.querySelectorAll('.diario-refeicao').forEach((card, i) => {
+    const nome = card.querySelector('.diario-ref-nome');
+    const ta   = card.querySelector('.diario-textarea');
+    if (!nome || !ta) return;
+    if (!nome.id) nome.id = `diario-ref-nome-${i}`;
+    ta.setAttribute('aria-labelledby', nome.id);
+    card.setAttribute('role', 'group');
+    card.setAttribute('aria-labelledby', nome.id);
+  });
+}
+
+// ── A5. Adesão: radiogroup + aria-checked + navegação por setas ───────────────
+function _syncAdesaoAria() {
+  const val = parseInt(document.getElementById('d-adesao')?.value || '0');
+  document.querySelectorAll('.diario-adesao-btn[role="radio"]').forEach((b, i) => {
+    b.setAttribute('aria-checked', String(i + 1 === val));
+  });
+}
+
+function _initAdesaoA11y() {
+  const scale = document.querySelector('.diario-adesao-scale');
+  if (!scale || scale.dataset.a11yV3) return;
+  scale.dataset.a11yV3 = '1';
+  scale.setAttribute('role', 'radiogroup');
+  scale.setAttribute('aria-label', 'Nível de adesão ao plano de 1 (péssima) a 5 (ótima)');
+
+  const btns = Array.from(scale.querySelectorAll('.diario-adesao-btn'));
+  btns.forEach((btn, idx) => {
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', 'false');
+    const lbl = btn.querySelector('small')?.textContent?.trim() ?? `Nível ${idx + 1}`;
+    btn.setAttribute('aria-label', `${idx + 1} — ${lbl}`);
+
+    btn.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault(); btns[(idx + 1) % btns.length].focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus();
+      } else if (e.key === ' ') {
+        e.preventDefault(); btn.click();
+      }
+    });
+
+    btn.addEventListener('click', () =>
+      btns.forEach((b, j) => b.setAttribute('aria-checked', String(j === idx)))
+    );
+  });
+}
+
+// ── A6. aria-label nos botões de navegação de data ────────────────────────────
+function _labelNavBtns() {
+  const navBtns = document.querySelectorAll('.diario-nav-btn');
+  if (navBtns[0] && !navBtns[0].getAttribute('aria-label'))
+    navBtns[0].setAttribute('aria-label', 'Dia anterior');
+  if (navBtns[1] && !navBtns[1].getAttribute('aria-label'))
+    navBtns[1].setAttribute('aria-label', 'Próximo dia');
+}
+
+// ── A7. Atalho de teclado declarado no botão salvar ───────────────────────────
+function _addSaveShortcutHint() {
+  const btn = document.getElementById('diario-save-btn');
+  if (btn) btn.setAttribute('aria-keyshortcuts', 'Control+s Meta+s');
+}
+
+// ── A8. Anunciar rascunho salvo automaticamente (throttle 30 s) ───────────────
+let _lastDraftSrAt = 0;
+
+function _announceDraftSr() {
+  if (!_srDateEl) return;
+  const now = Date.now();
+  if (now - _lastDraftSrAt < 30000) return;
+  _lastDraftSrAt = now;
+  const prev = _srDateEl.textContent;
+  _srDateEl.textContent = 'Rascunho salvo automaticamente';
+  setTimeout(() => { _srDateEl.textContent = prev; }, 2500);
+}
+
+// ── V3 INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _initSrAnnouncer();
+  _initSkipLinks();
+  _labelMeals();
+  _initAdesaoA11y();
+  _initDateObserverV3();
+  _labelNavBtns();
+  _addSaveShortcutHint();
+  _announceDateChange();
+
+  document.querySelectorAll('.diario-textarea').forEach(ta => {
+    ta.addEventListener('input', () => {
+      clearTimeout(ta._srDraftTmr);
+      ta._srDraftTmr = setTimeout(_announceDraftSr, 3500);
+    });
+  });
+});
+
+Object.assign(window._diarioExtras, {
+  announceDateChange: _announceDateChange,
+  syncAdesaoAria:     _syncAdesaoAria,
+});
