@@ -271,3 +271,105 @@
   outline: 2px solid var(--detail);
   outline-offset: 2px;
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+/* Telemetria: streak badge, painel oculto Shift+Alt+T */
+
+/* ── Streak badge on score circle ──────────────────────────────────────── */
+.cr-streak-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ff6b35, #ff9500);
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 7px 2px 5px;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+  animation: cr-streak-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  cursor: default;
+  z-index: 2;
+}
+@keyframes cr-streak-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.cr-streak-icon { font-size: 0.78rem; }
+.cr-streak-count { font-size: 0.75rem; letter-spacing: 0; }
+
+/* ── Telemetria panel ───────────────────────────────────────────────────── */
+#cr-tel-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 252px;
+  background: var(--bg-card);
+  border: 1px solid rgba(76, 184, 160, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  z-index: 9998;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  animation: cr-panel-in 0.22s ease both;
+}
+@keyframes cr-panel-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.cr-tel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cr-tel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+.cr-tel-close:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
+.cr-tel-close:focus-visible { outline: 2px solid var(--detail); outline-offset: 2px; }
+.cr-tel-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+.cr-tel-body p { margin: 0; line-height: 1.5; }
+.cr-tel-body strong { color: var(--text-primary); font-weight: 600; }
+.cr-tel-clear {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 0 14px 12px;
+  padding: 5px 8px;
+  background: none;
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  color: #c0392b;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.73rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.cr-tel-clear:hover { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+.cr-tel-clear:focus-visible { outline: 2px solid #e74c3c; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-streak-badge,
+  #cr-tel-panel { animation: none !important; }
+}

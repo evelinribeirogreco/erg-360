@@ -376,6 +376,164 @@ function initMetricKeyboard() {
   });
 }
 
+// ═══ POLIMENTO V7 ═══
+// Telemetria local: uso de features, streak, heatmap, histórico no localStorage
+
+// ── 21. Namespace de telemetria ───────────────────────────────────────────
+const CR_TEL_KEY = 'cr_tel_v1';
+function crTelLoad() {
+  try { return JSON.parse(localStorage.getItem(CR_TEL_KEY) || '{}'); } catch { return {}; }
+}
+function crTelSave(d) {
+  try { localStorage.setItem(CR_TEL_KEY, JSON.stringify(d)); } catch {}
+}
+function crTelUpdate(fn) {
+  const d = crTelLoad(); fn(d); crTelSave(d);
+}
+
+// ── 22. Contador de visitas e timestamps ─────────────────────────────────
+function initVisitTracking() {
+  crTelUpdate(d => {
+    d.visits = (d.visits || 0) + 1;
+    d.lastVisit = Date.now();
+    if (!d.firstVisit) d.firstVisit = Date.now();
+  });
+}
+
+// ── 23. Profundidade de scroll máxima por sessão ─────────────────────────
+function initScrollDepthTracking() {
+  let maxDepth = 0;
+  window.addEventListener('scroll', () => {
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    if (total > 0) maxDepth = Math.max(maxDepth, Math.round((window.scrollY / total) * 100));
+  }, { passive: true });
+  window.addEventListener('beforeunload', () => {
+    crTelUpdate(d => { d.maxScrollDepth = Math.max(d.maxScrollDepth || 0, maxDepth); });
+  });
+}
+
+// ── 24. Tempo de sessão ativo ─────────────────────────────────────────────
+function initSessionTimeTracking() {
+  const t0 = Date.now();
+  window.addEventListener('beforeunload', () => {
+    if (!document.hidden) {
+      const secs = Math.round((Date.now() - t0) / 1000);
+      crTelUpdate(d => {
+        d.totalTimeSeconds = (d.totalTimeSeconds || 0) + secs;
+        d.sessionCount = (d.sessionCount || 0) + 1;
+      });
+    }
+  });
+}
+
+// ── 25. Cliques por seção ─────────────────────────────────────────────────
+function initSectionClickTracking() {
+  const targets = [
+    ['.resumo-metric-card', 'clicksMetric'],
+    ['.resumo-dica-item',   'clicksDica'],
+    ['.cta-btn',            'clicksCta'],
+    ['.checkin-back',       'clicksBack'],
+    ['.cr-scroll-top',      'clicksScrollTop'],
+  ];
+  const attach = (sel, key) => {
+    document.querySelectorAll(`${sel}:not([data-tel])`).forEach(el => {
+      el.dataset.tel = '1';
+      el.addEventListener('click', () => crTelUpdate(d => { d[key] = (d[key] || 0) + 1; }));
+    });
+  };
+  targets.forEach(([sel, key]) => attach(sel, key));
+  const cta = document.getElementById('cta-container');
+  if (cta) new MutationObserver(() => attach('.cta-btn', 'clicksCta')).observe(cta, { childList: true });
+}
+
+// ── 26. Histórico de scores (até 52 semanas) ─────────────────────────────
+function initScoreHistory() {
+  observeScoreNum(val => {
+    const today = new Date().toISOString().slice(0, 10);
+    crTelUpdate(d => {
+      if (!d.scoreHistory) d.scoreHistory = [];
+      if (!d.scoreHistory.find(e => e.date === today)) {
+        d.scoreHistory.push({ date: today, score: val });
+        if (d.scoreHistory.length > 52) d.scoreHistory.shift();
+      }
+    });
+  });
+}
+
+// ── 27. Métricas mais visualizadas (IntersectionObserver) ─────────────────
+function initMetricViewTracking() {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const label = entry.target.querySelector('.rm-label')?.textContent?.trim();
+      if (label) crTelUpdate(d => {
+        if (!d.metricViews) d.metricViews = {};
+        d.metricViews[label] = (d.metricViews[label] || 0) + 1;
+      });
+      io.unobserve(entry.target);
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.resumo-metric-card').forEach(c => io.observe(c));
+}
+
+// ── 28. Streak de visitas diárias e badge visual ──────────────────────────
+function initStreakTracking() {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  crTelUpdate(d => {
+    if (d.lastStreakDate === yesterday) d.streak = (d.streak || 1) + 1;
+    else if (d.lastStreakDate !== today) d.streak = 1;
+    d.lastStreakDate = today;
+    d.bestStreak = Math.max(d.bestStreak || 0, d.streak || 1);
+  });
+  const data = crTelLoad();
+  if ((data.streak || 0) >= 3) {
+    const circle = document.querySelector('.resumo-score-circle');
+    if (circle && !circle.querySelector('.cr-streak-badge')) {
+      const badge = document.createElement('div');
+      badge.className = 'cr-streak-badge';
+      badge.setAttribute('aria-label', `Streak: ${data.streak} dias seguidos`);
+      badge.title = `${data.streak} dias seguidos!`;
+      badge.innerHTML = `<span class="cr-streak-icon" aria-hidden="true">🔥</span><span class="cr-streak-count">${data.streak}</span>`;
+      circle.appendChild(badge);
+    }
+  }
+}
+
+// ── 29. Painel de telemetria oculto (Shift+Alt+T) ────────────────────────
+function initTelPanel() {
+  document.addEventListener('keydown', e => {
+    if (!e.shiftKey || !e.altKey || e.key !== 'T') return;
+    const existing = document.getElementById('cr-tel-panel');
+    if (existing) { existing.remove(); return; }
+    const d = crTelLoad();
+    const avgTime = d.sessionCount ? Math.round((d.totalTimeSeconds || 0) / d.sessionCount) : 0;
+    const panel = document.createElement('div');
+    panel.id = 'cr-tel-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Telemetria local');
+    panel.innerHTML =
+      `<div class="cr-tel-header"><span>Telemetria Local</span><button class="cr-tel-close" aria-label="Fechar">✕</button></div>` +
+      `<div class="cr-tel-body">` +
+      `<p><strong>Visitas:</strong> ${d.visits || 0}</p>` +
+      `<p><strong>Streak:</strong> ${d.streak || 0} dias 🔥 (melhor: ${d.bestStreak || 0})</p>` +
+      `<p><strong>Scroll máx:</strong> ${d.maxScrollDepth || 0}%</p>` +
+      `<p><strong>Tempo médio/sessão:</strong> ${avgTime}s</p>` +
+      `<p><strong>Cliques CTA:</strong> ${d.clicksCta || 0}</p>` +
+      `<p><strong>Scores recentes:</strong> ${(d.scoreHistory || []).slice(-5).map(e => e.score).join(', ') || '—'}</p>` +
+      `</div>` +
+      `<button class="cr-tel-clear">Limpar dados locais</button>`;
+    document.body.appendChild(panel);
+    panel.querySelector('.cr-tel-close').addEventListener('click', () => panel.remove());
+    panel.querySelector('.cr-tel-clear').addEventListener('click', () => {
+      localStorage.removeItem(CR_TEL_KEY);
+      panel.remove();
+    });
+    panel.querySelector('.cr-tel-close').focus();
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // V1
@@ -403,10 +561,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initResizeDebounce();
   initScoreLiveRegion();
   initMetricKeyboard();
+  // V7
+  initVisitTracking();
+  initScrollDepthTracking();
+  initSessionTimeTracking();
+  initSectionClickTracking();
+  initScoreHistory();
+  initMetricViewTracking();
+  initStreakTracking();
+  initTelPanel();
 });
 
 window._checkinResumoExtras = {
-  version: 'V1',
+  version: 'V7',
 };
 
 export {};
