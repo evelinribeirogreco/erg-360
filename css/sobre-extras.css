@@ -199,3 +199,129 @@
   background-size: 100% 1px;
   color: var(--accent) !important;
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* 1. Reduced motion — disable all transition/animation for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .sobre-reveal,
+  .sobre-hero-enter,
+  .sobre-hero-line--animate,
+  .pilar-card--hidden,
+  .sobre-razao--hidden,
+  .sobre-step--hidden,
+  .sobre-quote--hidden {
+    transition: none !important;
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #sobre-scroll-progress {
+    transition: none !important;
+  }
+}
+
+.sobre-no-motion *,
+.sobre-no-motion *::before,
+.sobre-no-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* 2. Enhanced focus ring for interactive elements */
+.sobre-focusable:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Ensure sections that receive programmatic focus are visually indicated */
+.sobre-section[tabindex]:focus,
+.sobre-hero[tabindex]:focus,
+.sobre-cta[tabindex]:focus {
+  outline: 2px dashed rgba(76, 184, 160, 0.45);
+  outline-offset: -4px;
+}
+
+/* Scroll margin for skip-link targets */
+[id="sobre-como-funciona"],
+[id="sobre-pilares-section"],
+[id="sobre-cta-section"],
+[id="sobre-main-content"] {
+  scroll-margin-top: 80px;
+}
+
+/* 3. Multi skip-nav — right-aligned to complement V1's left-side skip link */
+.sobre-skipnav {
+  position: absolute;
+  top: -300px;
+  right: 16px;
+  left: auto;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.sobre-skipnav:focus-within {
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  pointer-events: auto;
+}
+.sobre-skipnav-link {
+  background: var(--accent, #2D6A56) !important;
+  color: #fff !important;
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 6px);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-decoration: none !important;
+  display: block;
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+.sobre-skipnav-link:hover,
+.sobre-skipnav-link:focus {
+  background: var(--detail, #4CB8A0) !important;
+  transform: translateX(-4px);
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* 4. Figure wrapper for blockquote */
+figure[aria-label="Filosofia do ERG 360"] {
+  margin: 0;
+  padding: 0;
+}
+
+/* 5. High contrast mode overrides */
+@media (forced-colors: active) {
+  .sobre-focusable:focus-visible {
+    outline: 3px solid ButtonText !important;
+    outline-offset: 3px !important;
+  }
+  .sobre-skip-link,
+  .sobre-skipnav-link {
+    background: ButtonText !important;
+    color: ButtonFace !important;
+    forced-color-adjust: none;
+  }
+  #sobre-scroll-progress {
+    background: Highlight;
+  }
+  .pilar-card:focus-visible {
+    outline: 3px solid ButtonText !important;
+  }
+}
+
+/* 6. Print accessibility */
+@media print {
+  .sobre-skipnav,
+  #sobre-scroll-progress,
+  .sobre-header { display: none !important; }
+  .sobre-section,
+  .sobre-hero { break-inside: avoid; }
+  .sobre-quote { border-left: 2px solid #000; padding-left: 1rem; }
+}
