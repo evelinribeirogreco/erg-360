@@ -937,3 +937,140 @@ body.turbo-mode .section-title {
   .section:hover { transform: none !important; box-shadow: inherit !important; }
   .v2-section-enter { animation-duration: 0.22s; }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* Acessibilidade avançada: skip-links, focus-visible, reduced-motion,
+   sr-only, aria-invalid, progressbar, aria-checked, focus-trap, high-contrast */
+
+/* V3 — Visualmente oculto mas acessível para screen readers */
+.v3-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* V3-1 — Skip-links */
+#v3-skip-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+.v3-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 0 0 6px 0;
+  text-decoration: none;
+  white-space: nowrap;
+  z-index: 9999;
+}
+.v3-skip-link:focus {
+  left: 8px;
+  outline: 3px solid var(--gold, #C9A84C);
+  outline-offset: 2px;
+}
+
+/* V3 — Focus visible melhorado */
+:focus-visible {
+  outline: 2.5px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+.toggle-btn:focus-visible,
+.patologia-btn:focus-visible,
+.stepper-dot:focus-visible {
+  outline: 2.5px solid var(--accent) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px var(--accent-dim) !important;
+}
+
+/* V3-5 — aria-invalid: campo inválido tem borda vermelha persistente */
+[aria-invalid="true"] {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 2px rgba(224,82,82,0.18) !important;
+}
+
+/* V3-10 — patologia-btn com aria-checked: estado via ARIA (redundante ao .active) */
+.patologia-btn[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* V3-6 — progressbar: barra de risco com cursor default */
+[role="progressbar"] {
+  overflow: hidden;
+  border-radius: 100px;
+  cursor: default;
+}
+
+/* V3-8 — Reduced-motion: desativa animações para usuários sensíveis */
+.v3-reduced-motion *,
+.v3-reduced-motion *::before,
+.v3-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+/* Exceção: spinner de loading deve continuar girando */
+.v3-reduced-motion .v2-spinner {
+  animation: v2-spin 0.65s linear infinite !important;
+  animation-duration: 0.65s !important;
+}
+
+/* V3 — High-contrast mode (Windows forced colors) */
+@media (forced-colors: active) {
+  .stepper-dot.current .stepper-num,
+  .stepper-dot.done .stepper-num {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .v3-skip-link:focus {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .anamnese-toast.show {
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+    border: 2px solid CanvasText;
+  }
+}
+
+/* V3 — Indicador sutil de foco ativo dentro do modal overlay */
+.anamnese-modal-overlay:focus-within {
+  background: rgba(0,0,0,0.55);
+}
+
+/* V3 — Checkbox nos itens de check-in: tamanho de tap target acessível */
+.ckq-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.ckq-item {
+  cursor: pointer;
+  user-select: none;
+}
+.ckq-item:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

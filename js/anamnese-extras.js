@@ -1119,3 +1119,240 @@ if (document.readyState === 'loading') {
 } else {
   _initV2();
 }
+
+// ═══ POLIMENTO V3 ═══
+// 10 micro-melhorias de acessibilidade avançada:
+// skip-links, focus-trap, aria-live announcer, aria-current,
+// aria-invalid+errormessage, progressbar role, toast alert role,
+// prefers-reduced-motion, step announcer, toggle keyboard support
+
+// V3-1 — Skip-links: atalhos de teclado para regiões principais
+function _v3InjectSkipLinks() {
+  if (document.getElementById('v3-skip-links')) return;
+  const nav = document.createElement('nav');
+  nav.id = 'v3-skip-links';
+  nav.setAttribute('aria-label', 'Atalhos de navegação');
+  nav.innerHTML =
+    '<a href="#conteudo-principal" class="v3-skip-link">Pular para o conteúdo</a>' +
+    '<a href="#anamnese-stepper" class="v3-skip-link">Pular para o progresso</a>' +
+    '<a href="#btn-next" class="v3-skip-link">Pular para próxima etapa</a>';
+  document.body.insertBefore(nav, document.body.firstChild);
+  const main = document.querySelector('main, .main-content, [role="main"]');
+  if (main && !main.id) main.id = 'conteudo-principal';
+}
+
+// V3-2 — Focus trap em modais (recovery + help)
+function _v3FocusTrap(modal) {
+  const FOCUSABLE = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function handleKey(e) {
+    if (e.key !== 'Tab') return;
+    const els = Array.from(modal.querySelectorAll(FOCUSABLE)).filter(el => el.offsetParent !== null);
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  return {
+    onOpen() {
+      modal.addEventListener('keydown', handleKey);
+      const firstEl = modal.querySelector(FOCUSABLE);
+      if (firstEl) setTimeout(() => firstEl.focus(), 60);
+    },
+    onClose() { modal.removeEventListener('keydown', handleKey); },
+  };
+}
+
+// V3-3 — ARIA live region central para anúncios de screen reader
+function _v3EnsureAnnouncer() {
+  let el = document.getElementById('v3-sr-announcer');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'v3-sr-announcer';
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('aria-atomic', 'true');
+    el.className = 'v3-sr-only';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function _v3Announce(msg, priority) {
+  const el = _v3EnsureAnnouncer();
+  el.setAttribute('aria-live', priority || 'polite');
+  el.textContent = '';
+  // Double rAF garante que ATs processem a mudança
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.textContent = msg; }));
+}
+
+// V3-4 — aria-current="step" + aria-label descritivo no stepper ativo
+function _v3StepperAria() {
+  const stepper = document.getElementById('anamnese-stepper');
+  if (!stepper) return;
+  if (!stepper.getAttribute('role')) {
+    stepper.setAttribute('role', 'navigation');
+    stepper.setAttribute('aria-label', 'Progresso da anamnese');
+  }
+  stepper.querySelectorAll('.stepper-dot').forEach(btn => {
+    const isCurrent = btn.classList.contains('current');
+    if (isCurrent) btn.setAttribute('aria-current', 'step');
+    else btn.removeAttribute('aria-current');
+    const state = btn.classList.contains('done') ? ' (concluída)'
+      : btn.classList.contains('visited') ? ' (visitada)' : ' (pendente)';
+    const base = btn.querySelector('.stepper-label')?.textContent || '';
+    if (base) btn.setAttribute('aria-label', base + state);
+  });
+}
+
+// V3-5 — aria-invalid + aria-errormessage na validação inline via MutationObserver
+function _v3PatchValidationAria() {
+  new MutationObserver((mutations) => {
+    mutations.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if (n.nodeType !== 1 || !n.classList?.contains('inline-error')) return;
+        const field = n.closest?.('.form-group')?.querySelector('input,textarea,select');
+        if (!field) return;
+        if (!n.id) n.id = `v3err-${field.id || Math.random().toString(36).slice(2)}`;
+        field.setAttribute('aria-invalid', 'true');
+        field.setAttribute('aria-errormessage', n.id);
+        field.setAttribute('aria-describedby', n.id);
+      });
+      m.removedNodes.forEach(n => {
+        if (n.nodeType !== 1 || !n.classList?.contains('inline-error')) return;
+        const wrap = n.closest?.('.form-group') || m.target.closest?.('.form-group');
+        if (!wrap) return;
+        const field = wrap.querySelector('input,textarea,select');
+        if (field) {
+          field.removeAttribute('aria-invalid');
+          field.removeAttribute('aria-errormessage');
+          field.removeAttribute('aria-describedby');
+        }
+      });
+    });
+  }).observe(document.getElementById('anamnese-form') || document.body, { childList: true, subtree: true });
+}
+
+// V3-6 — role="progressbar" com aria-valuenow no score de risco
+function _v3PatchRiskProgressbar() {
+  if (!window._anamneseExtras) return;
+  const orig = window._anamneseExtras.renderRiskScore;
+  if (!orig) return;
+  window._anamneseExtras.renderRiskScore = function() {
+    orig.apply(this, arguments);
+    const fill = document.querySelector('.risk-score-bar-fill');
+    const bar  = fill?.closest('.risk-score-bar');
+    if (!bar) return;
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-valuemin', '0');
+    bar.setAttribute('aria-valuemax', '100');
+    const w = parseInt(fill.style.width) || 0;
+    bar.setAttribute('aria-valuenow', String(w));
+    const lvl = w < 20 ? 'Risco baixo' : w < 45 ? 'Risco moderado' : 'Risco alto';
+    bar.setAttribute('aria-label', `Score de risco: ${w} de 100 — ${lvl}`);
+  };
+}
+
+// V3-7 — Toast com role="alert" e aria-atomic para leitores de tela
+function _v3PatchToast() {
+  function stamp(t) {
+    if (!t) return;
+    if (!t.getAttribute('role')) t.setAttribute('role', 'alert');
+    t.setAttribute('aria-atomic', 'true');
+    t.setAttribute('aria-live', 'assertive');
+  }
+  stamp(document.getElementById('anamnese-extras-toast'));
+  if (!window._anamneseExtras) return;
+  const orig = window._anamneseExtras.showToast;
+  if (!orig) return;
+  window._anamneseExtras.showToast = function(msg, type) {
+    orig.call(this, msg, type);
+    stamp(document.getElementById('anamnese-extras-toast'));
+  };
+}
+
+// V3-8 — prefers-reduced-motion: desativa animações para usuários sensíveis
+function _v3ReducedMotion() {
+  const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  if (!mq) return;
+  const apply = (reduce) => document.documentElement.classList.toggle('v3-reduced-motion', !!reduce);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// V3-9 — Anúncio de step change para screen readers
+function _v3StepAnnouncer() {
+  if (!window._anamneseExtras) return;
+  const orig = window._anamneseExtras.onStepChange;
+  if (!orig) return;
+  window._anamneseExtras.onStepChange = function(idx, total, stepId) {
+    orig.apply(this, arguments);
+    // STEP_META está no escopo do módulo
+    const meta = (typeof STEP_META !== 'undefined' ? STEP_META : [])[idx];
+    const name = meta?.name || `Etapa ${idx + 1}`;
+    _v3Announce(`${name} — etapa ${idx + 1} de ${total || 10}`);
+    _v3StepperAria();
+  };
+}
+
+// V3-10 — Keyboard support para toggle-btn e patologia-btn (Enter/Space ativam)
+function _v3ToggleKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (!el.matches?.('.toggle-btn,.patologia-btn')) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+  });
+  function ensureA11y(root) {
+    (root || document).querySelectorAll?.('.patologia-btn').forEach(btn => {
+      if (!btn.getAttribute('role')) btn.setAttribute('role', 'checkbox');
+      btn.setAttribute('aria-checked', btn.classList.contains('active') ? 'true' : 'false');
+    });
+    (root || document).querySelectorAll?.('.toggle-btn[type!="button"]:not(button)').forEach(btn => {
+      if (!btn.getAttribute('tabindex')) btn.setAttribute('tabindex', '0');
+    });
+  }
+  ensureA11y();
+  // Sync aria-checked em cliques
+  document.addEventListener('click', e => {
+    const btn = e.target.closest?.('.patologia-btn');
+    if (btn) btn.setAttribute('aria-checked', btn.classList.contains('active') ? 'true' : 'false');
+  });
+  // Re-aplica em elementos dinâmicos
+  new MutationObserver(() => ensureA11y()).observe(
+    document.getElementById('anamnese-form') || document.body, { childList: true, subtree: true }
+  );
+}
+
+// ── Init V3 ──
+function _initV3() {
+  _v3InjectSkipLinks();
+  _v3EnsureAnnouncer();
+  _v3ReducedMotion();
+  _v3ToggleKeyboard();
+  _v3PatchValidationAria();
+
+  // Focus trap nos modais (observa abertura via style)
+  ['anamnese-recovery-modal', 'anamnese-help'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    const trap = _v3FocusTrap(modal);
+    new MutationObserver(() => {
+      const open = modal.style.display === 'flex' || modal.style.display === 'block';
+      open ? trap.onOpen() : trap.onClose();
+    }).observe(modal, { attributes: true, attributeFilter: ['style'] });
+  });
+
+  // Patches que dependem do _anamneseExtras já inicializado
+  setTimeout(() => {
+    _v3PatchRiskProgressbar();
+    _v3PatchToast();
+    _v3StepAnnouncer();
+    _v3StepperAria();
+  }, 100);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV3);
+} else {
+  _initV3();
+}
