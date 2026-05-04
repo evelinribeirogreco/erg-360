@@ -421,3 +421,76 @@
 .sidebar:focus-within .nav-item[aria-keyshortcuts]::after {
   opacity: 0.7;
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* V4-1. Fase cards — staggered reveal via IntersectionObserver ──────────── */
+.v4-card-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.28s ease var(--v4-stagger, 0ms),
+              transform 0.28s ease var(--v4-stagger, 0ms);
+}
+.v4-card-hidden.v4-card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* V4-2. Banner de restauração de rascunho ───────────────────────────────── */
+#v4-draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(44, 106, 86, 0.06);
+  border-left: 3px solid var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text);
+  margin-bottom: 14px;
+  animation: adminFasesViewIn 0.25s ease-out both;
+}
+#v4-draft-banner span { flex: 1; }
+#v4-restore-btn {
+  padding: 5px 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: opacity 0.15s;
+}
+#v4-restore-btn:hover { opacity: 0.85; }
+#v4-discard-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+#v4-discard-btn:hover { color: var(--text); }
+
+/* V4-3. contain — reduz área de repaint em elementos estáticos ──────────── */
+.kpi-tip,
+#autosave-badge,
+.confirm-backdrop {
+  contain: layout style;
+}
+
+/* V4-4. will-change — hint de composição para scroll do main-content ─────── */
+.main-content { will-change: scroll-position; }
+
+/* V4-5. prefers-reduced-data — cancela animações em conexões lentas ─────── */
+@media (prefers-reduced-data: reduce) {
+  .v4-card-hidden {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

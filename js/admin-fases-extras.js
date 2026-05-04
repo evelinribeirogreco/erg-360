@@ -763,3 +763,240 @@
     initV3();
   }
 })();
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance — IntersectionObserver, rIC, sessionStorage cache,
+// Page Visibility, throttle/debounce, passive listeners, draft restore, rAF ARIA sync.
+// Não duplica: aria-live, skip-link, focus-trap, roving tabindex, keyboard shortcuts,
+//              field descriptions, loading states, view announcer (V1/V3 cobrem tudo acima).
+
+(function () {
+  'use strict';
+
+  // V4-1. Utilitários debounce + throttle ───────────────────────────────────
+  function debounce(fn, ms) {
+    let t;
+    return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+  }
+
+  function throttle(fn, ms) {
+    let last = 0;
+    return function (...args) {
+      const now = Date.now();
+      if (now - last >= ms) { last = now; fn.apply(this, args); }
+    };
+  }
+
+  // V4-2. IntersectionObserver — KPI cards animate-in escalonado ───────────
+  function initKpiReveal() {
+    const kpis = document.getElementById('kpis-fases');
+    if (!kpis || !('IntersectionObserver' in window)) return;
+
+    const obs = new IntersectionObserver((entries, o) => {
+      entries.forEach((entry, i) => {
+        if (!entry.isIntersecting) return;
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }, i * 65);
+        o.unobserve(entry.target);
+      });
+    }, { threshold: 0.1 });
+
+    const tagAndObserve = () => {
+      kpis.querySelectorAll('div:not([data-v4-kpi])').forEach(card => {
+        card.setAttribute('data-v4-kpi', '');
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(8px)';
+        card.style.transition = 'opacity 0.32s ease, transform 0.32s ease';
+        obs.observe(card);
+      });
+    };
+
+    new MutationObserver(tagAndObserve).observe(kpis, { childList: true });
+    tagAndObserve();
+  }
+
+  // V4-3. IntersectionObserver — fase cards staggered reveal ────────────────
+  function initCardReveal() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper || !('IntersectionObserver' in window)) return;
+
+    const cardObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('v4-card-visible');
+        cardObs.unobserve(entry.target);
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -10px 0px' });
+
+    let idx = 0;
+    const tagCards = () => {
+      wrapper.querySelectorAll('[style*="border"]:not([data-v4-card])').forEach(card => {
+        if (!card.querySelector('button')) return;
+        card.setAttribute('data-v4-card', '');
+        card.classList.add('v4-card-hidden');
+        card.style.setProperty('--v4-stagger', `${Math.min(idx++, 5) * 55}ms`);
+        cardObs.observe(card);
+      });
+    };
+
+    new MutationObserver(() => { idx = 0; tagCards(); }).observe(wrapper, { childList: true });
+    tagCards();
+  }
+
+  // V4-4. requestIdleCallback — tarefas de baixa prioridade ─────────────────
+  function scheduleIdleTasks() {
+    const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
+
+    ric(() => {
+      try {
+        const draft = JSON.parse(localStorage.getItem('adminFases_draft_v1') || 'null');
+        if (!draft || !Object.values(draft).some(v => v && String(v).trim())) return;
+        injectDraftRestoreBanner(draft);
+      } catch (_) {}
+    });
+
+    ric(() => {
+      document.querySelectorAll('.kpi-tip[data-tip]:not([title])').forEach(el => {
+        el.setAttribute('title', el.getAttribute('data-tip'));
+      });
+    });
+  }
+
+  // V4-5. Banner de restauração de rascunho ─────────────────────────────────
+  function injectDraftRestoreBanner(draft) {
+    if (document.getElementById('v4-draft-banner')) return;
+    const container = document.getElementById('view-nova');
+    if (!container) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'v4-draft-banner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+    banner.innerHTML = `
+      <span>Há um rascunho não salvo da última sessão.</span>
+      <button id="v4-restore-btn" type="button">Restaurar</button>
+      <button id="v4-discard-btn" type="button" aria-label="Descartar rascunho">&#215;</button>`;
+    container.insertBefore(banner, container.firstChild);
+
+    banner.querySelector('#v4-restore-btn').addEventListener('click', () => {
+      Object.entries(draft).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) { el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      banner.remove();
+      const live = document.getElementById('extras-aria-live');
+      if (live) { live.textContent = ''; requestAnimationFrame(() => { live.textContent = 'Rascunho restaurado com sucesso.'; }); }
+    });
+
+    banner.querySelector('#v4-discard-btn').addEventListener('click', () => {
+      try { localStorage.removeItem('adminFases_draft_v1'); } catch (_) {}
+      banner.remove();
+    });
+  }
+
+  // V4-6. sessionStorage cache — pré-popula e persiste após carregamento ────
+  function initFasesSessionCache() {
+    const CACHE_KEY = 'v4_fases_cache';
+    const CACHE_TTL = 45000;
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('patient') || params.get('patient_id');
+    if (!pid) return;
+
+    try {
+      const raw = sessionStorage.getItem(`${CACHE_KEY}_${pid}`);
+      if (raw) {
+        const c = JSON.parse(raw);
+        if (Date.now() - c.ts < CACHE_TTL && Array.isArray(c.data) && c.data.length) {
+          window._adminFasesExtrasCache = c.data;
+          requestAnimationFrame(() => {
+            const ext = window._adminFasesExtras;
+            if (ext) {
+              ext.enrichKPIs?.();
+              ext.renderPlanProgressBar?.(c.data);
+            }
+          });
+        }
+      }
+    } catch (_) {}
+
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+    const saveObs = new MutationObserver(debounce(() => {
+      const cache = window._adminFasesExtrasCache;
+      if (!Array.isArray(cache) || !cache.length) return;
+      try { sessionStorage.setItem(`${CACHE_KEY}_${pid}`, JSON.stringify({ ts: Date.now(), data: cache })); } catch (_) {}
+    }, 400));
+    saveObs.observe(wrapper, { childList: true, subtree: true });
+    setTimeout(() => saveObs.disconnect(), 25000);
+  }
+
+  // V4-7. Page Visibility API — sinaliza pausa quando tab está oculta ───────
+  function initPageVisibilityGuard() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        wrapper.setAttribute('data-v4-paused', '1');
+      } else {
+        wrapper.removeAttribute('data-v4-paused');
+      }
+    }, { passive: true });
+  }
+
+  // V4-8. Resize throttle — re-renderiza barra de progresso do plano ─────────
+  function initResizeThrottle() {
+    const onResize = throttle(() => {
+      const cache = window._adminFasesExtrasCache;
+      if (!Array.isArray(cache) || !cache.length) return;
+      window._adminFasesExtras?.renderPlanProgressBar?.(cache);
+    }, 250);
+    window.addEventListener('resize', onResize, { passive: true });
+  }
+
+  // V4-9. Passive listeners — scroll e touch no main-content ────────────────
+  function addPassiveScrollListeners() {
+    const main = document.querySelector('.main-content');
+    if (!main) return;
+    main.addEventListener('touchstart', () => {}, { passive: true });
+    main.addEventListener('touchmove',  () => {}, { passive: true });
+    main.addEventListener('wheel',      () => {}, { passive: true, capture: false });
+  }
+
+  // V4-10. rAF ARIA sync — adiciona atributos ARIA progressbar na completion meter
+  function patchCompletudeMeterAria() {
+    const fill = document.getElementById('fcm-fill');
+    if (!fill) return;
+    fill.setAttribute('role', 'progressbar');
+    fill.setAttribute('aria-valuemin', '0');
+    fill.setAttribute('aria-valuemax', '100');
+    fill.setAttribute('aria-valuenow', '0');
+    fill.setAttribute('aria-label', 'Completude do formulário de fase');
+
+    new MutationObserver(() => {
+      requestAnimationFrame(() => {
+        const pct = parseInt(fill.style.width) || 0;
+        fill.setAttribute('aria-valuenow', String(pct));
+      });
+    }).observe(fill, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // ── Init V4 ───────────────────────────────────────────────────────────────
+  function initV4() {
+    initKpiReveal();
+    initCardReveal();
+    scheduleIdleTasks();
+    initFasesSessionCache();
+    initPageVisibilityGuard();
+    initResizeThrottle();
+    addPassiveScrollListeners();
+    patchCompletudeMeterAria();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV4);
+  } else {
+    initV4();
+  }
+})();
