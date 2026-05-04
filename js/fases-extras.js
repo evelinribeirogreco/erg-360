@@ -310,3 +310,245 @@
     waitForContent();
   }
 })();
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade avançada:
+// V3.1 role="list"/listitem na timeline
+// V3.2 aria-setsize + aria-posinset por item
+// V3.3 aria-roledescription="fase do tratamento"
+// V3.4 foco inteligente ao abrir/fechar (focus return)
+// V3.5 overlay de atalhos de teclado (tecla ?)
+// V3.6 tecla / para recolher todas as fases
+// V3.7 aria-busy no container de loading
+// V3.8 role="region" + aria-label nas seções hero/mapa/voce-aqui
+// V3.9 detecção de alto contraste (prefers-contrast: more)
+// V3.10 print: todas as fases expandidas automaticamente
+
+(function initFasesExtrasV3() {
+  'use strict';
+
+  const E = window._fasesExtras = window._fasesExtras || {};
+
+  // ── V3.1 + V3.2 + V3.3: Semântica de lista e roles por item ─────────────
+  function applyListSemantics(items) {
+    const timeline = document.querySelector('.fases-timeline');
+    if (timeline && !timeline.getAttribute('role')) {
+      timeline.setAttribute('role', 'list');
+      timeline.setAttribute('aria-label', 'Linha do tempo das fases do tratamento');
+    }
+    const total = items.length;
+    items.forEach((item, idx) => {
+      if (!item.getAttribute('role') || item.getAttribute('role') === 'button') {
+        item.setAttribute('role', 'listitem');
+      }
+      item.setAttribute('aria-setsize', String(total));
+      item.setAttribute('aria-posinset', String(idx + 1));
+      item.setAttribute('aria-roledescription', 'fase do tratamento');
+    });
+  }
+
+  // ── V3.4: Foco inteligente ao abrir/fechar ───────────────────────────────
+  function patchToggleFaseV3() {
+    const orig = window.toggleFase;
+    if (!orig || orig._v3patched) return;
+    const wrapped = function (id) {
+      const detalhe = document.getElementById(id);
+      const item = detalhe && detalhe.closest('.fase-item');
+      const wasOpen = detalhe && detalhe.classList.contains('open');
+      orig(id);
+      if (!detalhe || !item) return;
+      const isNowOpen = detalhe.classList.contains('open');
+      if (isNowOpen && !wasOpen) {
+        // Ao abrir: foca o primeiro elemento interativo dentro do detalhe
+        setTimeout(() => {
+          const firstFocusable = detalhe.querySelector(
+            'a[href], button:not([disabled]), [tabindex="0"]'
+          );
+          if (firstFocusable) firstFocusable.focus({ preventScroll: true });
+        }, 460);
+      } else if (!isNowOpen && wasOpen) {
+        // Ao fechar: devolve foco ao item
+        item.focus({ preventScroll: true });
+      }
+    };
+    wrapped._v3patched = true;
+    window.toggleFase = wrapped;
+  }
+
+  // ── V3.5: Overlay de atalhos (tecla ?) ──────────────────────────────────
+  function injectHelpOverlay() {
+    if (document.getElementById('fases-help-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'fases-help-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Atalhos de teclado');
+    overlay.setAttribute('hidden', '');
+    overlay.innerHTML =
+      '<div class="fases-help-panel" tabindex="-1">' +
+        '<button class="fases-help-close" aria-label="Fechar ajuda" type="button">✕</button>' +
+        '<h2 class="fases-help-title">Atalhos de teclado</h2>' +
+        '<dl class="fases-help-list">' +
+          '<dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>Navegar entre fases</dd>' +
+          '<dt><kbd>Enter</kbd>&nbsp;/&nbsp;<kbd>Espaço</kbd></dt><dd>Expandir / recolher</dd>' +
+          '<dt><kbd>Home</kbd>&nbsp;/&nbsp;<kbd>End</kbd></dt><dd>Primeira / última fase</dd>' +
+          '<dt><kbd>Esc</kbd></dt><dd>Recolher fase aberta</dd>' +
+          '<dt><kbd>/</kbd></dt><dd>Recolher todas as fases</dd>' +
+          '<dt><kbd>?</kbd></dt><dd>Esta ajuda</dd>' +
+        '</dl>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    const panel = overlay.querySelector('.fases-help-panel');
+    const closeBtn = overlay.querySelector('.fases-help-close');
+
+    E.openHelp = function () {
+      overlay.removeAttribute('hidden');
+      panel.focus();
+      document.body.style.overflow = 'hidden';
+    };
+
+    E.closeHelp = function () {
+      overlay.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      const focused = document.querySelector('.fase-item:focus') ||
+                      document.querySelector('.fase-item.ativa');
+      if (focused) focused.focus({ preventScroll: true });
+    };
+
+    closeBtn.addEventListener('click', E.closeHelp);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) E.closeHelp(); });
+
+    // Focus trap dentro do overlay
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { E.closeHelp(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(overlay.querySelectorAll(
+        'button, [href], [tabindex]:not([tabindex="-1"])'
+      ));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    });
+  }
+
+  // ── V3.6: Tecla / para recolher todas as fases ──────────────────────────
+  function setupGlobalKeys() {
+    document.addEventListener('keydown', (e) => {
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        if (E.openHelp) E.openHelp();
+      } else if (e.key === '/' && !e.shiftKey) {
+        e.preventDefault();
+        let closed = 0;
+        document.querySelectorAll('.fase-detalhe.open').forEach((d) => {
+          if (d.id && typeof window.toggleFase === 'function') {
+            window.toggleFase(d.id);
+            closed++;
+          }
+        });
+        if (closed > 0 && E.announce) {
+          E.announce(closed === 1 ? 'Fase recolhida' : 'Todas as fases foram recolhidas');
+        }
+      }
+    });
+  }
+
+  // ── V3.7: aria-busy no loading ───────────────────────────────────────────
+  function patchLoadingARIA() {
+    const loading = document.getElementById('fases-loading');
+    if (loading) {
+      loading.setAttribute('role', 'status');
+      loading.setAttribute('aria-live', 'polite');
+      loading.setAttribute('aria-busy', 'true');
+      loading.setAttribute('aria-label', 'Carregando seu plano de fases');
+    }
+    const content = document.getElementById('fases-content');
+    if (content && loading) {
+      const obs = new MutationObserver(() => {
+        loading.setAttribute('aria-busy', 'false');
+        obs.disconnect();
+      });
+      obs.observe(content, { attributes: true, attributeFilter: ['style'] });
+    }
+  }
+
+  // ── V3.8: role="region" nas seções principais ────────────────────────────
+  function applyRegionRoles() {
+    const hero = document.querySelector('.fases-hero');
+    if (hero && !hero.getAttribute('role')) {
+      hero.setAttribute('role', 'region');
+      hero.setAttribute('aria-label', 'Resumo do plano de tratamento');
+    }
+    const mapa = document.querySelector('.fases-mapa');
+    if (mapa && !mapa.getAttribute('role')) {
+      mapa.setAttribute('role', 'region');
+      mapa.setAttribute('aria-label', 'Mapa de progresso das fases');
+    }
+    const voceAqui = document.querySelector('.voce-aqui');
+    if (voceAqui && !voceAqui.getAttribute('role')) {
+      voceAqui.setAttribute('role', 'region');
+      voceAqui.setAttribute('aria-label', 'Fase atual em andamento');
+    }
+  }
+
+  // ── V3.9: Alto contraste (prefers-contrast: more) ───────────────────────
+  function detectHighContrast() {
+    const mq = window.matchMedia('(prefers-contrast: more)');
+    const apply = (matches) => document.body.classList.toggle('fases-high-contrast', matches);
+    apply(mq.matches);
+    mq.addEventListener('change', (e) => apply(e.matches));
+  }
+
+  // ── V3.10: Print — expande todas as fases antes de imprimir ─────────────
+  function setupPrintExpand() {
+    window.addEventListener('beforeprint', () => {
+      document.querySelectorAll('.fase-detalhe:not(.open)').forEach((d) => {
+        d.classList.add('fases-print-open');
+      });
+    });
+    window.addEventListener('afterprint', () => {
+      document.querySelectorAll('.fases-print-open').forEach((d) => {
+        d.classList.remove('fases-print-open');
+      });
+    });
+  }
+
+  // ── Init V3 (aguarda conteúdo async) ─────────────────────────────────────
+  function initV3() {
+    const items = Array.from(document.querySelectorAll('.fase-item'));
+    applyListSemantics(items);
+    patchToggleFaseV3();
+    applyRegionRoles();
+    injectHelpOverlay();
+  }
+
+  function waitForContentV3() {
+    const content = document.getElementById('fases-content');
+    if (!content) { setTimeout(waitForContentV3, 120); return; }
+    if (content.children.length > 0) { initV3(); return; }
+    const obs = new MutationObserver(() => {
+      if (content.children.length > 0) { obs.disconnect(); setTimeout(initV3, 80); }
+    });
+    obs.observe(content, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
+  // Execuções imediatas (independem do conteúdo async)
+  patchLoadingARIA();
+  detectHighContrast();
+  setupGlobalKeys();
+  setupPrintExpand();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContentV3);
+  } else {
+    waitForContentV3();
+  }
+})();

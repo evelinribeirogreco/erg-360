@@ -233,3 +233,153 @@
   .fases-progress-bar { margin-top: 14px; }
   .fases-toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* 10 melhorias acessibilidade avançada: list roles, aria-setsize, focus return,
+   help overlay (?), recolher todos (/), aria-busy, role region, alto contraste, print */
+
+/* ── V3.5: Help overlay de atalhos ───────────────────────────────────────── */
+#fases-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#fases-help-overlay[hidden] { display: none; }
+
+.fases-help-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 28px 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  outline: none;
+  animation: fases-help-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fases-help-in {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+.fases-help-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-light);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.fases-help-close:hover {
+  color: var(--text);
+  background: var(--bg-primary);
+}
+.fases-help-close:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+.fases-help-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--text);
+  margin: 0 0 18px;
+  font-weight: 500;
+}
+
+.fases-help-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+.fases-help-list dt {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.fases-help-list dd {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: var(--text);
+  box-shadow: 0 1px 0 var(--border);
+  white-space: nowrap;
+}
+
+/* ── V3.9: Alto contraste ─────────────────────────────────────────────────── */
+.fases-high-contrast .fase-item {
+  border: 2px solid currentColor !important;
+}
+.fases-high-contrast .fase-item:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+.fases-high-contrast .fases-progress-fill {
+  background: Highlight !important;
+}
+.fases-high-contrast .fase-chevron {
+  color: currentColor !important;
+}
+.fases-high-contrast .fase-share-btn {
+  border-color: currentColor !important;
+  color: currentColor !important;
+}
+
+/* ── V3.10: Print — garante todas as fases expandidas ────────────────────── */
+@media print {
+  .fase-detalhe,
+  .fase-detalhe.fases-print-open {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    transition: none !important;
+    margin-top: 12px !important;
+    border-width: 1px !important;
+  }
+  .fase-chevron,
+  .fase-share-btn,
+  .fases-toast,
+  .fases-skip-link,
+  #fases-help-overlay,
+  .checkin-header,
+  .back-bar { display: none !important; }
+  .fases-hero,
+  .fase-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
