@@ -894,3 +894,111 @@ body.ded-presentation .ded-presentation-exit {
   .ded-search-bar.ded-search-open { transform: none; }
   .ded-search-input { min-width: 100px; }
 }
+
+/* ═══ POLIMENTO V2 ═══ */
+/* Micro-interações · hover states · animações sutis · ripples — 10 melhorias */
+
+/* V2.1 Ripple on toolbar buttons */
+.ded-toolbar-btn {
+  position: relative;
+  overflow: hidden;
+}
+.ded-ripple {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  margin-left: -50px;
+  margin-top: -50px;
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.28);
+  pointer-events: none;
+  animation: ded-ripple-anim 0.5s ease-out forwards;
+  z-index: 0;
+}
+@keyframes ded-ripple-anim {
+  0%   { transform: scale(0); opacity: 1; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* V2.3 Scroll-reveal for sections */
+.ded-reveal-ready {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.44s ease, transform 0.44s ease;
+}
+.ded-revealed {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* V2.4 Search bar shake on zero results (uses margin-left to avoid transform conflict) */
+@keyframes ded-v2-shake {
+  0%   { margin-left: 0; }
+  20%  { margin-left: -7px; }
+  40%  { margin-left: 7px; }
+  60%  { margin-left: -4px; }
+  80%  { margin-left: 4px; }
+  100% { margin-left: 0; }
+}
+.ded-search-bar.ded-search-shake {
+  animation: ded-v2-shake 0.36s ease;
+}
+
+/* V2.5 Tag pill staggered entrance */
+@keyframes ded-tag-enter {
+  0%   { opacity: 0; transform: scale(0.72); }
+  65%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.ded-tag.ded-tag-enter {
+  animation: ded-tag-enter 0.28s ease both;
+}
+
+/* V2.6 Note area slide-down */
+@keyframes ded-note-slide {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ded-note-area.ded-note-slide-in {
+  animation: ded-note-slide 0.26s ease both;
+}
+
+/* V2.7 Insights panel entrance */
+@keyframes ded-insights-enter {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ded-insights-panel.ded-insights-enter {
+  animation: ded-insights-enter 0.38s ease both;
+}
+
+/* V2.8 Toolbar button active micro-scale */
+.ded-toolbar-btn:active {
+  transform: scale(0.94);
+}
+
+/* V2.9 ToC item hover left-border indicator */
+.ded-toc-item {
+  position: relative;
+}
+.ded-toc-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 2px;
+  height: 56%;
+  background: var(--detail, #4CB8A0);
+  border-radius: 0 2px 2px 0;
+  transition: transform 0.18s ease;
+  transform-origin: center;
+}
+.ded-toc-item:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* V2.10 Section header hover accent color */
+.ded-section-toggle:hover {
+  color: var(--accent, #2D6A56);
+}

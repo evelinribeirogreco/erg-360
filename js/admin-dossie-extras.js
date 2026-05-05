@@ -1098,3 +1098,164 @@ window._adminDossieExtras = (() => {
     announce: announce,
   };
 })();
+
+// ═══ POLIMENTO V2 ═══
+// Micro-interações · hover states · animações sutis · ripples — 10 melhorias
+(function () {
+  'use strict';
+
+  // V2.1 Ripple effect on toolbar buttons
+  function injectRippleEffect() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.ded-toolbar-btn');
+      if (!btn) return;
+      var rect = btn.getBoundingClientRect();
+      var ripple = document.createElement('span');
+      ripple.className = 'ded-ripple';
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top = (e.clientY - rect.top) + 'px';
+      btn.style.position = btn.style.position || 'relative';
+      btn.style.overflow = 'hidden';
+      btn.appendChild(ripple);
+      setTimeout(function () { if (ripple.parentNode) ripple.remove(); }, 520);
+    });
+  }
+
+  // V2.2 Count-up animation on insights panel counter
+  function animateInsightsCount() {
+    var countEl = document.querySelector('.ded-insights-count');
+    if (!countEl || countEl.dataset.v2Animated) return;
+    var target = parseInt(countEl.textContent.trim(), 10);
+    if (!target || isNaN(target) || target <= 1) return;
+    countEl.dataset.v2Animated = '1';
+    var duration = 560;
+    var startTime = performance.now();
+    function step(now) {
+      var t = Math.min((now - startTime) / duration, 1);
+      var ease = 1 - Math.pow(1 - t, 3);
+      countEl.textContent = Math.round(ease * target);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // V2.3 Scroll-reveal fade-in for sections
+  function initScrollReveal() {
+    if (!window.IntersectionObserver) return;
+    var viewH = window.innerHeight;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('ded-revealed');
+        obs.unobserve(entry.target);
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -16px 0px' });
+
+    document.querySelectorAll('.dos-secao:not(.ded-revealed), .dos-capa:not(.ded-revealed)').forEach(function (el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < viewH) {
+        el.classList.add('ded-revealed');
+      } else {
+        el.classList.add('ded-reveal-ready');
+        obs.observe(el);
+      }
+    });
+  }
+
+  // V2.4 Search bar shake animation on zero results
+  function wireSearchShake() {
+    var countEl = document.getElementById('ded-search-count');
+    if (!countEl) return;
+    var obs = new MutationObserver(function () {
+      if (countEl.textContent.trim() !== 'Nenhum') return;
+      var bar = document.getElementById('ded-search-bar');
+      if (!bar) return;
+      bar.classList.remove('ded-search-shake');
+      void bar.offsetWidth;
+      bar.classList.add('ded-search-shake');
+      setTimeout(function () { bar.classList.remove('ded-search-shake'); }, 420);
+    });
+    obs.observe(countEl, { childList: true, characterData: true, subtree: true });
+  }
+
+  // V2.5 Tag pill staggered entrance animation
+  function wireTagEntrance() {
+    document.querySelectorAll('.ded-tags-area .ded-tag:not([data-v2-enter])').forEach(function (tag, i) {
+      tag.dataset.v2Enter = '1';
+      tag.style.animationDelay = (i * 55) + 'ms';
+      tag.classList.add('ded-tag-enter');
+    });
+  }
+
+  // V2.6 Note area slide-down animation on show
+  function wireNoteSlideIn() {
+    var root = document.getElementById('dos-mount') || document.body;
+    var obs = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mut) {
+        var tgt = mut.target;
+        if (
+          mut.type === 'attributes' &&
+          mut.attributeName === 'style' &&
+          tgt.classList && tgt.classList.contains('ded-note-area') &&
+          tgt.style.display === 'block'
+        ) {
+          tgt.classList.remove('ded-note-slide-in');
+          void tgt.offsetWidth;
+          tgt.classList.add('ded-note-slide-in');
+        }
+      });
+    });
+    obs.observe(root, { attributes: true, attributeFilter: ['style'], subtree: true });
+  }
+
+  // V2.7 Insights panel entrance animation
+  function animateInsightsPanelEntrance() {
+    var panel = document.getElementById('ded-insights-panel');
+    if (!panel || panel.dataset.v2Entered) return;
+    panel.dataset.v2Entered = '1';
+    panel.classList.add('ded-insights-enter');
+    animateInsightsCount();
+  }
+
+  // V2.8 Re-run tag entrance after tag modal saves
+  function watchTagModalSave() {
+    document.addEventListener('click', function (e) {
+      if (!e.target || e.target.id !== 'ded-tags-save') return;
+      setTimeout(wireTagEntrance, 80);
+    });
+  }
+
+  function onDossierReadyV2() {
+    setTimeout(function () {
+      animateInsightsPanelEntrance();
+      initScrollReveal();
+      wireTagEntrance();
+    }, 200);
+  }
+
+  function setupV2Observer() {
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      onDossierReadyV2();
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      onDossierReadyV2();
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+  }
+
+  function initV2() {
+    injectRippleEffect();
+    wireSearchShake();
+    wireNoteSlideIn();
+    watchTagModalSave();
+    setupV2Observer();
+    setTimeout(wireTagEntrance, 650);
+  }
+
+  document.addEventListener('DOMContentLoaded', initV2);
+})();
