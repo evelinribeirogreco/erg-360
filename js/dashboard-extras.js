@@ -437,3 +437,235 @@
 
   window._dashboardExtras = { version: 1 };
 })();
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade avançada: prefers-reduced-motion,
+// landmark-labels, score-description, alert-region, scroll-milestone-announce,
+// forced-colors, card-accessible-names, nav-transition-announce,
+// extra-skip-target, fab-accessible.
+
+(function () {
+  'use strict';
+
+  // ── 21. prefers-reduced-motion detection ────────────────────────────────
+  function initReducedMotion() {
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    function apply(active) {
+      document.documentElement.classList.toggle('db-reduced-motion', active);
+    }
+    apply(mq.matches);
+    mq.addEventListener('change', function (e) { apply(e.matches); });
+  }
+
+  // ── 22. Landmark ARIA labels ──────────────────────────────────────────
+  function initLandmarkLabels() {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar && !sidebar.getAttribute('aria-label')) {
+      sidebar.setAttribute('aria-label', 'Menu principal de navegação');
+    }
+
+    var main = document.querySelector('.main-content');
+    if (main) {
+      if (!main.getAttribute('role')) main.setAttribute('role', 'main');
+      if (!main.getAttribute('aria-label')) {
+        main.setAttribute('aria-label', 'Dashboard principal');
+      }
+    }
+
+    var quickGrid = document.querySelector('.db-quick-grid');
+    if (quickGrid && !quickGrid.getAttribute('role')) {
+      quickGrid.setAttribute('role', 'list');
+      quickGrid.setAttribute('aria-label', 'Ações rápidas');
+      document.querySelectorAll('.db-quick-card').forEach(function (card) {
+        if (!card.getAttribute('role')) card.setAttribute('role', 'listitem');
+      });
+    }
+
+    var bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav && !bottomNav.getAttribute('aria-label')) {
+      bottomNav.setAttribute('aria-label', 'Navegação inferior');
+    }
+  }
+
+  // ── 23. Score accessible description via aria-describedby ────────────
+  function initScoreDescription() {
+    var scoreCard = document.getElementById('score-hoje-card');
+    if (!scoreCard || document.getElementById('db-score-desc')) return;
+    var desc = document.createElement('p');
+    desc.id = 'db-score-desc';
+    desc.className = 'sr-only';
+    desc.textContent = 'Score calculado com base nos check-ins do dia. '
+      + 'Acima de 70 pontos indica boa adesão ao plano nutricional.';
+    scoreCard.appendChild(desc);
+    scoreCard.setAttribute('aria-describedby', 'db-score-desc');
+  }
+
+  // ── 24. Dedicated role="alert" region for error toasts ───────────────
+  function initAlertRegion() {
+    if (document.getElementById('db-alert-region')) return;
+    var region = document.createElement('div');
+    region.id = 'db-alert-region';
+    region.setAttribute('role', 'alert');
+    region.setAttribute('aria-atomic', 'true');
+    region.className = 'sr-only';
+    document.body.appendChild(region);
+
+    var toast = document.getElementById('toast');
+    if (!toast) return;
+    var obs = new MutationObserver(function () {
+      if (!toast.classList.contains('visible')) return;
+      if (toast.classList.contains('toast--error') ||
+          toast.classList.contains('error')) {
+        var msg = toast.querySelector('[class*="message"], [class*="text"]');
+        region.textContent = '';
+        setTimeout(function () {
+          region.textContent = msg
+            ? msg.textContent.trim()
+            : toast.textContent.trim();
+        }, 50);
+      }
+    });
+    obs.observe(toast, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // ── 25. Scroll milestone announcements at 25% intervals ──────────────
+  function initScrollMilestoneAnnounce() {
+    if (document.getElementById('db-scroll-announce')) return;
+    var live = document.createElement('div');
+    live.id = 'db-scroll-announce';
+    live.className = 'sr-only';
+    live.setAttribute('aria-live', 'polite');
+    live.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(live);
+
+    var lastMilestone = 0;
+    var timer;
+    window.addEventListener('scroll', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var h = document.documentElement;
+        if (h.scrollHeight <= h.clientHeight) return;
+        var pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+        var milestone = Math.floor(pct * 4) * 25;
+        if (milestone > 0 && milestone !== lastMilestone) {
+          lastMilestone = milestone;
+          live.textContent = '';
+          live.textContent = 'Página ' + milestone + '% lida';
+        }
+      }, 450);
+    }, { passive: true });
+  }
+
+  // ── 26. Forced-colors (high-contrast OS mode) detection ──────────────
+  function initForcedColors() {
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia('(forced-colors: active)');
+    function apply(active) {
+      document.documentElement.classList.toggle('db-forced-colors', active);
+    }
+    apply(mq.matches);
+    mq.addEventListener('change', function (e) { apply(e.matches); });
+  }
+
+  // ── 27. Quick-card accessible names from visible label text ──────────
+  function initCardAccessibleNames() {
+    document.querySelectorAll('.db-quick-card').forEach(function (card) {
+      if (card.getAttribute('aria-label')) return;
+      var label = card.querySelector('.db-quick-label');
+      var sub   = card.querySelector('.db-quick-sub');
+      if (!label) return;
+      var name = label.textContent.trim();
+      if (sub && sub.textContent.trim()) {
+        name += ' — ' + sub.textContent.trim();
+      }
+      card.setAttribute('aria-label', name);
+    });
+  }
+
+  // ── 28. Navigation transition announcements for screen readers ────────
+  function initNavTransitionAnnounce() {
+    var live = document.getElementById('db-scroll-announce');
+    if (!live) {
+      live = document.createElement('div');
+      live.className = 'sr-only';
+      live.setAttribute('aria-live', 'polite');
+      document.body.appendChild(live);
+    }
+
+    var links = document.querySelectorAll('.db-quick-card[href], .bottom-nav-item[href]');
+    links.forEach(function (link) {
+      link.addEventListener('click', function () {
+        var labelEl = link.querySelector('.db-quick-label');
+        var label = link.getAttribute('aria-label')
+          || (labelEl && labelEl.textContent.trim())
+          || '';
+        if (!label) return;
+        live.textContent = '';
+        live.textContent = 'Abrindo ' + label.split('—')[0].trim();
+      });
+    });
+  }
+
+  // ── 29. Extra skip target — ações rápidas section ─────────────────────
+  function initQuickActionsSkip() {
+    if (document.getElementById('db-skip-quick')) return;
+    var grid = document.querySelector('.db-quick-grid');
+    if (!grid) return;
+    if (!grid.id) grid.id = 'db-quick-actions';
+    if (!grid.getAttribute('tabindex')) grid.setAttribute('tabindex', '-1');
+
+    var skipLink = document.createElement('a');
+    skipLink.id = 'db-skip-quick';
+    skipLink.href = '#' + grid.id;
+    skipLink.className = 'db-skip-link';
+    skipLink.textContent = 'Ir para ações rápidas';
+
+    var existing = document.getElementById('db-skip-link');
+    if (existing && existing.parentNode) {
+      existing.parentNode.insertBefore(skipLink, existing.nextSibling);
+    } else {
+      document.body.insertBefore(skipLink, document.body.firstChild);
+    }
+  }
+
+  // ── 30. FAB accessible enhancement ───────────────────────────────────
+  function initFabEnhancement() {
+    var fab = document.getElementById('fab-checkin');
+    if (!fab) return;
+    var currentLabel = fab.getAttribute('aria-label') || '';
+    if (!currentLabel || currentLabel === 'Check-in') {
+      fab.setAttribute('aria-label', 'Realizar check-in alimentar de hoje');
+    }
+    if (!fab.getAttribute('title')) {
+      fab.setAttribute('title', 'Registre seus alimentos e hábitos do dia');
+    }
+    if (fab.tagName === 'A' && !fab.getAttribute('role')) {
+      fab.setAttribute('role', 'button');
+    }
+  }
+
+  // ── Bootstrap V3 ─────────────────────────────────────────────────────
+  function initV3() {
+    initReducedMotion();
+    initForcedColors();
+    initLandmarkLabels();
+    initScoreDescription();
+    initAlertRegion();
+    initScrollMilestoneAnnounce();
+    initCardAccessibleNames();
+    initQuickActionsSkip();
+    initFabEnhancement();
+    initNavTransitionAnnounce();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV3);
+  } else {
+    initV3();
+  }
+
+  if (window._dashboardExtras) {
+    window._dashboardExtras.version = 3;
+    window._dashboardExtras.v3 = true;
+  }
+})();
