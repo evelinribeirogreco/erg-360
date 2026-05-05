@@ -724,3 +724,88 @@ body.aci-apresentacao table th {
     min-width: unset;
   }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* 10 melhorias de acessibilidade avançada                                  */
+/* V3: focus-trap, foco-restore, reduced-motion, high-contrast,             */
+/*     landmark-labels, sort-announcer, skip-to-table, roving-pills,        */
+/*     data-announcer, table-caption + role=grid                            */
+
+/* V3-1/9. Visually hidden — acessível a leitores de tela ────────────────── */
+.aci-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* V3-7. Segundo skip-link (offset horizontal) ────────────────────────────── */
+.aci-skip-secondary {
+  left: 224px;
+}
+
+/* V3-3. prefers-reduced-motion — via media query ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .aci-ripple          { animation-duration: 0.01ms !important; }
+  .aci-scroll-progress { transition-duration: 0.01ms !important; }
+  .aci-toast           { transition-duration: 0.01ms !important; }
+  .aci-rich-tooltip    { transition-duration: 0.01ms !important; }
+  .aci-back-top        { transition-duration: 0.01ms !important; }
+  .aci-comp-bar-fill   { transition-duration: 0.01ms !important; }
+  .aci-hm-cell         { transition-duration: 0.01ms !important; }
+  .aci-atalhos-overlay { backdrop-filter: none; }
+}
+
+/* V3-3. prefers-reduced-motion — via JS class ────────────────────────────── */
+body.aci-reduced-motion .aci-ripple          { animation-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-scroll-progress { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-toast           { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-rich-tooltip    { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-back-top        { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-comp-bar-fill   { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-hm-cell         { transition-duration: 0.01ms !important; }
+body.aci-reduced-motion .aci-atalhos-overlay { backdrop-filter: none; }
+
+/* V3-4. prefers-contrast: more — via media query ─────────────────────────── */
+@media (prefers-contrast: more) {
+  .aci-trend.trend-up            { color: #00522d; background: rgba(0, 82, 45, 0.18); }
+  .aci-trend.trend-down          { color: #9b1515; background: rgba(155, 21, 21, 0.18); }
+  .aci-pill                      { border-width: 2px; }
+  .aci-pill.active               { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .aci-insight-card              { border-left-width: 4px; }
+  .aci-smart-alerts              { border-left-width: 4px; }
+  .aci-skip-link:focus,
+  .aci-back-top:focus-visible,
+  .aci-export-btn:focus-visible,
+  .aci-pill:focus-visible        { outline-width: 3px; outline-offset: 3px; }
+}
+
+/* V3-4. prefers-contrast — via JS class ──────────────────────────────────── */
+body.aci-high-contrast .aci-trend.trend-up   { color: #00522d; background: rgba(0, 82, 45, 0.18); }
+body.aci-high-contrast .aci-trend.trend-down { color: #9b1515; background: rgba(155, 21, 21, 0.18); }
+body.aci-high-contrast .aci-pill             { border-width: 2px; }
+body.aci-high-contrast .aci-pill.active      { outline: 2px solid var(--accent); outline-offset: 1px; }
+body.aci-high-contrast .aci-insight-card     { border-left-width: 4px; }
+body.aci-high-contrast .aci-smart-alerts     { border-left-width: 4px; }
+body.aci-high-contrast *:focus-visible {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 3px !important;
+}
+
+/* V3-8. Roving tabindex — anel de foco nos filtros rápidos ───────────────── */
+.aci-filter-pills .aci-pill:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+/* V3-10. Caption da tabela — sr-only, caption-side top ──────────────────── */
+#tabela-checkins table caption.aci-sr-only {
+  caption-side: top;
+}

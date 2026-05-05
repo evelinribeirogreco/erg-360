@@ -941,3 +941,227 @@ function togglePainelAtalhos() {
 function closePainelAtalhos() {
   document.getElementById('aci-atalhos-overlay')?.setAttribute('hidden', '');
 }
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade avançada
+// V3: focus-trap real, foco restaurado, reduced-motion, high-contrast,
+//     landmark labels, sort-announcer, skip-to-table, roving tabindex,
+//     data-load announcer, table caption + role=grid
+
+window._adminCheckinsExtras.version = 3;
+
+document.addEventListener('DOMContentLoaded', () => {
+  v3FocusTrap();        // 1
+  v3FocusRestore();     // 2
+  v3ReducedMotion();    // 3
+  v3HighContrast();     // 4
+  v3LandmarkLabels();   // 5
+  v3SortAnnouncer();    // 6
+  v3SkipToTable();      // 7
+  v3RovingPills();      // 8
+  v3DataAnnouncer();    // 9
+  v3TableCaption();     // 10
+});
+
+// ── V3-1. Focus trap real no diálogo de atalhos ───────────────────────────
+function v3FocusTrap() {
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const overlay = document.getElementById('aci-atalhos-overlay');
+    if (!overlay || overlay.hasAttribute('hidden')) return;
+    const panel = overlay.querySelector('.aci-atalhos-panel');
+    if (!panel) return;
+    const focusable = Array.from(panel.querySelectorAll(
+      'button:not([disabled]),[href],input:not([disabled]),[tabindex]:not([tabindex="-1"])'
+    ));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      last.focus(); e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      first.focus(); e.preventDefault();
+    }
+  });
+}
+
+// ── V3-2. Restaura foco ao fechar o diálogo (MutationObserver em hidden) ──
+function v3FocusRestore() {
+  let _stored = null;
+  const observe = el => {
+    new MutationObserver(muts => {
+      for (const m of muts) {
+        if (m.attributeName !== 'hidden') continue;
+        if (!el.hasAttribute('hidden')) {
+          _stored = document.activeElement;
+        } else if (_stored) {
+          const target = _stored;
+          _stored = null;
+          setTimeout(() => target?.focus(), 60);
+        }
+      }
+    }).observe(el, { attributes: true });
+  };
+  const retry = () => {
+    const el = document.getElementById('aci-atalhos-overlay');
+    if (el) { observe(el); return; }
+    setTimeout(retry, 300);
+  };
+  retry();
+}
+
+// ── V3-3. prefers-reduced-motion → classe .aci-reduced-motion ─────────────
+function v3ReducedMotion() {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = v => document.body.classList.toggle('aci-reduced-motion', v);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── V3-4. prefers-contrast: more → classe .aci-high-contrast ──────────────
+function v3HighContrast() {
+  const mq = window.matchMedia('(prefers-contrast: more)');
+  const apply = v => document.body.classList.toggle('aci-high-contrast', v);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── V3-5. aria-label em landmarks sem rótulo ──────────────────────────────
+function v3LandmarkLabels() {
+  const sidebar = document.querySelector('.sidebar:not([aria-label])');
+  if (sidebar) {
+    sidebar.setAttribute('aria-label', 'Menu lateral');
+    if (!sidebar.getAttribute('role')) sidebar.setAttribute('role', 'navigation');
+  }
+  const mobileHdr = document.querySelector('.mobile-header:not([role])');
+  if (mobileHdr) mobileHdr.setAttribute('role', 'banner');
+  const main = document.getElementById('ci-main');
+  if (main && !main.getAttribute('aria-label')) {
+    main.setAttribute('aria-label', 'Painel de check-ins');
+  }
+  const periodParent = document.querySelector('[id^="per-"]')?.parentElement;
+  if (periodParent && !periodParent.getAttribute('role')) {
+    periodParent.setAttribute('role', 'group');
+    periodParent.setAttribute('aria-label', 'Selecionar período');
+  }
+}
+
+// ── V3-6. Anuncia ordenação de colunas para leitores de tela ──────────────
+function v3SortAnnouncer() {
+  const live = document.createElement('div');
+  live.className = 'aci-sr-only';
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  document.body.appendChild(live);
+
+  const attach = () => {
+    const thead = document.querySelector('#tabela-checkins table thead');
+    if (!thead) { setTimeout(attach, 600); return; }
+    new MutationObserver(() => {
+      const sorted = thead.querySelector('[aria-sort="ascending"],[aria-sort="descending"]');
+      if (!sorted) return;
+      const dir   = sorted.getAttribute('aria-sort') === 'ascending' ? 'crescente' : 'decrescente';
+      const label = sorted.textContent.replace(/[↑↓]/g, '').trim();
+      live.textContent = '';
+      setTimeout(() => { live.textContent = `Ordenado por "${label}" — ${dir}`; }, 80);
+    }).observe(thead, { subtree: true, attributeFilter: ['aria-sort'] });
+  };
+  attach();
+}
+
+// ── V3-7. Segundo skip-link direto à tabela de dados ──────────────────────
+function v3SkipToTable() {
+  const first = document.querySelector('.aci-skip-link');
+  const a = document.createElement('a');
+  a.href = '#tabela-checkins';
+  a.className = 'aci-skip-link aci-skip-secondary';
+  a.textContent = 'Ir para a tabela de check-ins';
+  if (first) first.after(a); else document.body.prepend(a);
+  const target = document.getElementById('tabela-checkins');
+  if (target && !target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+}
+
+// ── V3-8. Roving tabindex nos filtros rápidos (← → navega) ───────────────
+function v3RovingPills() {
+  document.addEventListener('keydown', e => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    const wrap = document.querySelector('.aci-filter-pills');
+    if (!wrap) return;
+    const pills = Array.from(wrap.querySelectorAll('.aci-pill'));
+    if (!pills.length) return;
+    const idx = pills.indexOf(document.activeElement);
+    if (idx === -1) return;
+    e.preventDefault();
+    const next = e.key === 'ArrowRight'
+      ? pills[(idx + 1) % pills.length]
+      : pills[(idx - 1 + pills.length) % pills.length];
+    pills.forEach(p => p.setAttribute('tabindex', '-1'));
+    next.setAttribute('tabindex', '0');
+    next.focus();
+  });
+
+  const area = document.getElementById('ci-content') || document.body;
+  new MutationObserver(() => {
+    const pills = document.querySelectorAll('.aci-filter-pills .aci-pill');
+    if (!pills.length) return;
+    const hasZero = Array.from(pills).some(p => p.getAttribute('tabindex') === '0');
+    if (!hasZero) pills.forEach((p, i) => p.setAttribute('tabindex', i === 0 ? '0' : '-1'));
+  }).observe(area, { childList: true, subtree: true });
+}
+
+// ── V3-9. Anuncia carregamento de dados ao leitor de tela ─────────────────
+function v3DataAnnouncer() {
+  const live = document.createElement('div');
+  live.className = 'aci-sr-only';
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  document.body.appendChild(live);
+
+  const grid = document.getElementById('resumo-grid');
+  if (!grid) return;
+  let _prev = -1;
+
+  new MutationObserver(() => {
+    if (!grid.children.length) return;
+    const rows   = document.querySelectorAll('#tabela-checkins tbody tr');
+    const active = document.querySelector('[id^="per-"].active');
+    const period = active ? active.id.replace('per-', '') : '';
+    if (rows.length === _prev) return;
+    _prev = rows.length;
+    setTimeout(() => {
+      live.textContent = '';
+      setTimeout(() => {
+        live.textContent =
+          `${rows.length} registro${rows.length !== 1 ? 's' : ''} carregado${rows.length !== 1 ? 's' : ''}` +
+          (period ? ` — últimos ${period} dias` : '');
+      }, 100);
+    }, 500);
+  }).observe(grid, { childList: true });
+}
+
+// ── V3-10. Caption acessível e role=grid na tabela de check-ins ───────────
+function v3TableCaption() {
+  const grid = document.getElementById('resumo-grid');
+  if (!grid) return;
+
+  const inject = () => {
+    const table = document.querySelector('#tabela-checkins table');
+    if (!table) return;
+    const old = table.querySelector('caption');
+    if (old) old.remove();
+    const rows   = table.querySelectorAll('tbody tr');
+    const active = document.querySelector('[id^="per-"].active');
+    const period = active ? active.id.replace('per-', '') : '7';
+    const cap    = document.createElement('caption');
+    cap.className = 'aci-sr-only';
+    cap.textContent =
+      `Histórico de check-ins — ${rows.length} registro${rows.length !== 1 ? 's' : ''} ` +
+      `nos últimos ${period} dias. Clique nos cabeçalhos para ordenar.`;
+    table.prepend(cap);
+    if (!table.getAttribute('role')) table.setAttribute('role', 'grid');
+  };
+
+  new MutationObserver(() => {
+    if (grid.children.length) setTimeout(inject, 300);
+  }).observe(grid, { childList: true });
+}
