@@ -235,3 +235,74 @@
   }
   .pe-print-btn { display: none; }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* ── SR-ONLY (screen readers) ─────────────────────────────── */
+.pe-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── POPUP ATIVO: outline de contexto ─────────────────────── */
+.qty-popup:focus-within {
+  box-shadow: 0 4px 24px rgba(74, 60, 46, 0.12), 0 0 0 2px var(--detail, #4CB8A0);
+}
+
+/* ── MODELOS COM TECLADO ──────────────────────────────────── */
+.modelo-item[role="button"]:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  background: var(--bg, #F7F6F2);
+}
+
+/* ── REFEIÇÃO: scroll-margin para skip links ─────────────── */
+.refeicao-block[role="region"] {
+  scroll-margin-top: 80px;
+}
+
+/* ── PREFERS-REDUCED-MOTION ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .pe-pulse,
+  .pe-ripple,
+  .item-row,
+  .macro-bar,
+  .pe-toast {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── PREFERS-CONTRAST: MORE ───────────────────────────────── */
+@media (prefers-contrast: more) {
+  .plano-editor-page :focus-visible {
+    outline: 3px solid #000 !important;
+    outline-offset: 2px;
+  }
+  .search-item:hover,
+  .pe-search-focused {
+    background: #000 !important;
+    color: #fff !important;
+  }
+  .pe-draft-banner {
+    border-left-width: 5px;
+  }
+  .pe-toast {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+  .macro-bar {
+    background: #1A1A16 !important;
+  }
+  .item-delete:hover {
+    background: var(--danger, #B85C38);
+    color: #fff;
+    border-radius: 2px;
+  }
+}
