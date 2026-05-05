@@ -1000,3 +1000,313 @@
     initV4();
   }
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias com Web APIs modernas — Wake Lock, Web Share, Clipboard,
+// Vibration, Offline, Battery, Notification, Page Visibility stale-reload,
+// Performance marks, Network Information.
+// Não duplica: Page Visibility básico (V4-7), sessionStorage cache (V4-6),
+//              passive listeners (V4-9), aria-live/assertive (V1/V3).
+
+(function () {
+  'use strict';
+
+  // V5-1. Wake Lock API — tela ligada durante edição longa ──────────────────
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.body.setAttribute('data-wake-lock', 'active');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+        document.body.removeAttribute('data-wake-lock');
+      });
+    } catch (_) {}
+  }
+
+  function releaseWakeLock() {
+    wakeLock?.release().catch(() => {});
+    wakeLock = null;
+    document.body.removeAttribute('data-wake-lock');
+  }
+
+  function initWakeLock() {
+    const viewNova = document.getElementById('view-nova');
+    if (!viewNova) return;
+    new MutationObserver(() => {
+      if (viewNova.style.display !== 'none') {
+        requestWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    }).observe(viewNova, { attributes: true, attributeFilter: ['style'] });
+    // Reacquire após tab retornar ao foco (Wake Lock é liberado quando tab fica oculta)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && viewNova.style.display !== 'none') requestWakeLock();
+    }, { passive: true });
+  }
+
+  // V5-2. Web Share API — compartilhar resumo do plano ─────────────────────
+  function injectShareButton() {
+    if (!navigator.share || document.getElementById('v5-share-btn')) return;
+    const btn = document.createElement('button');
+    btn.id   = 'v5-share-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Compartilhar resumo do plano de fases');
+    btn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>Compartilhar plano`;
+    btn.addEventListener('click', async () => {
+      const fases  = window._adminFasesExtrasCache || [];
+      const resumo = fases.map((f, i) =>
+        `${i + 1}. ${f.nome} — ${f.duracao_semanas || '?'} sem. (${f.status})`
+      ).join('\n');
+      try {
+        await navigator.share({
+          title: 'Plano de Fases — ERG 360',
+          text:  `Plano de fases:\n${resumo || 'Nenhuma fase carregada.'}`,
+        });
+      } catch (e) {
+        if (e.name !== 'AbortError' && navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(resumo);
+            if (window.showToast) window.showToast('Resumo copiado.');
+          } catch (_) {}
+        }
+      }
+    });
+    const kpis = document.getElementById('kpis-fases');
+    if (kpis) kpis.parentElement?.insertBefore(btn, kpis);
+  }
+
+  // V5-3. Clipboard API — copiar detalhes de uma fase por card ──────────────
+  function enrichCardsWithCopyBtn() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper || !navigator.clipboard) return;
+
+    function addCopyBtns() {
+      wrapper.querySelectorAll('[data-v3-card]:not([data-v5-copy])').forEach(card => {
+        card.setAttribute('data-v5-copy', '');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'v5-copy-btn';
+        btn.setAttribute('aria-label', 'Copiar detalhes desta fase');
+        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>`;
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const m     = (card.querySelector('button[onclick*="editarFase"]')?.getAttribute('onclick') || '').match(/'([^']+)'/);
+          const fases = window._adminFasesExtrasCache || [];
+          const f     = fases.find(x => x.id === m?.[1]);
+          const texto = f
+            ? `Fase: ${f.nome}\nStatus: ${f.status}\nDuração: ${f.duracao_semanas} semanas\nInício: ${f.data_inicio || 'não definido'}`
+            : card.querySelector('p,h3,h4,strong')?.textContent.trim() || '';
+          try {
+            await navigator.clipboard.writeText(texto);
+            btn.classList.add('v5-copy-ok');
+            setTimeout(() => btn.classList.remove('v5-copy-ok'), 1600);
+            if (window.showToast) window.showToast('Fase copiada.');
+          } catch (_) {}
+        });
+        const row = card.querySelector('.fase-action-row') || card;
+        row.appendChild(btn);
+      });
+    }
+
+    new MutationObserver(addCopyBtns).observe(wrapper, { childList: true });
+    addCopyBtns();
+  }
+
+  // V5-4. Vibration API — feedback tátil em mobile ──────────────────────────
+  function initVibration() {
+    if (!navigator.vibrate) return;
+    document.addEventListener('click', (e) => {
+      if (e.target?.id === 'cbox-ok') navigator.vibrate([40, 30, 70]);
+    }, { capture: true, passive: true });
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) navigator.vibrate([55]);
+        }, 2200);
+      });
+    }
+  }
+
+  // V5-5. navigator.onLine — banner de conexão perdida ─────────────────────
+  function initOfflineBanner() {
+    let banner = null;
+    const show = () => {
+      if (banner) return;
+      banner = document.createElement('div');
+      banner.id = 'v5-offline-banner';
+      banner.setAttribute('role', 'alert');
+      banner.setAttribute('aria-live', 'assertive');
+      banner.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <line x1="1" y1="1" x2="23" y2="23"/>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+          <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+          <line x1="12" y1="20" x2="12.01" y2="20"/>
+        </svg>
+        Sem conexão — alterações não serão salvas.`;
+      document.body.appendChild(banner);
+    };
+    const hide = () => { banner?.remove(); banner = null; };
+    if (!navigator.onLine) show();
+    window.addEventListener('offline', show,  { passive: true });
+    window.addEventListener('online',  hide,  { passive: true });
+  }
+
+  // V5-6. Battery Status API — aviso bateria baixa ──────────────────────────
+  async function initBatteryWarning() {
+    if (!('getBattery' in navigator)) return;
+    try {
+      const bat = await navigator.getBattery();
+      const check = () => {
+        const low = !bat.charging && bat.level < 0.15;
+        const el  = document.getElementById('v5-battery-warn');
+        if (low && !el) {
+          const div = document.createElement('div');
+          div.id = 'v5-battery-warn';
+          div.setAttribute('role', 'status');
+          div.setAttribute('aria-live', 'polite');
+          div.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="var(--gold)" stroke-width="1.8" aria-hidden="true">
+              <rect x="2" y="7" width="18" height="11" rx="2" ry="2"/>
+              <line x1="22" y1="11" x2="22" y2="13"/>
+            </svg>
+            Bateria ${Math.round(bat.level * 100)}% — salve o rascunho.
+            <button type="button" id="v5-battery-dismiss" aria-label="Dispensar aviso">×</button>`;
+          document.body.appendChild(div);
+          document.getElementById('v5-battery-dismiss')?.addEventListener('click', () => div.remove());
+        } else if (!low && el) {
+          el.remove();
+        }
+      };
+      bat.addEventListener('levelchange',    check, { passive: true });
+      bat.addEventListener('chargingchange', check, { passive: true });
+      check();
+    } catch (_) {}
+  }
+
+  // V5-7. Notification API — notificar ao salvar fase ───────────────────────
+  function initSaveNotification() {
+    if (!('Notification' in window)) return;
+    let granted = Notification.permission === 'granted';
+    const form  = document.getElementById('fase-form');
+    if (!form) return;
+    form.addEventListener('focusin', async () => {
+      if (Notification.permission === 'default') {
+        try { granted = (await Notification.requestPermission()) === 'granted'; } catch (_) {}
+      }
+    }, { once: true, passive: true });
+    form.addEventListener('submit', () => {
+      setTimeout(() => {
+        if (!form.querySelector('.form-message.error.visible') && granted) {
+          try {
+            new Notification('ERG 360 — Fase salva', {
+              body: 'A fase foi salva com sucesso.',
+              icon: '/favicon.png',
+              tag:  'fase-salva',
+              silent: true,
+            });
+          } catch (_) {}
+        }
+      }, 2000);
+    });
+  }
+
+  // V5-8. Page Visibility stale-reload — recarrega lista após 3 min oculta ──
+  // Complemento ao V4-7 (que apenas sinaliza pausa); este efetivamente recarrega.
+  function initVisibilityReload() {
+    let hiddenAt = null;
+    const STALE  = 3 * 60 * 1000;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+      } else if (hiddenAt && Date.now() - hiddenAt > STALE) {
+        const lista = document.getElementById('view-lista');
+        if (lista && lista.style.display !== 'none') {
+          window._adminFasesExtras?.loadFasesExtras?.();
+        }
+        hiddenAt = null;
+      }
+    }, { passive: true });
+  }
+
+  // V5-9. Performance API — marca tempos de operações críticas ──────────────
+  function initPerformanceMarks() {
+    if (!window.performance?.mark) return;
+    const ext = window._adminFasesExtras;
+    if (ext?.loadFasesExtras) {
+      const orig = ext.loadFasesExtras;
+      ext.loadFasesExtras = async function () {
+        performance.mark('adminFases:loadStart');
+        const r = await orig.apply(this, arguments);
+        performance.mark('adminFases:loadEnd');
+        try { performance.measure('adminFases:load', 'adminFases:loadStart', 'adminFases:loadEnd'); } catch (_) {}
+        return r;
+      };
+    }
+    const form = document.getElementById('fase-form');
+    if (form) form.addEventListener('submit', () => performance.mark('adminFases:submitStart'));
+  }
+
+  // V5-10. Network Information API — reduz animações em conexão lenta ────────
+  function initNetworkAdaptation() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    const SLOW = new Set(['slow-2g', '2g']);
+    const apply = () => {
+      const slow = SLOW.has(conn.effectiveType);
+      document.body.classList.toggle('v5-slow-connection', slow);
+      if (slow && !document.getElementById('v5-slow-banner')) {
+        const el = document.createElement('div');
+        el.id = 'v5-slow-banner';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.textContent = 'Conexão lenta — animações reduzidas.';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+    };
+    conn.addEventListener('change', apply, { passive: true });
+    apply();
+  }
+
+  // ── Init V5 ───────────────────────────────────────────────────────────────
+  function initV5() {
+    initWakeLock();
+    injectShareButton();
+    enrichCardsWithCopyBtn();
+    initVibration();
+    initOfflineBanner();
+    initBatteryWarning();
+    initSaveNotification();
+    initVisibilityReload();
+    initPerformanceMarks();
+    initNetworkAdaptation();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+})();
