@@ -201,3 +201,113 @@
   animation: ap-value-pop 0.9s ease-out forwards;
   border-radius: 3px;
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* acessibilidade: skip-link, focus visible, aria-live, focus-trap,
+   dialog backdrop blur, focus outline aprimorado, reduced-motion */
+
+/* ── V3.3 Skip-link ──────────────────────────────────────── */
+.ap-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.15s ease;
+  outline: none;
+}
+.ap-skip-link:focus {
+  top: 0;
+  box-shadow: 0 0 0 3px rgba(76, 184, 160, 0.45);
+}
+
+/* ── V3 Focus visible aprimorado (substitui :focus só para teclado) */
+:focus-visible {
+  outline: 2px solid #4CB8A0 !important;
+  outline-offset: 2px !important;
+}
+/* Remove outline para cliques de mouse (mantém só para teclado) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── V3.2 Modais com backdrop blur ───────────────────────── */
+#modal-substituicoes,
+#modal-validacao-plano {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* ── V3 Dialog role — garante que elementos internos são ok ─ */
+[role="dialog"] {
+  border-radius: 12px;
+}
+[role="dialog"] button:focus-visible {
+  outline: 2px solid #4CB8A0 !important;
+  outline-offset: 2px;
+}
+
+/* ── V3.4 Listbox do autocomplete com role visual ───────── */
+[role="listbox"].alim-autocomplete-dropdown {
+  border: 2px solid rgba(76, 184, 160, 0.35);
+}
+[role="option"].alim-autocomplete-opt[aria-selected="true"] {
+  background: rgba(76, 184, 160, 0.14);
+  outline: 2px solid rgba(76, 184, 160, 0.40);
+  outline-offset: -2px;
+}
+
+/* ── V3 Grupo de refeição com role="group" ──────────────── */
+[role="group"].dynamic-block {
+  position: relative;
+}
+
+/* ── V3.6 aria-busy no botão TMB ────────────────────────── */
+#btn-calc-tmb[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── V3 Reduced-motion: desativa animações para usuários sensíveis */
+@media (prefers-reduced-motion: reduce) {
+  .ap-ripple,
+  .ap-spinner,
+  .ap-shake,
+  .ap-macro-badge,
+  .ap-value-updated,
+  .alim-autocomplete-opt,
+  .ap-skip-link {
+    animation: none !important;
+    transition: none !important;
+  }
+  .ap-macro-badge--visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── V3 High contrast mode (prefers-contrast) ────────────── */
+@media (prefers-contrast: more) {
+  .alim-autocomplete-dropdown {
+    border: 2px solid #000;
+  }
+  .ap-skip-link {
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+  }
+  .alim-autocomplete-opt:hover,
+  .alim-autocomplete-opt[aria-selected="true"] {
+    background: #000 !important;
+    color: #fff !important;
+    outline: none !important;
+  }
+  .alim-ac-nome { color: inherit; }
+}

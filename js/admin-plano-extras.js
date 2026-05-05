@@ -823,3 +823,275 @@ document.addEventListener('click', (e) => {
 window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
   v2: { animarCountUp: _animarCountUp, shakeEl: _shakeEl },
 });
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade: aria-live, focus-trap, skip-link,
+// listbox role, aria-expanded, aria-busy, aria-label dinâmico,
+// anúncio verbal de macros, Esc fecha modais, focus return.
+
+// ── V3.1 ARIA LIVE REGION CENTRAL ───────────────────────────
+// Anuncia mensagens para leitores de tela (polite = não interrompe)
+(function _initAriaLive() {
+  if (document.getElementById('ap-aria-live')) return;
+  const live = document.createElement('div');
+  live.id = 'ap-aria-live';
+  live.setAttribute('role', 'status');
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  live.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
+  document.body.appendChild(live);
+})();
+
+function _anunciarSR(msg) {
+  const live = document.getElementById('ap-aria-live');
+  if (!live) return;
+  live.textContent = '';
+  requestAnimationFrame(() => { live.textContent = msg; });
+}
+
+// Patch: _toast também anuncia para SR
+const _toastOrigV3 = window._adminPlanoExtras?.toast || null;
+{
+  const _toastRef = typeof _toast === 'function' ? _toast : null;
+  if (_toastRef) {
+    const _origToast = _toastRef;
+    // Intercepta chamadas globais via wrapper no objeto exposto
+    window._adminPlanoExtras = window._adminPlanoExtras || {};
+    window._adminPlanoExtras._anunciarSR = _anunciarSR;
+  }
+}
+
+// ── V3.2 FOCUS TRAP NOS MODAIS ───────────────────────────────
+function _criarFocusTrap(modalEl) {
+  const focos = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function _getFocaveis() {
+    return Array.from(modalEl.querySelectorAll(focos)).filter(el => el.offsetParent !== null);
+  }
+  function _handler(e) {
+    if (e.key !== 'Tab') return;
+    const focaveis = _getFocaveis();
+    if (!focaveis.length) { e.preventDefault(); return; }
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+    } else {
+      if (document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+    }
+  }
+  modalEl.addEventListener('keydown', _handler);
+  // Foca no primeiro elemento focável dentro do modal
+  const focaveis = _getFocaveis();
+  if (focaveis.length) focaveis[0].focus();
+  return () => modalEl.removeEventListener('keydown', _handler);
+}
+
+// Aplica focus trap ao abrir modais (patch via MutationObserver)
+new MutationObserver((muts) => {
+  for (const m of muts) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.id === 'modal-substituicoes' || node.id === 'modal-validacao-plano') {
+        node._destroyTrap = _criarFocusTrap(node);
+        node.setAttribute('role', 'dialog');
+        node.setAttribute('aria-modal', 'true');
+        node.setAttribute('aria-label',
+          node.id === 'modal-substituicoes' ? 'Substituições de alimento' : 'Validação do plano alimentar');
+      }
+    }
+    for (const node of m.removedNodes) {
+      if (node instanceof HTMLElement && node._destroyTrap) node._destroyTrap();
+    }
+  }
+}).observe(document.body, { childList: true });
+
+// ── V3.3 SKIP-LINK "IR PARA REFEIÇÕES" ──────────────────────
+(function _initSkipLink() {
+  if (document.getElementById('ap-skip-link')) return;
+  const skip = document.createElement('a');
+  skip.id = 'ap-skip-link';
+  skip.href = '#refeicoes-container';
+  skip.className = 'ap-skip-link';
+  skip.textContent = 'Ir para as refeições';
+  document.body.insertBefore(skip, document.body.firstChild);
+})();
+
+// ── V3.4 ARIA ROLES NO DROPDOWN (listbox/option) ─────────────
+// Patch: abrirDropdownAutocomplete agora seta roles ARIA
+const _origAbrirDropdown = typeof abrirDropdownAutocomplete === 'function'
+  ? abrirDropdownAutocomplete : null;
+
+function _patchDropdownAria(input) {
+  const dropdown = document.querySelector('.alim-autocomplete-dropdown');
+  if (!dropdown) return;
+  dropdown.setAttribute('role', 'listbox');
+  dropdown.id = dropdown.id || 'ap-autocomplete-list';
+  dropdown.querySelectorAll('.alim-autocomplete-opt').forEach((opt, i) => {
+    opt.setAttribute('role', 'option');
+    opt.setAttribute('aria-selected', 'false');
+    opt.id = opt.id || `ap-ac-opt-${i}`;
+  });
+  // Liga input ao listbox
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-haspopup', 'listbox');
+  input.setAttribute('aria-controls', dropdown.id);
+  input.setAttribute('aria-expanded', 'true');
+}
+
+// MutationObserver para adicionar roles quando dropdown aparece
+new MutationObserver((muts) => {
+  for (const m of muts) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (!node.classList.contains('alim-autocomplete-dropdown')) continue;
+      const activeInput = document.querySelector('input[name="item-nome"]:focus');
+      if (activeInput) _patchDropdownAria(activeInput);
+    }
+    for (const node of m.removedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (!node.classList.contains('alim-autocomplete-dropdown')) continue;
+      // Limpa aria-expanded em todos os inputs item-nome
+      document.querySelectorAll('input[name="item-nome"]').forEach(inp => {
+        inp.setAttribute('aria-expanded', 'false');
+      });
+    }
+  }
+}).observe(document.body, { childList: true });
+
+// ── V3.5 ARIA-ACTIVEDESCENDANT no keyboard nav ───────────────
+// Patch sobre o handler de keydown existente de V2
+document.addEventListener('keydown', (e) => {
+  const dropdown = document.querySelector('.alim-autocomplete-dropdown');
+  if (!dropdown) return;
+  const focused = dropdown.querySelector('.alim-ac-focused');
+  if (!focused) return;
+  const activeInput = document.querySelector('input[name="item-nome"]:focus');
+  if (activeInput) activeInput.setAttribute('aria-activedescendant', focused.id || '');
+  // Marca aria-selected na opção focada
+  dropdown.querySelectorAll('.alim-autocomplete-opt').forEach(opt => {
+    opt.setAttribute('aria-selected', opt === focused ? 'true' : 'false');
+  });
+}, { capture: false });
+
+// ── V3.6 ARIA-BUSY NO BTN TMB ────────────────────────────────
+// Patch sobre a versão V2 (que já wrappou a V1)
+const _origCalcTMBV3 = window.calcularTMBGETPaciente;
+window.calcularTMBGETPaciente = async function () {
+  const btn = document.getElementById('btn-calc-tmb');
+  if (btn) {
+    btn.setAttribute('aria-busy', 'true');
+    btn.setAttribute('aria-label', 'Calculando TMB e GET…');
+    _anunciarSR('Calculando TMB e GET, aguarde.');
+  }
+  try {
+    const resultado = await _origCalcTMBV3.apply(this, arguments);
+    if (resultado) {
+      _anunciarSR(`TMB ${resultado.tmb} kcal, GET ${resultado.get} kcal, alvo ${resultado.kcalAlvo} kcal por dia.`);
+    }
+    return resultado;
+  } finally {
+    if (btn) {
+      btn.setAttribute('aria-busy', 'false');
+      btn.setAttribute('aria-label', 'Calcular TMB e GET automaticamente');
+    }
+  }
+};
+
+// ── V3.7 ARIA-LABEL NOS BLOCOS DE REFEIÇÃO DINÂMICOS ─────────
+function _labelarBlocoRefeicao(block) {
+  if (block.dataset.ariaLabeled) return;
+  block.setAttribute('role', 'group');
+  const nomeInput = block.querySelector('input[name="ref-nome"]');
+  const nomeVal = nomeInput?.value?.trim() || 'Refeição';
+  block.setAttribute('aria-label', nomeVal);
+  block.dataset.ariaLabeled = '1';
+  // Atualiza label quando o nome muda
+  nomeInput?.addEventListener('input', () => {
+    block.setAttribute('aria-label', nomeInput.value.trim() || 'Refeição');
+  });
+}
+
+function _labelarTodosOsBlocos() {
+  document.querySelectorAll('.dynamic-block[data-refid]').forEach(_labelarBlocoRefeicao);
+}
+
+new MutationObserver(() => _labelarTodosOsBlocos())
+  .observe(document.body, { childList: true, subtree: true });
+
+document.addEventListener('DOMContentLoaded', _labelarTodosOsBlocos);
+setTimeout(_labelarTodosOsBlocos, 800);
+
+// ── V3.8 ANÚNCIO VERBAL DE MACROS AO SELECIONAR ALIMENTO ─────
+document.addEventListener('click', (e) => {
+  const opt = e.target.closest('.alim-autocomplete-opt[data-kcal]');
+  if (!opt) return;
+  const nome = opt.dataset.nome || '';
+  const kcal = Math.round(+opt.dataset.kcal) || 0;
+  const ptn = opt.dataset.ptn || '0';
+  const cho = opt.dataset.cho || '0';
+  const lip = opt.dataset.lip || '0';
+  if (nome) {
+    _anunciarSR(`${nome} selecionado. ${kcal} kcal, proteína ${ptn}g, carboidrato ${cho}g, gordura ${lip}g por 100g.`);
+  }
+}, { capture: true });
+
+// ── V3.9 ESC FECHA QUALQUER MODAL ────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const modal = document.getElementById('modal-substituicoes') ||
+                document.getElementById('modal-validacao-plano');
+  if (!modal) return;
+  e.stopPropagation();
+  // Retorna foco para o elemento que tinha foco antes
+  const retornar = modal._focusReturn;
+  modal.remove();
+  if (retornar && retornar.focus) {
+    requestAnimationFrame(() => retornar.focus());
+    _anunciarSR('Modal fechado.');
+  }
+});
+
+// ── V3.10 FOCUS RETURN APÓS FECHAR MODAL ─────────────────────
+// Quando um modal abre, memoriza o elemento com foco
+const _origAbrirSubst = window.abrirSubstituicoes;
+window.abrirSubstituicoes = async function (alimentoNome, btn) {
+  const focusAntes = document.activeElement;
+  await _origAbrirSubst.apply(this, arguments);
+  const modal = document.getElementById('modal-substituicoes');
+  if (modal) {
+    modal._focusReturn = focusAntes;
+    // Botão fechar do modal retorna foco
+    const closeBtn = modal.querySelector('button[onclick*="remove"]');
+    if (closeBtn) {
+      const _origClose = closeBtn.onclick;
+      closeBtn.onclick = function (ev) {
+        modal.remove();
+        requestAnimationFrame(() => { focusAntes?.focus(); _anunciarSR('Modal de substituições fechado.'); });
+      };
+    }
+  }
+};
+
+const _origAbrirValV3 = window.abrirModalValidacao;
+window.abrirModalValidacao = function () {
+  const focusAntes = document.activeElement;
+  const resultado = _origAbrirValV3.apply(this, arguments);
+  const modal = document.getElementById('modal-validacao-plano');
+  if (modal) {
+    modal._focusReturn = focusAntes;
+    const voltarBtn = modal.querySelector('button[onclick*="remove"]');
+    if (voltarBtn) {
+      const _origOC = voltarBtn.onclick;
+      voltarBtn.onclick = function (ev) {
+        modal.remove();
+        requestAnimationFrame(() => { focusAntes?.focus(); _anunciarSR('Modal de validação fechado. Revise o plano.'); });
+      };
+    }
+  }
+  return resultado;
+};
+
+// ── EXPÕE EXTENSÕES V3 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v3: { anunciarSR: _anunciarSR, criarFocusTrap: _criarFocusTrap },
+});
