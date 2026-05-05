@@ -367,3 +367,206 @@ window._planoPacienteExtras = {
   showToast,
   injetarMacroBars,
 };
+
+// ═══ POLIMENTO V3 ═══
+// V3 — 10 micro-melhorias de acessibilidade avançada:
+//      reduced-motion, page-visibility, ARIA landmarks, load-announce,
+//      panel-focus, PDF aria-labels, tab counter, title update,
+//      macro cell labels, forced-colors CSS
+
+// ── 19. prefers-reduced-motion: aplica classe pp-no-motion ───
+function setupReducedMotion() {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = m => document.body.classList.toggle('pp-no-motion', m);
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── 20. Page Visibility: re-sincroniza barra ao retornar ─────
+function setupPageVisibility() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const get = id => document.getElementById(id)?.textContent?.trim() ?? '—';
+    const sm  = id => document.getElementById(id);
+    if (sm('sm-kcal') && get('m-kcal') !== '—') {
+      sm('sm-kcal').textContent = get('m-kcal') + ' kcal';
+      sm('sm-ptn').textContent  = get('m-ptn')  + 'g ptn';
+      sm('sm-cho').textContent  = get('m-cho')  + 'g cho';
+      sm('sm-lip').textContent  = get('m-lip')  + 'g lip';
+    }
+  });
+}
+
+// ── 21. ARIA landmarks: banner / main / region ───────────────
+function patchLandmarks() {
+  const hdr = document.querySelector('.page-header');
+  if (hdr && !hdr.getAttribute('role')) hdr.setAttribute('role', 'banner');
+
+  const mc = document.getElementById('main-content');
+  if (mc && mc.getAttribute('role') !== 'main') mc.setAttribute('role', 'main');
+
+  const mg = document.getElementById('macro-grid');
+  if (mg) {
+    if (!mg.getAttribute('role')) mg.setAttribute('role', 'region');
+    if (!mg.getAttribute('aria-label'))
+      mg.setAttribute('aria-label', 'Macronutrientes totais do dia');
+  }
+}
+
+// ── 22. Anuncia plano carregado via live region ───────────────
+function setupLoadAnnouncement() {
+  const block = document.getElementById('block-resumo');
+  if (!block) return;
+  const obs = new MutationObserver(() => {
+    if (block.querySelector('.empty-state[aria-busy]')) return;
+    const tabs = document.querySelectorAll('#tabs-wrap .tab:not([data-ref="resumo"])').length;
+    if (tabs < 1) return;
+    const live = document.getElementById('pp-aria-live');
+    if (live) {
+      live.textContent =
+        `Plano carregado com ${tabs} refeição${tabs !== 1 ? 'ões' : ''}.`;
+    }
+    obs.disconnect();
+  });
+  obs.observe(block, { childList: true, subtree: true });
+}
+
+// ── 23. Move foco ao painel ativo quando nav por teclado ─────
+function setupPanelFocusOnKeyNav() {
+  const wrap = document.getElementById('tabs-wrap');
+  if (!wrap) return;
+  let kbNav = false;
+  wrap.addEventListener('keydown', () => { kbNav = true; }, { capture: true });
+
+  const cnt = document.querySelector('.page-content') || document.body;
+  const obs = new MutationObserver(muts => {
+    if (!kbNav) return;
+    for (const m of muts) {
+      if (
+        m.attributeName === 'class' &&
+        m.target.classList?.contains('refeicao-block') &&
+        m.target.classList.contains('active')
+      ) {
+        kbNav = false;
+        const el = m.target.querySelector('.ref-title, [tabindex="0"]') || m.target;
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: false });
+        break;
+      }
+    }
+  });
+  obs.observe(cnt, { attributes: true, attributeFilter: ['class'], subtree: true });
+}
+
+// ── 24. aria-label descritivo nos botões de PDF ──────────────
+function enhancePDFButtons() {
+  const titulo = document.getElementById('plano-titulo');
+  const ver    = document.getElementById('pp-btn-ver-pdf');
+  const baixar = document.getElementById('pp-btn-baixar-pdf');
+
+  const applyLabels = () => {
+    const t = titulo?.textContent?.trim() || 'plano alimentar';
+    if (ver) {
+      ver.setAttribute('aria-label', `Visualizar PDF do ${t}`);
+      ver.querySelector('svg')?.setAttribute('aria-hidden', 'true');
+    }
+    if (baixar) {
+      baixar.setAttribute('aria-label', `Baixar PDF do ${t}`);
+      baixar.querySelector('svg')?.setAttribute('aria-hidden', 'true');
+    }
+  };
+
+  applyLabels();
+  if (titulo) {
+    new MutationObserver(applyLabels)
+      .observe(titulo, { characterData: true, childList: true });
+  }
+}
+
+// ── 25. Contador "(aba X de Y)" em cada tab ──────────────────
+function setupTabCounter() {
+  const wrap = document.getElementById('tabs-wrap');
+  if (!wrap) return;
+
+  const update = () => {
+    const tabs = [...wrap.querySelectorAll('.tab')];
+    if (tabs.length < 2) return;
+    tabs.forEach((tab, i) => {
+      const base = (tab.getAttribute('aria-label') || tab.textContent)
+        .replace(/\s*\(aba \d+ de \d+\)$/i, '').trim();
+      tab.setAttribute('aria-label', `${base} (aba ${i + 1} de ${tabs.length})`);
+    });
+  };
+
+  new MutationObserver(update).observe(wrap, { childList: true });
+  setTimeout(update, 1000);
+}
+
+// ── 26. Atualiza <title> com nome do paciente e do plano ─────
+function patchDocumentTitle() {
+  const nome   = document.getElementById('paciente-nome');
+  const titulo = document.getElementById('plano-titulo');
+  if (!nome || !titulo) return;
+
+  const update = () => {
+    const n = nome.textContent?.trim();
+    const t = titulo.textContent?.trim();
+    if (n && n !== '—' && t) document.title = `${t} · ${n} — ERG 360`;
+  };
+  [nome, titulo].forEach(el =>
+    new MutationObserver(update).observe(el, { characterData: true, childList: true })
+  );
+}
+
+// ── 27. aria-label nas células de macro dos alimentos ────────
+function setupAlimentoMacroLabels() {
+  const patch = row => {
+    row.querySelectorAll('.alimento-macro').forEach(cell => {
+      if (cell.hasAttribute('aria-label')) return;
+      const lbl = cell.querySelector('.alimento-macro-label')?.textContent?.trim();
+      const raw = [...cell.childNodes]
+        .filter(n => n.nodeType === 3)
+        .map(n => n.textContent.trim())
+        .filter(Boolean)
+        .join('');
+      if (raw && lbl) cell.setAttribute('aria-label', `${raw} ${lbl}`);
+    });
+  };
+
+  document.querySelectorAll('.alimento-row').forEach(patch);
+
+  const obs = new MutationObserver(muts => {
+    muts.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if (n.nodeType !== 1) return;
+        if (n.classList?.contains('alimento-row')) patch(n);
+        n.querySelectorAll?.('.alimento-row').forEach(patch);
+      });
+    });
+  });
+  obs.observe(document.querySelector('.page-content') || document.body, {
+    childList: true, subtree: true,
+  });
+}
+
+// ── V3 Boot ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setupReducedMotion();
+  setupPageVisibility();
+  patchLandmarks();
+  setupLoadAnnouncement();
+  enhancePDFButtons();
+  patchDocumentTitle();
+  setupTabCounter();
+
+  setTimeout(() => {
+    setupPanelFocusOnKeyNav();
+    setupAlimentoMacroLabels();
+  }, 900);
+});
+
+// Extende API pública com exports V3
+Object.assign(window._planoPacienteExtras || (window._planoPacienteExtras = {}), {
+  patchDocumentTitle,
+  setupTabCounter,
+});
