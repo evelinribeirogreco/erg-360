@@ -1267,3 +1267,171 @@ html {
 .cmd-overlay {
   isolation: isolate;
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* Web APIs modernas: Clipboard, Share, Notifications,
+   Wake Lock, Vibration, Offline, Network, Battery, Fullscreen */
+
+/* ── V5.1 Clipboard feedback ─────────────────────────────────── */
+[data-copy] {
+  cursor: copy;
+  transition: color 0.15s;
+}
+[data-copy]:hover {
+  color: var(--accent);
+}
+.v5-copied {
+  color: var(--detail) !important;
+  position: relative;
+}
+.v5-copied::after {
+  content: 'Copiado!';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-size: 0.65rem;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: v5FadeDown 1.8s ease forwards;
+  z-index: 100;
+}
+@keyframes v5FadeDown {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+}
+
+/* ── V5.2 Share button — oculto até hover (visível em touch) ─── */
+.v5-share-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+tr:hover .v5-share-btn,
+tr:focus-within .v5-share-btn {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .v5-share-btn { opacity: 1; }
+}
+
+/* ── V5.3 Notification button ────────────────────────────────── */
+.v5-notif-btn {
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.v5-notif-active {
+  background: var(--detail, #4CB8A0) !important;
+  color: #fff !important;
+  border-color: var(--detail, #4CB8A0) !important;
+}
+.v5-notif-active svg {
+  animation: v5BellRing 0.6s ease;
+}
+@keyframes v5BellRing {
+  0%, 100% { transform: rotate(0); }
+  20%       { transform: rotate(-14deg); }
+  40%       { transform: rotate(14deg); }
+  60%       { transform: rotate(-8deg); }
+  80%       { transform: rotate(8deg); }
+}
+
+/* ── V5.4 Wake Lock button ───────────────────────────────────── */
+.v5-wakelock-btn {
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.v5-wakelock-active {
+  background: var(--gold, #C9A84C) !important;
+  color: #fff !important;
+  border-color: var(--gold, #C9A84C) !important;
+}
+.v5-wakelock-active svg {
+  filter: drop-shadow(0 0 4px rgba(201, 168, 76, 0.6));
+}
+
+/* ── V5.6 Offline banner ──────────────────────────────────────── */
+.v5-offline-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #c0392b;
+  color: #fff;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 9999;
+  animation: v5SlideUp 0.3s ease;
+}
+.v5-offline-banner[hidden] {
+  display: none;
+}
+@keyframes v5SlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── V5.7 Conexão lenta — indicador e redução de animações ────── */
+.v5-slow-connection .skel,
+.v5-slow-connection .sparkline,
+.v5-slow-connection .kpi-bar {
+  animation: none !important;
+  transition: none !important;
+}
+.v5-slow-connection::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold, #C9A84C) 0 10px,
+    transparent 10px 20px
+  );
+  z-index: 9998;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* ── V5.8 Battery saver — reduz animações ────────────────────── */
+.v5-battery-saver *,
+.v5-battery-saver *::before,
+.v5-battery-saver *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+.v5-battery-saver .sparkline,
+.v5-battery-saver .ripple-wave {
+  display: none !important;
+}
+
+/* ── V5.9 Fullscreen button ───────────────────────────────────── */
+.v5-fullscreen-btn {
+  padding: 6px 8px !important;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.v5-fullscreen-btn[aria-pressed="true"] svg {
+  transform: scale(0.85);
+  transition: transform 0.15s;
+}
+:fullscreen {
+  background: var(--bg-primary, #F7F6F2);
+  padding: 16px;
+  overflow: auto;
+}
+
+/* ── V5.10 título com badge — sem CSS necessário (DOM only) ─────── */

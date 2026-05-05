@@ -1648,3 +1648,338 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   _v4DeferredSetup();
 });
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias com Web APIs modernas: Clipboard, Web Share,
+// Notifications, Wake Lock, Vibration, Online/Offline,
+// Network Information, Battery, Fullscreen, dynamic title
+
+// ── V5.1 Clipboard API — copia telefone/email ao clicar ──────
+function _v5InitClipboard() {
+  if (!navigator.clipboard?.writeText) return;
+  document.addEventListener('click', async e => {
+    const el = e.target.closest('[data-copy]');
+    if (!el) return;
+    const text = el.dataset.copy || el.textContent.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      _v5ClipboardFeedback(el);
+    } catch (_) {}
+  });
+}
+function _v5ClipboardFeedback(el) {
+  const prev = el.getAttribute('aria-label');
+  el.setAttribute('aria-label', 'Copiado!');
+  el.classList.add('v5-copied');
+  setTimeout(() => {
+    el.classList.remove('v5-copied');
+    if (prev) el.setAttribute('aria-label', prev);
+    else el.removeAttribute('aria-label');
+  }, 1800);
+}
+function _v5PatchRowCopyTargets() {
+  document.querySelectorAll('tr.patient-row:not([data-v5copy])').forEach(row => {
+    row.dataset.v5copy = '1';
+    row.querySelectorAll('[data-phone],[data-email],.patient-phone,.patient-email').forEach(el => {
+      const val = el.dataset.phone || el.dataset.email || el.textContent.trim();
+      if (!val) return;
+      el.setAttribute('data-copy', val);
+      el.setAttribute('title', 'Clique para copiar');
+      el.style.cursor = 'copy';
+    });
+  });
+}
+
+// ── V5.2 Web Share API — botão share na linha ────────────────
+function _v5InitWebShare() {
+  if (!navigator.share) return;
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-share-patient]');
+    if (!btn) return;
+    const id  = btn.dataset.sharePatient;
+    const row = document.querySelector(`tr.patient-row[data-id="${CSS.escape(id)}"]`);
+    const nome = row?.querySelector('.patient-name,[data-name]')?.textContent.trim() || id;
+    try {
+      await navigator.share({
+        title: `Paciente: ${nome}`,
+        text : `Dossiê ERG 360 — ${nome}`,
+        url  : `${location.origin}${location.pathname.replace('admin.html', '')}admin-dossie.html?id=${encodeURIComponent(id)}`
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') console.warn('[V5 Share]', err);
+    }
+  });
+}
+function _v5PatchShareButtons() {
+  if (!navigator.share) return;
+  document.querySelectorAll('tr.patient-row[data-id]:not([data-v5share])').forEach(row => {
+    row.dataset.v5share = '1';
+    const actions = row.querySelector('.row-actions, td:last-child');
+    if (!actions) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'row-action v5-share-btn';
+    btn.setAttribute('aria-label', 'Compartilhar paciente');
+    btn.setAttribute('title', 'Compartilhar');
+    btn.dataset.sharePatient = row.dataset.id;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+    actions.appendChild(btn);
+  });
+}
+
+// ── V5.3 Notification API — aniversariantes do dia ───────────
+let _v5NotifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'denied';
+function _v5InjectNotifButton() {
+  if (typeof Notification === 'undefined') return;
+  if (document.getElementById('v5-notif-btn')) return;
+  const actions = document.querySelector('.admin-hero-actions');
+  if (!actions) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-notif-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-notif-btn';
+  btn.setAttribute('aria-label', 'Ativar notificações de aniversariantes');
+  btn.setAttribute('aria-pressed', String(_v5NotifPermission === 'granted'));
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Alertas';
+  if (_v5NotifPermission === 'granted') btn.classList.add('v5-notif-active');
+  btn.addEventListener('click', async () => {
+    if (_v5NotifPermission === 'denied') return;
+    if (_v5NotifPermission !== 'granted') {
+      _v5NotifPermission = await Notification.requestPermission();
+    }
+    if (_v5NotifPermission === 'granted') {
+      btn.classList.add('v5-notif-active');
+      btn.setAttribute('aria-pressed', 'true');
+      btn.setAttribute('aria-label', 'Notificações ativas');
+      _v5NotifyBirthdays();
+    }
+  });
+  actions.appendChild(btn);
+}
+function _v5NotifyBirthdays() {
+  const patients = window._allPatients || [];
+  if (!patients.length || _v5NotifPermission !== 'granted') return;
+  const d  = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const aniv = patients.filter(p => {
+    const parts = (p.data_nascimento || '').split('-');
+    return parts[1] === mm && parts[2] === dd;
+  });
+  if (!aniv.length) return;
+  const nomes = aniv.map(p => p.nome?.split(' ')[0] || '?').join(', ');
+  new Notification('🎂 Aniversariantes hoje — ERG 360', {
+    body: `${nomes} ${aniv.length === 1 ? 'faz' : 'fazem'} aniversário hoje!`,
+    icon: '/favicon.ico',
+    tag : `erg-birthdays-${dd}${mm}`
+  });
+}
+
+// ── V5.4 Wake Lock API — tela ativa durante consulta ─────────
+let _v5WakeLock = null;
+async function _v5RequestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    _v5WakeLock = await navigator.wakeLock.request('screen');
+    _v5WakeLock.addEventListener('release', () => {
+      _v5WakeLock = null;
+      _v5UpdateWakeLockUI(false);
+    }, { once: true });
+    _v5UpdateWakeLockUI(true);
+  } catch (_) {}
+}
+async function _v5ReleaseWakeLock() {
+  try { await _v5WakeLock?.release(); } catch (_) {}
+  _v5WakeLock = null;
+  _v5UpdateWakeLockUI(false);
+}
+function _v5UpdateWakeLockUI(active) {
+  const btn = document.getElementById('v5-wakelock-btn');
+  if (!btn) return;
+  btn.classList.toggle('v5-wakelock-active', active);
+  btn.setAttribute('aria-pressed', String(active));
+  btn.setAttribute('aria-label', active
+    ? 'Tela sempre ativa — clique para desativar'
+    : 'Manter tela ativa durante consulta');
+}
+function _v5InjectWakeLockButton() {
+  if (!('wakeLock' in navigator)) return;
+  if (document.getElementById('v5-wakelock-btn')) return;
+  const actions = document.querySelector('.admin-hero-actions');
+  if (!actions) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-wakelock-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-wakelock-btn';
+  btn.setAttribute('aria-label', 'Manter tela ativa durante consulta');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('title', 'Wake Lock');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+  btn.addEventListener('click', () => {
+    _v5WakeLock ? _v5ReleaseWakeLock() : _v5RequestWakeLock();
+  });
+  actions.appendChild(btn);
+}
+function _v5InitWakeLockVisibility() {
+  // Wake Lock é liberado automaticamente quando aba some; re-adquire ao voltar
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden && document.getElementById('v5-wakelock-btn')?.classList.contains('v5-wakelock-active')) {
+      await _v5RequestWakeLock();
+    }
+  });
+}
+
+// ── V5.5 Vibration API — haptic em ações destrutivas ─────────
+function _v5InitVibration() {
+  if (!navigator.vibrate) return;
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="remove"],[data-action="archive"],.patient-delete-btn,.confirm-action-btn');
+    if (!btn) return;
+    navigator.vibrate(
+      (btn.dataset.action === 'remove' || btn.classList.contains('patient-delete-btn'))
+        ? [50, 30, 50]
+        : 30
+    );
+  }, { passive: true });
+}
+
+// ── V5.6 Online / Offline — banner de status de rede ─────────
+function _v5GetOrCreateOfflineBanner() {
+  let b = document.getElementById('v5-offline-banner');
+  if (b) return b;
+  b = document.createElement('div');
+  b.id = 'v5-offline-banner';
+  b.role = 'status';
+  b.setAttribute('aria-live', 'assertive');
+  b.className = 'v5-offline-banner';
+  b.hidden = true;
+  b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Sem conexão — alterações podem não ser salvas';
+  document.body.appendChild(b);
+  return b;
+}
+function _v5InitOnlineOffline() {
+  const banner = _v5GetOrCreateOfflineBanner();
+  function update() {
+    const online = navigator.onLine;
+    banner.hidden = online;
+    banner.setAttribute('aria-hidden', String(online));
+    document.body.classList.toggle('v5-offline', !online);
+  }
+  window.addEventListener('online',  update, { passive: true });
+  window.addEventListener('offline', update, { passive: true });
+  update();
+}
+
+// ── V5.7 Network Information API — detecta conexão lenta ──────
+function _v5InitNetworkInfo() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn) return;
+  function apply() {
+    const slow = conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g' || conn.saveData === true;
+    document.body.classList.toggle('v5-slow-connection', slow);
+    if (slow) {
+      document.querySelectorAll('link[rel="prefetch"]').forEach(l => l.remove());
+    }
+  }
+  conn.addEventListener('change', apply, { passive: true });
+  apply();
+}
+
+// ── V5.8 Battery API — reduz animações em bateria baixa ───────
+async function _v5InitBattery() {
+  if (!('getBattery' in navigator)) return;
+  try {
+    const bat = await navigator.getBattery();
+    function apply() {
+      document.body.classList.toggle('v5-battery-saver', bat.level < 0.20 && !bat.charging);
+    }
+    bat.addEventListener('levelchange',   apply, { passive: true });
+    bat.addEventListener('chargingchange', apply, { passive: true });
+    apply();
+  } catch (_) {}
+}
+
+// ── V5.9 Fullscreen API — modo tela cheia para a tabela ───────
+function _v5InjectFullscreenButton() {
+  if (!document.documentElement.requestFullscreen) return;
+  if (document.getElementById('v5-fullscreen-btn')) return;
+  const container = document.querySelector('.patients-table-header,.section-header,.table-controls')
+    || document.querySelector('.section-card > *');
+  if (!container) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-fullscreen-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-fullscreen-btn';
+  btn.setAttribute('aria-label', 'Tela cheia');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('title', 'Tela cheia (Esc para sair)');
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  container.appendChild(btn);
+}
+function _v5InitFullscreen() {
+  const btn = document.getElementById('v5-fullscreen-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const target = document.querySelector('.patients-table-section,.admin-table-section,[data-table-section]')
+      || document.querySelector('.section-card');
+    if (!target) return;
+    try {
+      if (!document.fullscreenElement) {
+        await target.requestFullscreen();
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-label', 'Sair da tela cheia');
+      } else {
+        await document.exitFullscreen();
+        btn.setAttribute('aria-pressed', 'false');
+        btn.setAttribute('aria-label', 'Tela cheia');
+      }
+    } catch (_) {}
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Tela cheia');
+    }
+  });
+}
+
+// ── V5.10 Dynamic document title — badge de pendências ────────
+function _v5UpdateDocTitle() {
+  const patients = window._allPatients || [];
+  if (!patients.length) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const pendentes = patients.filter(p =>
+    p.status === 'ativo' && (!p.ultimo_checkin || p.ultimo_checkin < hoje)
+  ).length;
+  document.title = pendentes > 0 ? `(${pendentes}) ERG 360 — Admin` : 'ERG 360 — Admin';
+}
+function _v5InitDynTitle() {
+  if (window._v5TitlePatched) return;
+  window._v5TitlePatched = true;
+  ['renderPatientsTable', 'renderPatients'].forEach(key => {
+    if (typeof window[key] !== 'function') return;
+    const orig = window[key];
+    window[key] = (...args) => { orig(...args); _v5UpdateDocTitle(); };
+  });
+  _v5UpdateDocTitle();
+}
+
+// ── V5 DOMContentLoaded ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v5InitClipboard();
+  _v5InitVibration();
+  _v5InitOnlineOffline();
+  _v5InitNetworkInfo();
+  _v5InjectNotifButton();
+  _v5InjectWakeLockButton();
+  _v5InitWakeLockVisibility();
+  _v5InjectFullscreenButton();
+  _v5InitFullscreen();
+  _v5InitDynTitle();
+  requestAnimationFrame(() => {
+    _v5PatchRowCopyTargets();
+    _v5PatchShareButtons();
+    _v5InitWebShare();
+  });
+  _v5InitBattery();
+});
