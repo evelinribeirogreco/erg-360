@@ -179,3 +179,101 @@
   #erg-aria-live { display: none !important; }
   .erg-card-anim { opacity: 1 !important; transform: none !important; }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* V3-1. prefers-reduced-motion — desativa animações para quem prefere */
+@media (prefers-reduced-motion: reduce) {
+  .erg-card-anim {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .erg-rel-toast,
+  .erg-back-top {
+    transition: none !important;
+  }
+  .erg-semaforo-critico {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(179, 48, 48, 0.4) !important;
+  }
+  .erg-toast-dot {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .rel-comp-bar-fill {
+    transition: none !important;
+  }
+}
+
+/* V3-2. Focus ring consistente e visível em todos os elementos interativos */
+.sidebar-nav .nav-item:focus-visible,
+.logout-btn:focus-visible,
+.hamburger:focus-visible,
+#btn-imprimir:focus-visible,
+#btn-ver-checkins:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* V3-3. aria-current — destaque visual na página ativa */
+.sidebar-nav [aria-current="page"] {
+  background: var(--detail, #4CB8A0);
+  color: #fff !important;
+  border-radius: 2px;
+}
+.sidebar-nav [aria-current="page"]:hover {
+  background: var(--accent, #2D6A56);
+}
+.sidebar-nav [aria-current="page"] svg {
+  stroke: #fff;
+}
+
+/* V3-4. Alto contraste (forced-colors / prefers-contrast) */
+@media (forced-colors: active) {
+  .erg-rel-toast,
+  .erg-back-top,
+  .erg-retry-btn {
+    border: 2px solid ButtonText;
+    forced-color-adjust: none;
+  }
+  .erg-toast-dot {
+    background: ButtonText;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .erg-rel-toast {
+    border: 2px solid var(--accent, #2D6A56);
+    box-shadow: none;
+  }
+  .erg-timestamp {
+    border: 2px solid var(--detail, #4CB8A0);
+    font-weight: 600;
+  }
+  .rel-comp-label,
+  .rel-k {
+    color: var(--text, #1a1a1a);
+  }
+  .erg-back-top {
+    box-shadow: 0 0 0 2px var(--accent, #2D6A56);
+  }
+}
+
+/* V3-5. Print — rodapé com tempo de geração quando disponível */
+@media print {
+  #rel-mount[data-render-ms]::after {
+    content: 'Gerado em ' attr(data-render-ms) 'ms · ERG 360';
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.6rem;
+    color: #999;
+    text-align: right;
+    margin-top: 32px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+  }
+}
