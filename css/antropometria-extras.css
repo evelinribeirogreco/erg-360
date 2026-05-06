@@ -532,3 +532,75 @@
 .form-input[aria-invalid="false"]:not(:placeholder-shown):not(:focus) {
   border-color: rgba(45,106,86,0.35);
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* Performance: CSS containment, will-change, GPU layers, tooltip overflow fix */
+
+/* V4.1 — CSS containment: narrow layout/style recalc blast radius */
+.section {
+  contain: layout;
+}
+.erg-result-actions {
+  contain: layout;
+}
+
+/* V4.2 — will-change hints on frequently-animated elements */
+#erg-imc-chip {
+  will-change: opacity, transform;
+}
+#erg-save-indicator {
+  will-change: transform, opacity;
+}
+.erg-completion-fill {
+  will-change: width;
+}
+
+/* V4.3 — Tooltip: --tt-offset CSS variable for viewport edge overflow correction */
+.erg-tooltip-box {
+  transform: translateX(calc(-50% + var(--tt-offset, 0px))) translateY(4px);
+}
+.erg-tooltip-wrap:hover .erg-tooltip-box,
+.erg-tooltip-wrap:focus-within .erg-tooltip-box,
+.erg-tooltip-icon:focus + .erg-tooltip-box {
+  transform: translateX(calc(-50% + var(--tt-offset, 0px))) translateY(0);
+}
+
+/* V4.4 — Result section entrance animation (triggered by IntersectionObserver) */
+.erg-resultado-visible {
+  animation: ergResultaEntra 0.42s ease both;
+}
+@keyframes ergResultaEntra {
+  from { opacity: 0.6; transform: translateY(10px); }
+  to   { opacity: 1;   transform: translateY(0); }
+}
+
+/* V4.5 — GPU composite layer: IMC chip isolated from parent repaints */
+#erg-imc-chip {
+  backface-visibility: hidden;
+  contain: paint;
+}
+
+/* V4.6 — GPU composite layer: save indicator */
+#erg-save-indicator {
+  backface-visibility: hidden;
+}
+
+/* V4.7 — Sidebar nav: scoped layout recalc */
+.sidebar-nav {
+  contain: layout;
+}
+
+/* V4.8 — Reduced motion: release will-change to save GPU memory */
+.erg-reduced-motion #erg-imc-chip,
+.erg-reduced-motion #erg-save-indicator,
+.erg-reduced-motion .erg-completion-fill {
+  will-change: auto;
+}
+.erg-reduced-motion .erg-resultado-visible {
+  animation: none;
+}
+
+/* V4.9 — Prefers-reduced-data: omit decorative pseudo-elements */
+@media (prefers-reduced-data: reduce) {
+  .erg-tooltip-box::after { display: none; }
+}
