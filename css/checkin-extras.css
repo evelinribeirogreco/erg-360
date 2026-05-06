@@ -512,3 +512,315 @@
 .ci-reduced-motion .ci-progress-fill {
   transition: none !important;
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* 15 melhorias: haptics, timer, comparativo, dark-mode, idle, atalhos,
+   toast, voz, sons, share, resumo, swipe, persistir, elapsed */
+
+/* ── V5-2+14. Timer de sessão ──────────────────────────────────────────── */
+.ci-session-timer {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: var(--subtitle, #8A8880);
+  letter-spacing: 0.08em;
+  margin-left: 8px;
+  transition: color 0.3s ease;
+  vertical-align: middle;
+}
+
+.ci-session-timer.ci-timer-warn {
+  color: #B87D15;
+}
+
+.ci-session-timer.ci-timer-crit {
+  color: #7A2E2E;
+  font-weight: 600;
+}
+
+/* ── V5-3. Comparativo com ontem ──────────────────────────────────────── */
+.ci-yesterday-chip {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--text-light, #6B6659);
+  background: rgba(201, 168, 76, 0.08);
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-radius: 100px;
+  padding: 2px 10px;
+  margin-bottom: 6px;
+}
+
+.ci-scale-btn.ci-yesterday-mark {
+  outline: 2px dashed rgba(201, 168, 76, 0.5);
+  outline-offset: 2px;
+}
+
+/* ── V5-4. Dark mode automático ───────────────────────────────────────── */
+html.ci-dark-auto {
+  color-scheme: dark;
+  --bg-primary: #141A1C;
+  --bg-card: #1D2520;
+  --text: #DDD9D0;
+  --text-light: #A8A49A;
+  --subtitle: #7A7870;
+  --border: rgba(76, 184, 160, 0.2);
+}
+
+html.ci-dark-auto body {
+  background: #141A1C !important;
+  color: #DDD9D0 !important;
+}
+
+html.ci-dark-auto .ci-scale-btn {
+  background: #1F2A26;
+  border-color: rgba(76, 184, 160, 0.18);
+  color: #C8C4BB;
+}
+
+html.ci-dark-auto .ci-scale-btn.active {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border-color: var(--detail, #4CB8A0);
+}
+
+html.ci-dark-auto .ci-opt {
+  background: #1F2A26;
+  border-color: rgba(76, 184, 160, 0.14);
+  color: #C8C4BB;
+}
+
+html.ci-dark-auto .ci-opt.active {
+  background: rgba(76, 184, 160, 0.16);
+  border-color: var(--detail, #4CB8A0);
+  color: #DDD9D0;
+}
+
+html.ci-dark-auto .ci-next:not(.skip) {
+  background: var(--detail, #4CB8A0);
+}
+
+html.ci-dark-auto .ci-question,
+html.ci-dark-auto .ci-intro-title {
+  color: #F0EDE5;
+}
+
+html.ci-dark-auto .ci-sub-label,
+html.ci-dark-auto .ci-sub,
+html.ci-dark-auto .ci-eyebrow {
+  color: #9A9890;
+}
+
+html.ci-dark-auto .ci-header {
+  background: #141A1C;
+}
+
+/* ── V5-5. Idle nudge ─────────────────────────────────────────────────── */
+@keyframes ci-idle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(76, 184, 160, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(76, 184, 160, 0);
+  }
+}
+
+.ci-idle-pulse {
+  animation: ci-idle-pulse 1.8s ease infinite !important;
+}
+
+/* ── V5-7. Echo toast ─────────────────────────────────────────────────── */
+.ci-echo-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  background: rgba(26, 32, 28, 0.9);
+  color: #F0EDE5;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.73rem;
+  padding: 8px 20px;
+  border-radius: 100px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 9999;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ci-echo-toast.ci-echo-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── V5-8. Botão de ditado por voz ────────────────────────────────────── */
+.ci-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid var(--detail, #4CB8A0);
+  border-radius: 50%;
+  background: rgba(76, 184, 160, 0.06);
+  color: var(--detail, #4CB8A0);
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ci-voice-btn:hover {
+  background: rgba(76, 184, 160, 0.14);
+}
+
+@keyframes ci-voice-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(76, 184, 160, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(76, 184, 160, 0);
+  }
+}
+
+.ci-voice-btn.ci-voice-active {
+  background: rgba(76, 184, 160, 0.2);
+  animation: ci-voice-pulse 1.2s ease infinite;
+}
+
+/* ── V5-9. Botão de sons ──────────────────────────────────────────────── */
+.ci-sound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: var(--text-light, #6B6659);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.18s ease, background 0.18s ease;
+  margin-right: 2px;
+}
+
+.ci-sound-btn:hover {
+  color: var(--detail, #4CB8A0);
+  background: rgba(76, 184, 160, 0.08);
+}
+
+.ci-sound-btn[aria-pressed="true"] {
+  color: var(--detail, #4CB8A0);
+}
+
+/* ── V5-10. Botão de compartilhar ─────────────────────────────────────── */
+.ci-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 20px;
+  margin-bottom: 8px;
+  border: 1.5px solid var(--detail, #4CB8A0);
+  border-radius: 8px;
+  background: rgba(76, 184, 160, 0.06);
+  color: var(--detail, #4CB8A0);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+  letter-spacing: 0.04em;
+}
+
+.ci-share-btn:hover {
+  background: rgba(76, 184, 160, 0.12);
+  transform: translateY(-1px);
+}
+
+.ci-share-btn:active {
+  transform: translateY(0);
+}
+
+/* ── V5-11. Resumo inline ─────────────────────────────────────────────── */
+.ci-summary {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: rgba(76, 184, 160, 0.05);
+  border: 1px solid rgba(76, 184, 160, 0.16);
+  border-radius: 10px;
+}
+
+.ci-summary-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--detail, #4CB8A0);
+  margin-bottom: 10px;
+}
+
+.ci-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+}
+
+.ci-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ci-s-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  color: var(--text-light, #6B6659);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ci-s-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  color: var(--text, #1A1A16);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.ci-s-val small {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 400;
+  color: var(--text-light, #6B6659);
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── V5-15. Badge de tempo elapsed ───────────────────────────────────── */
+.ci-elapsed-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--detail, #4CB8A0);
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+  opacity: 0.85;
+}
+
+/* ── V5 reduced-motion opt-out ────────────────────────────────────────── */
+.ci-reduced-motion .ci-idle-pulse,
+.ci-reduced-motion .ci-voice-btn.ci-voice-active {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ci-idle-pulse,
+  .ci-voice-btn.ci-voice-active {
+    animation: none !important;
+  }
+
+  .ci-echo-toast {
+    transition: opacity 0.1s linear !important;
+  }
+}
