@@ -1310,3 +1310,397 @@
     initV5();
   }
 })();
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamificação — streak diário, confetti canvas, AudioContext feedback,
+// badge "Primeira Fase", XP system, level badge, milestone toasts,
+// visual de fase concluída, badge "plano 100%", combo de saves por sessão.
+// Não duplica: vibration (V5-4), aria-live/assertive (V1/V3), toast patch (V1),
+//              performance marks (V5-9), offline/battery banners (V5-5/6).
+
+(function () {
+  'use strict';
+
+  const NS  = 'v6';
+  const LSK = {
+    streak:    `${NS}_streak`,
+    streakDay: `${NS}_streak_day`,
+    xp:        `${NS}_xp`,
+    badges:    `${NS}_badges`,
+  };
+
+  function lsGet(key, def) {
+    try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; } catch(_) { return def; }
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(_) {}
+  }
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  // ── V6-1. Streak de uso diário ─────────────────────────────────────────────
+  function initStreak() {
+    const last    = lsGet(LSK.streakDay, null);
+    const current = lsGet(LSK.streak, 0);
+    const today   = todayStr();
+    let streak    = current;
+
+    if (!last) {
+      streak = 1;
+    } else {
+      const diff = Math.round((new Date(today) - new Date(last)) / 86400000);
+      if (diff === 0) {
+        streak = current;
+      } else if (diff === 1) {
+        streak = current + 1;
+      } else {
+        streak = 1;
+      }
+    }
+
+    lsSet(LSK.streakDay, today);
+    lsSet(LSK.streak, streak);
+
+    if (streak >= 2) renderStreakBadge(streak);
+  }
+
+  function renderStreakBadge(count) {
+    if (document.getElementById('v6-streak-badge')) return;
+    const badge = document.createElement('div');
+    badge.id = 'v6-streak-badge';
+    badge.setAttribute('title', `${count} dias consecutivos de acesso`);
+    badge.setAttribute('aria-label', `Sequência: ${count} dias`);
+    badge.setAttribute('role', 'status');
+    badge.innerHTML = `
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M12 2c0 0-4 5.5-4 10a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/>
+        <path d="M12 14c0 0 1.5-1.2 1.5-2.5"/>
+      </svg>
+      <span>${count}</span>`;
+    document.body.appendChild(badge);
+    requestAnimationFrame(() => badge.classList.add('v6-streak-in'));
+  }
+
+  // ── V6-2. Confetti canvas ao salvar ───────────────────────────────────────
+  function launchConfetti({ cx = window.innerWidth / 2, cy = window.innerHeight * 0.4, n = 42 } = {}) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'v6-confetti-canvas';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const COLS = ['#4CB8A0','#2D6A56','#C9A84C','#7DD4C0','#E8C874'];
+
+    const parts = Array.from({ length: n }, () => ({
+      x: cx, y: cy,
+      vx: (Math.random() - 0.5) * 9,
+      vy: -(Math.random() * 7 + 2.5),
+      rot: Math.random() * 360,
+      rv: (Math.random() - 0.5) * 14,
+      w: Math.random() * 5 + 3,
+      h: Math.random() * 3 + 2,
+      color: COLS[Math.floor(Math.random() * COLS.length)],
+      life: 1,
+    }));
+
+    let frames = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      parts.forEach(p => {
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.vy += 0.28;
+        p.rot += p.rv;
+        p.life = Math.max(0, p.life - 0.019);
+        if (p.life <= 0) return;
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (alive && ++frames < 220) requestAnimationFrame(draw);
+      else canvas.remove();
+    })();
+  }
+
+  // ── V6-3. AudioContext feedback sutil ─────────────────────────────────────
+  let audioCtx = null;
+
+  function getACtx() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_) { return null; }
+    }
+    return audioCtx;
+  }
+
+  function playTone({ f1 = 440, f2, dur = 0.18, vol = 0.055, type = 'sine' } = {}) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = getACtx();
+    if (!ctx) return;
+    try {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(f1, ctx.currentTime);
+      if (f2) osc.frequency.linearRampToValueAtTime(f2, ctx.currentTime + dur * 0.65);
+      gain.gain.setValueAtTime(vol, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur + 0.05);
+    } catch(_) {}
+  }
+
+  function initAudioFeedback() {
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) {
+            playTone({ f1: 440, f2: 660, dur: 0.22, vol: 0.05 });
+          } else {
+            playTone({ f1: 220, dur: 0.14, vol: 0.04, type: 'triangle' });
+          }
+        }, 2300);
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target?.id === 'cbox-ok')     playTone({ f1: 520, f2: 440, dur: 0.13, vol: 0.04 });
+      if (e.target?.id === 'cbox-cancel') playTone({ f1: 300, dur: 0.09, vol: 0.03, type: 'triangle' });
+    }, { capture: true, passive: true });
+  }
+
+  // ── V6-4. Badge "Primeira Fase" (conquista single-use) ─────────────────────
+  function checkFirstFaseBadge() {
+    const badges = lsGet(LSK.badges, []);
+    if (badges.includes('primeira_fase')) return;
+    const fases = window._adminFasesExtrasCache || [];
+    if (!fases.length) return;
+    lsSet(LSK.badges, [...badges, 'primeira_fase']);
+    showAchievement({ title: 'Primeira Fase', desc: 'Plano de tratamento iniciado com sucesso.' });
+  }
+
+  function showAchievement({ title, desc }) {
+    const el = document.createElement('div');
+    el.className = 'v6-achievement';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = `
+      <svg class="v6-ach-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="var(--gold)" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="8" r="6"/>
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+      </svg>
+      <div>
+        <p class="v6-ach-title">Conquista: ${title}</p>
+        <p class="v6-ach-desc">${desc}</p>
+      </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('v6-ach-in'));
+    setTimeout(() => {
+      el.classList.remove('v6-ach-in');
+      el.addEventListener('transitionend', () => el.remove(), { once: true });
+    }, 4600);
+  }
+
+  // ── V6-5 + V6-6. XP system + level badge ──────────────────────────────────
+  const LEVELS = [
+    { min: 0,   label: 'Nutri I',   color: 'var(--subtitle)' },
+    { min: 50,  label: 'Nutri II',  color: 'var(--detail)' },
+    { min: 150, label: 'Nutri III', color: 'var(--accent)' },
+    { min: 300, label: 'Expert',    color: 'var(--gold)' },
+  ];
+
+  function getLevel(xp) {
+    for (let i = LEVELS.length - 1; i >= 0; i--) {
+      if (xp >= LEVELS[i].min) return LEVELS[i];
+    }
+    return LEVELS[0];
+  }
+
+  function addXP(amount) {
+    if (!amount) return;
+    const prev = lsGet(LSK.xp, 0);
+    const xp   = prev + amount;
+    lsSet(LSK.xp, xp);
+    showXPGain(xp, amount);
+    if (getLevel(prev).label !== getLevel(xp).label) {
+      showAchievement({ title: `Nível ${getLevel(xp).label}`, desc: 'Novo nível alcançado — continue!' });
+    }
+    updateLevelBadge(xp);
+  }
+
+  function showXPGain(total, gained) {
+    let disp = document.getElementById('v6-xp-display');
+    if (!disp) {
+      disp = document.createElement('div');
+      disp.id = 'v6-xp-display';
+      document.body.appendChild(disp);
+    }
+    disp.setAttribute('aria-label', `XP total: ${total}`);
+    disp.innerHTML = `<span class="v6-xp-total">${total} XP</span>
+      <span class="v6-xp-gain" aria-hidden="true">+${gained}</span>`;
+    disp.classList.remove('v6-xp-pop');
+    void disp.offsetWidth;
+    disp.classList.add('v6-xp-pop');
+  }
+
+  function updateLevelBadge(xp) {
+    const lvl = getLevel(xp);
+    let badge = document.getElementById('v6-level-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'v6-level-badge';
+      badge.setAttribute('role', 'status');
+      document.body.appendChild(badge);
+    }
+    badge.textContent = lvl.label;
+    badge.style.setProperty('--v6-lc', lvl.color);
+    badge.setAttribute('aria-label', `Nível: ${lvl.label}`);
+  }
+
+  function initXPSystem() {
+    updateLevelBadge(lsGet(LSK.xp, 0));
+
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) {
+            addXP(15);
+            updateSessionSaves();
+          }
+        }, 2450);
+      });
+    }
+
+    const origEdit = window.editarFase;
+    if (typeof origEdit === 'function') {
+      window.editarFase = function (...args) {
+        addXP(5);
+        return origEdit.apply(this, args);
+      };
+    }
+  }
+
+  // ── V6-7. Milestone toasts ao atingir marcos de fases ─────────────────────
+  const MILESTONE_MSGS = {
+    3:  'Plano com 3 fases — excelente estrutura!',
+    5:  'Marco: 5 fases criadas!',
+    10: 'Marco: 10 fases — plano avançado!',
+    15: 'Plano robusto: 15 fases!',
+    20: 'Especialista: 20 fases no plano!',
+  };
+
+  function checkMilestones(fases) {
+    const n   = fases.length;
+    const key = `v6_ms_${n}`;
+    if (!MILESTONE_MSGS[n] || lsGet(key, false)) return;
+    lsSet(key, true);
+    if (window.showToast) window.showToast(MILESTONE_MSGS[n]);
+    launchConfetti({ n: 28, cy: window.innerHeight * 0.25 });
+  }
+
+  // ── V6-8. Visual de fase concluída nos cards ───────────────────────────────
+  function initFaseConcluidaVisual() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+
+    function tagCards() {
+      wrapper.querySelectorAll('[data-v3-card]:not([data-v6-tagged])').forEach(card => {
+        card.setAttribute('data-v6-tagged', '');
+        const rawText = (card.textContent || '').toLowerCase();
+        if (rawText.includes('conclu')) card.setAttribute('data-v6-done', '');
+      });
+    }
+
+    new MutationObserver(tagCards).observe(wrapper, { childList: true, subtree: false });
+    tagCards();
+  }
+
+  // ── V6-9. Badge "plano 100% concluído" ────────────────────────────────────
+  function checkPlanoConcluido(fases) {
+    const el = document.getElementById('v6-plan-done');
+    if (!fases.length) return;
+    const allDone = fases.every(f =>
+      f.status === 'concluida' || f.status === 'concluída' || f.status === 'concluido'
+    );
+
+    if (allDone && !el) {
+      const badge = document.createElement('div');
+      badge.id = 'v6-plan-done';
+      badge.setAttribute('role', 'status');
+      badge.setAttribute('aria-live', 'polite');
+      badge.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="var(--gold)" stroke-width="1.5" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Plano 100% concluído`;
+      const kpis = document.getElementById('kpis-fases');
+      if (kpis) kpis.after(badge);
+
+      const msKey = `v6_plan_done_${fases.length}`;
+      if (!lsGet(msKey, false)) {
+        lsSet(msKey, true);
+        setTimeout(() => launchConfetti({ n: 65 }), 450);
+      }
+    } else if (!allDone && el) {
+      el.remove();
+    }
+  }
+
+  // ── V6-10. Combo de saves por sessão ──────────────────────────────────────
+  function updateSessionSaves() {
+    const prev = parseInt(sessionStorage.getItem('v6_ssaves') || '0');
+    const next = prev + 1;
+    sessionStorage.setItem('v6_ssaves', String(next));
+    if (next === 2) {
+      if (window.showToast) window.showToast('Bom ritmo — 2 fases salvas nesta sessão!');
+    } else if (next >= 3 && next % 3 === 0) {
+      if (window.showToast) window.showToast(`${next} fases salvas — sequência incrível!`);
+      launchConfetti({ n: 22, cy: window.innerHeight * 0.5 });
+    }
+  }
+
+  // ── Patch loadFasesExtras: pós-carga executa checks de gamificação ─────────
+  function patchLoadForGamification() {
+    const ext = window._adminFasesExtras;
+    if (!ext?.loadFasesExtras) return;
+    const orig = ext.loadFasesExtras;
+    ext.loadFasesExtras = async function () {
+      const r = await orig.apply(this, arguments);
+      const fases = window._adminFasesExtrasCache || [];
+      checkMilestones(fases);
+      checkPlanoConcluido(fases);
+      checkFirstFaseBadge();
+      initFaseConcluidaVisual();
+      return r;
+    };
+  }
+
+  // ── Init V6 ────────────────────────────────────────────────────────────────
+  function initV6() {
+    initStreak();
+    initAudioFeedback();
+    initXPSystem();
+    initFaseConcluidaVisual();
+    patchLoadForGamification();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV6);
+  } else {
+    initV6();
+  }
+})();
