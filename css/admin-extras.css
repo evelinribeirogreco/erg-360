@@ -1435,3 +1435,198 @@ tr:focus-within .v5-share-btn {
 }
 
 /* ── V5.10 título com badge — sem CSS necessário (DOM only) ─────── */
+
+/* ═══ POLIMENTO V6 ═══ */
+/* 10 melhorias de gamificação: streak badge, confetti canvas,
+   progress ring SVG, milestone toast, sound toggle, badge chips,
+   meta de adesão dourada, reduced-motion, dark mode, responsivo */
+
+/* ── V6.1 Streak badge ──────────────────────────────────────── */
+.v6-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 7px;
+  background: linear-gradient(135deg, rgba(201,168,76,0.18), rgba(201,168,76,0.08));
+  border: 1px solid rgba(201,168,76,0.38);
+  border-radius: 100px;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7A5E00;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  margin-left: 10px;
+  animation: v6StreakPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes v6StreakPop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+html[data-theme="dark"] .v6-streak-badge {
+  background: linear-gradient(135deg, rgba(212,185,104,0.22), rgba(212,185,104,0.10));
+  border-color: rgba(212,185,104,0.40);
+  color: #E5CB7E;
+}
+
+/* ── V6.2 Progress ring de check-ins do dia ─────────────────── */
+.v6-progress-ring-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-left: auto;
+}
+.v6-ring-svg {
+  flex-shrink: 0;
+}
+.v6-ring-track {
+  stroke: var(--border);
+}
+.v6-ring-fill {
+  stroke: var(--accent, #4CB8A0);
+}
+.v6-ring-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-sans);
+}
+.v6-ring-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent, #4CB8A0);
+  line-height: 1;
+}
+.v6-ring-sub {
+  font-size: 0.62rem;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── V6.3 Sound toggle button ───────────────────────────────── */
+.v6-sound-btn {
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.v6-sound-active {
+  background: rgba(76,184,160,0.12) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent-border, rgba(76,184,160,0.34)) !important;
+}
+.v6-sound-active svg {
+  animation: v6BellPing 0.4s ease;
+}
+@keyframes v6BellPing {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.22); }
+}
+
+/* ── V6.4 Milestone toast especial ─────────────────────────── */
+.v6-milestone-toast {
+  background: linear-gradient(135deg, #2D6A56, #4CB8A0) !important;
+  color: #fff !important;
+  font-size: 0.85rem !important;
+  padding: 12px 22px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 24px rgba(45,106,86,0.4) !important;
+}
+
+/* ── V6.5 Badge chips de conquistas ─────────────────────────── */
+.v6-badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: rgba(201,168,76,0.10);
+  border: 1px solid rgba(201,168,76,0.28);
+  border-radius: 100px;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #7A5E00;
+  letter-spacing: 0.04em;
+  animation: v6BadgePop 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes v6BadgePop {
+  from { opacity: 0; transform: scale(0.5) rotate(-8deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+html[data-theme="dark"] .v6-badge-chip {
+  background: rgba(212,185,104,0.16);
+  border-color: rgba(212,185,104,0.32);
+  color: #E5CB7E;
+}
+
+/* ── V6.6 Indicador de meta de adesão atingida ──────────────── */
+.v6-meta-atingida {
+  position: relative;
+}
+.v6-meta-atingida::after {
+  content: '✓ Meta';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--gold, #C9A84C);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 100px;
+  pointer-events: none;
+  animation: v6MetaFadeIn 0.4s ease both;
+}
+@keyframes v6MetaFadeIn {
+  from { opacity: 0; transform: scale(0.7) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── V6.7 Confetti canvas (posicionamento do elemento) ──────── */
+.v6-confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── V6.8 Prefers-reduced-motion: desativa efeitos visuais ──── */
+@media (prefers-reduced-motion: reduce) {
+  .v6-streak-badge,
+  .v6-badge-chip,
+  .v6-sound-active svg {
+    animation: none !important;
+    transition: none !important;
+  }
+  .v6-confetti-canvas {
+    display: none !important;
+  }
+}
+
+/* ── V6.9 Responsivo mobile ─────────────────────────────────── */
+@media (max-width: 600px) {
+  .v6-progress-ring-wrapper {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+  .v6-streak-badge {
+    margin-left: 6px;
+    font-size: 0.68rem;
+  }
+}
+
+/* ── V6.10 Dark mode complementar ───────────────────────────── */
+html[data-theme="dark"] .v6-progress-ring-wrapper {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .v6-milestone-toast {
+  background: linear-gradient(135deg, #1E4A38, #3A9078) !important;
+}
