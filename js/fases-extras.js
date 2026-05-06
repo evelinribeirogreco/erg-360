@@ -552,3 +552,177 @@
     waitForContentV3();
   }
 })();
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance:
+// V4.1 E.debounce helper reutilizável
+// V4.2 requestIdleCallback fallback + init não-crítico em idle
+// V4.3 Passive touch/wheel em fase-item (scroll mobile sem jank)
+// V4.4 will-change gerenciado por JS (add antes do stagger, remove depois)
+// V4.5 Batch reads → rAF writes em updateProgress (sem layout thrashing)
+// V4.6 ResizeObserver + debounce na timeline (sincroniza progresso ao resize)
+// V4.7 Prefetch de rotas comuns via <link rel="prefetch">
+// V4.8 IntersectionObserver otimizado: rootMargin positivo + auto-disconnect
+// V4.9 (CSS) contain: layout style no .fase-item
+// V4.10 (CSS) @media (prefers-reduced-data) — sem animações em dados limitados
+
+(function initFasesExtrasV4() {
+  'use strict';
+
+  const E = window._fasesExtras = window._fasesExtras || {};
+
+  // ── V4.1: debounce helper ─────────────────────────────────────────────────
+  if (!E.debounce) {
+    E.debounce = function debounce(fn, ms) {
+      let t;
+      return function () {
+        const ctx = this;
+        const args = arguments;
+        clearTimeout(t);
+        t = setTimeout(function () { fn.apply(ctx, args); }, ms);
+      };
+    };
+  }
+
+  // ── V4.2: rIC fallback ────────────────────────────────────────────────────
+  const rIC = window.requestIdleCallback
+    ? window.requestIdleCallback.bind(window)
+    : function (cb) { setTimeout(cb, 4); };
+
+  // ── V4.3: Passive touch/wheel em fase-item ────────────────────────────────
+  function addPassiveListeners(items) {
+    const noop = function () {};
+    items.forEach(function (item) {
+      if (item._v4passive) return;
+      item._v4passive = true;
+      item.addEventListener('touchstart', noop, { passive: true });
+      item.addEventListener('touchmove',  noop, { passive: true });
+      item.addEventListener('wheel',      noop, { passive: true });
+    });
+  }
+
+  // ── V4.4: will-change gerenciado ─────────────────────────────────────────
+  function manageWillChange(items) {
+    items.forEach(function (item) {
+      item.style.willChange = 'transform, opacity';
+    });
+    const totalDuration = items.length * 80 + 900;
+    setTimeout(function () {
+      items.forEach(function (item) { item.style.willChange = 'auto'; });
+    }, totalDuration);
+  }
+
+  // ── V4.5: updateProgress sem layout thrashing ─────────────────────────────
+  // Substitui qualquer chamada futura; reads primeiro, writes em rAF
+  E.updateProgress = function updateProgress() {
+    const bar = document.querySelector('.fases-progress-bar');
+    if (!bar) return;
+    const items = Array.from(document.querySelectorAll('.fase-item'));
+    const total = items.length;
+    const concluidas = items.filter(function (i) {
+      return i.classList.contains('concluida');
+    }).length;
+    const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+    requestAnimationFrame(function () {
+      const label = bar.querySelector('.fases-progress-label');
+      const fill  = bar.querySelector('.fases-progress-fill');
+      const track = bar.querySelector('.fases-progress-track');
+      if (label) {
+        label.innerHTML =
+          '<strong>' + concluidas + ' de ' + total + '</strong> fase' +
+          (total !== 1 ? 's' : '') + ' concluída' + (concluidas !== 1 ? 's' : '');
+      }
+      if (fill)  { fill.style.width = pct + '%'; }
+      if (track) {
+        track.setAttribute('aria-valuenow', String(pct));
+        track.setAttribute('aria-label',
+          'Progresso: ' + pct + '% — ' + concluidas + ' de ' + total + ' fases concluídas');
+      }
+    });
+  };
+
+  // ── V4.6: ResizeObserver + debounce na timeline ───────────────────────────
+  function observeTimelineResize() {
+    if (!window.ResizeObserver || E._roTimeline) return;
+    const timeline = document.querySelector('.fases-timeline');
+    if (!timeline) return;
+    const onResize = E.debounce(function () {
+      if (E.updateProgress) E.updateProgress();
+    }, 200);
+    E._roTimeline = new ResizeObserver(onResize);
+    E._roTimeline.observe(timeline);
+  }
+
+  // ── V4.7: Prefetch rotas comuns ───────────────────────────────────────────
+  function prefetchCommonRoutes() {
+    var routes = ['checkin.html', 'diario.html', 'dashboard.html'];
+    routes.forEach(function (route) {
+      if (document.querySelector('link[rel="prefetch"][href="' + route + '"]')) return;
+      var link = document.createElement('link');
+      link.rel  = 'prefetch';
+      link.href = route;
+      link.as   = 'document';
+      document.head.appendChild(link);
+    });
+  }
+
+  // ── V4.8: IntersectionObserver otimizado ─────────────────────────────────
+  function optimizedFadeIn(items) {
+    if (!('IntersectionObserver' in window)) {
+      items.forEach(function (i) { i.classList.add('fases-visible'); });
+      return;
+    }
+    var pending = items.filter(function (i) {
+      return !i.classList.contains('fases-visible');
+    });
+    if (pending.length === 0) return;
+
+    manageWillChange(pending);
+
+    var io = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var idx = pending.indexOf(entry.target);
+        var delay = Math.max(0, idx) * 70;
+        (function (target) {
+          setTimeout(function () {
+            target.classList.add('fases-visible');
+            observer.unobserve(target);
+            pending = pending.filter(function (x) { return x !== target; });
+            if (pending.length === 0) observer.disconnect();
+          }, delay);
+        })(entry.target);
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px 60px 0px' });
+
+    pending.forEach(function (i) { io.observe(i); });
+  }
+
+  // ── Init V4 ───────────────────────────────────────────────────────────────
+  function initV4() {
+    var items = Array.from(document.querySelectorAll('.fase-item'));
+    addPassiveListeners(items);
+    observeTimelineResize();
+    optimizedFadeIn(items);
+    rIC(prefetchCommonRoutes);
+  }
+
+  function waitForContentV4() {
+    var content = document.getElementById('fases-content');
+    if (!content) { setTimeout(waitForContentV4, 150); return; }
+    if (content.children.length > 0) { initV4(); return; }
+    var obs = new MutationObserver(function () {
+      if (content.children.length > 0) {
+        obs.disconnect();
+        setTimeout(initV4, 100);
+      }
+    });
+    obs.observe(content, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContentV4);
+  } else {
+    waitForContentV4();
+  }
+})();
