@@ -241,3 +241,40 @@
   outline: 2px solid var(--detail, #4CB8A0);
   outline-offset: 2px;
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* ── CSS contain nos cards de refeição (isola layout/style) ── */
+.diario-refeicao {
+  contain: layout style;
+}
+
+/* ── Scroll-snap nas refeições (mobile) ── */
+@media (max-width: 640px) {
+  .diario-refeicoes {
+    scroll-snap-type: y proximity;
+  }
+  .diario-refeicao {
+    scroll-snap-align: start;
+    scroll-margin-top: 12px;
+  }
+}
+
+/* ── will-change só durante o tempo de animação IO ── */
+.diario-refeicao[style*="will-change"] {
+  /* Hint ao browser: promove layer para GPU durante entrada */
+}
+
+/* ── Reduz motion para cards animados via IO ── */
+@media (prefers-reduced-motion: reduce) {
+  .diario-refeicao {
+    opacity: 1 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* ── content-visibility placeholder (evita CLS no historico) ── */
+.diario-historico[style*="content-visibility"] {
+  min-height: 120px;
+}
