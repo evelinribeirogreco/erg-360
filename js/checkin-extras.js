@@ -581,3 +581,158 @@ if (window._checkinExtras) {
   window._checkinExtras.version = 'V2';
   window._checkinExtras.checkScreenComplete = checkScreenComplete;
 }
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: rIC, debounce, prefetch, will-change dinâmico,
+//   CSS contain, hint cleanup, resize throttle, IO flags, reduced-motion
+
+// ── Utilitários V4 ───────────────────────────────────────────────────────
+const _rIC = window.requestIdleCallback
+  || (cb => setTimeout(() => cb({ timeRemaining: () => 16 }), 1));
+
+function _debounce(fn, ms) {
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+function _throttle(fn, ms) {
+  let last = 0;
+  return (...a) => { const n = Date.now(); if (n - last < ms) return; last = n; return fn(...a); };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  v4DebouncedSave();
+  v4PrefetchScreens();
+  v4WillChange();
+  v4CSSContain();
+  v4ReducedMotion();
+});
+
+// ── V4-1. Debounce: salva rascunho 600ms após última tecla no textarea ────
+function v4DebouncedSave() {
+  const ta = document.getElementById('obs');
+  if (!ta) return;
+  ta.addEventListener('input', _debounce(saveDraft, 600));
+}
+
+// ── V4-2. Auto-save periódico a cada 30s via rIC ─────────────────────────
+(function v4PeriodicSave() {
+  setTimeout(() => _rIC(() => {
+    if (!document.querySelector('#screen-done.active')) saveDraft();
+    v4PeriodicSave();
+  }), 30_000);
+})();
+
+// ── V4-3 + V4-4 + V4-9. Prefetch e IO flags via observers de tela ─────────
+function v4PrefetchScreens() {
+  function addPrefetch(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const l = document.createElement('link');
+    l.rel = 'prefetch'; l.href = href; l.as = 'document';
+    document.head.appendChild(l);
+  }
+
+  // V4-3: prefetch checkin-resumo quando tela de observação (screen-7) ativa
+  const s7 = document.getElementById('screen-7');
+  if (s7) {
+    let done7 = false;
+    new MutationObserver(() => {
+      if (!s7.classList.contains('active') || done7) return;
+      done7 = true;
+      _rIC(() => addPrefetch('checkin-resumo.html'));
+    }).observe(s7, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // V4-4: prefetch dashboard + V4-9: IO para flags na tela final
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  const io = window.IntersectionObserver
+    ? new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.remove('ci-flag-pending');
+          entry.target.classList.add('ci-flag-visible');
+          io.unobserve(entry.target);
+        });
+      }, { threshold: 0.15 })
+    : null;
+
+  let doneFinal = false;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active')) return;
+    if (!doneFinal) {
+      doneFinal = true;
+      _rIC(() => addPrefetch('dashboard.html'));
+    }
+    if (io) {
+      setTimeout(() => {
+        document.querySelectorAll('.ci-flag-item').forEach((f, i) => {
+          f.classList.add('ci-flag-pending');
+          f.style.setProperty('--flag-i', i);
+          io.observe(f);
+        });
+      }, 280);
+    }
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V4-5. will-change dinâmico em botões de navegação ────────────────────
+function v4WillChange() {
+  const NAV = '.ci-next, .ci-back-btn';
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest(NAV);
+    if (b) b.style.willChange = 'transform, opacity';
+  }, { passive: true });
+  document.addEventListener('pointerup', e => {
+    const b = e.target.closest(NAV);
+    if (b) setTimeout(() => { b.style.willChange = 'auto'; }, 500);
+  }, { passive: true });
+  document.addEventListener('pointercancel', e => {
+    const b = e.target.closest(NAV);
+    if (b) b.style.willChange = 'auto';
+  }, { passive: true });
+}
+
+// ── V4-6. CSS contain:style em todas as telas (isolamento de estilos) ─────
+function v4CSSContain() {
+  document.querySelectorAll('.ci-screen').forEach(s => {
+    s.style.contain = 'style';
+  });
+}
+
+// ── V4-7. Cleanup de hints em telas inativas via rIC ─────────────────────
+(function v4HintCleanup() {
+  setTimeout(() => _rIC(() => {
+    document.querySelectorAll('.ci-context-hint, .ci-inline-hint').forEach(h => {
+      if (!h.closest('.ci-screen.active')) h.remove();
+    });
+    v4HintCleanup();
+  }), 4_000);
+})();
+
+// ── V4-8. Reposicionar tooltip Bristol ao redimensionar (throttle 150ms) ──
+(function() {
+  window.addEventListener('resize', _throttle(() => {
+    const tip = document.querySelector('.ci-bristol-tooltip');
+    const focused = document.activeElement;
+    if (tip && focused?.classList.contains('bristol-btn')) {
+      positionTooltip(tip, focused);
+    }
+  }, 150), { passive: true });
+})();
+
+// ── V4-10. prefers-reduced-motion: classe no <html> para CSS opt-out ──────
+function v4ReducedMotion() {
+  const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  if (!mq) return;
+  const toggle = () => document.documentElement.classList.toggle('ci-reduced-motion', mq.matches);
+  toggle();
+  mq.addEventListener('change', toggle);
+}
+
+// Estende exports
+if (window._checkinExtras) {
+  window._checkinExtras.version = 'V4';
+  window._checkinExtras.rIC = _rIC;
+}

@@ -433,3 +433,82 @@
 .ci-back-btn:hover svg {
   transform: translateX(-3px);
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* 10 melhorias de performance: rIC, debounce, prefetch, will-change,
+   CSS contain, hint cleanup, resize throttle, IO flags, reduced-motion */
+
+/* ── V4-9. Flag items: animação dirigida por IntersectionObserver ─────────── */
+.ci-flag-item.ci-flag-pending {
+  opacity: 0;
+  transform: translateX(-12px);
+  transition: none;
+}
+
+.ci-flag-item.ci-flag-visible {
+  animation: ci-flag-in 0.28s ease calc(var(--flag-i, 0) * 60ms) both;
+}
+
+@keyframes ci-flag-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── V4-10. Reduced-motion: respeita preferência do sistema ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ci-stagger-in,
+  .ci-shake,
+  .ci-score-pop,
+  .ci-slide-forward,
+  .ci-slide-back,
+  .ci-chip-bounce,
+  .ci-scale-ring,
+  .ci-next-ready,
+  .ci-flag-visible,
+  .ci-confetti-piece {
+    animation: none !important;
+  }
+
+  .ci-flag-item.ci-flag-pending {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .ci-scale-btn,
+  .ci-opt,
+  .ci-chip,
+  .bristol-btn,
+  .ci-next,
+  .ci-back-btn,
+  .ci-progress-fill {
+    transition: none !important;
+  }
+}
+
+.ci-reduced-motion .ci-stagger-in,
+.ci-reduced-motion .ci-shake,
+.ci-reduced-motion .ci-score-pop,
+.ci-reduced-motion .ci-slide-forward,
+.ci-reduced-motion .ci-slide-back,
+.ci-reduced-motion .ci-chip-bounce,
+.ci-reduced-motion .ci-scale-ring,
+.ci-reduced-motion .ci-next-ready,
+.ci-reduced-motion .ci-flag-visible,
+.ci-reduced-motion .ci-confetti-piece {
+  animation: none !important;
+}
+
+.ci-reduced-motion .ci-flag-item.ci-flag-pending {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.ci-reduced-motion .ci-scale-btn,
+.ci-reduced-motion .ci-opt,
+.ci-reduced-motion .ci-chip,
+.ci-reduced-motion .bristol-btn,
+.ci-reduced-motion .ci-next,
+.ci-reduced-motion .ci-back-btn,
+.ci-reduced-motion .ci-progress-fill {
+  transition: none !important;
+}
