@@ -656,3 +656,429 @@ Object.assign(window._diarioExtras, {
   canPrefetch:        _canPrefetch,
   rIC:                _rIC,
 });
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias de funcionalidade: água, copiar dia anterior, undo, voz,
+// dark mode, smart-placeholder, notificações, export texto, filtro, badge 100%
+
+// ── V5-1. Contador de água ────────────────────────────────────────────────────
+const _AGUA_KEY = () => `erg_agua_${document.getElementById('diario-date-input')?.value || 'x'}`;
+const _AGUA_META = 8;
+
+function _getWater() {
+  try { return parseInt(localStorage.getItem(_AGUA_KEY()) || '0'); } catch (_) { return 0; }
+}
+
+function _setWater(n) {
+  try { localStorage.setItem(_AGUA_KEY(), String(n)); } catch (_) {}
+  _renderWater(n);
+}
+
+function _renderWater(n) {
+  const dots = document.getElementById('diario-water-dots');
+  const count = document.getElementById('diario-water-count');
+  if (!dots || !count) return;
+  let html = '';
+  for (let i = 0; i < _AGUA_META; i++) {
+    html += `<span class="diario-water-dot${i < n ? ' diario-water-dot--filled' : ''}" aria-hidden="true"></span>`;
+  }
+  dots.innerHTML = html;
+  dots.setAttribute('aria-label', `${n} de ${_AGUA_META} copos`);
+  count.textContent = `${n}/${_AGUA_META}`;
+  count.classList.toggle('diario-water-count--full', n >= _AGUA_META);
+}
+
+function _initWaterTracker() {
+  if (document.getElementById('diario-water-tracker')) return;
+  const section = document.createElement('div');
+  section.id = 'diario-water-tracker';
+  section.className = 'diario-water-tracker';
+  section.setAttribute('role', 'group');
+  section.setAttribute('aria-label', 'Contador de água');
+  section.innerHTML = `
+    <div class="diario-water-header">
+      <span class="diario-water-title">Água</span>
+      <span class="diario-water-unit">copos de 200 ml</span>
+    </div>
+    <div class="diario-water-controls">
+      <button type="button" class="diario-water-btn" id="diario-water-minus" aria-label="Remover um copo">−</button>
+      <div class="diario-water-dots" id="diario-water-dots" role="img" aria-label="0 de 8 copos"></div>
+      <button type="button" class="diario-water-btn" id="diario-water-plus" aria-label="Adicionar um copo">+</button>
+      <span class="diario-water-count" id="diario-water-count" aria-live="polite">0/${_AGUA_META}</span>
+    </div>`;
+  const actions = document.querySelector('.diario-actions');
+  if (actions) actions.parentNode.insertBefore(section, actions);
+  _renderWater(_getWater());
+  document.getElementById('diario-water-plus')?.addEventListener('click', () => {
+    const cur = _getWater();
+    if (cur < _AGUA_META) { _setWater(cur + 1); if ('vibrate' in navigator) navigator.vibrate(8); }
+  });
+  document.getElementById('diario-water-minus')?.addEventListener('click', () => {
+    const cur = _getWater();
+    if (cur > 0) _setWater(cur - 1);
+  });
+}
+
+function _reloadWater() { _renderWater(_getWater()); }
+
+// ── V5-2. Copiar do dia anterior ──────────────────────────────────────────────
+let _undoState = null;
+
+function _storeUndoState() {
+  const state = {};
+  ['cafe', 'lanche-manha', 'almoco', 'lanche-tarde', 'jantar', 'ceia', 'obs'].forEach(id => {
+    const el = document.getElementById('d-' + id);
+    if (el) state[id] = el.value;
+  });
+  state._adesao = document.getElementById('d-adesao')?.value || '';
+  _undoState = state;
+}
+
+function _applyUndo() {
+  if (!_undoState) return;
+  Object.entries(_undoState).forEach(([id, val]) => {
+    if (id === '_adesao') {
+      const v = parseInt(val);
+      if (v && typeof window.setAdesao === 'function') window.setAdesao(v);
+      return;
+    }
+    const el = document.getElementById('d-' + id);
+    if (el) {
+      el.value = val;
+      _autoResize(el);
+      el.closest('.diario-refeicao')?.classList.toggle('preenchida', val.trim().length > 0);
+    }
+  });
+  _updateProgress();
+  _undoState = null;
+  _dirty = true;
+  _showToast('Ação desfeita', 'success');
+}
+
+function _showUndoToast(msg) {
+  const t = document.getElementById('diario-toast');
+  if (!t) return;
+  t.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  const undoBtn = document.createElement('button');
+  undoBtn.type = 'button';
+  undoBtn.className = 'diario-toast-undo-btn';
+  undoBtn.textContent = 'Desfazer';
+  undoBtn.setAttribute('aria-label', 'Desfazer cópia do dia anterior');
+  undoBtn.addEventListener('click', () => {
+    t.classList.remove('diario-toast--show');
+    _applyUndo();
+  });
+  t.appendChild(span);
+  t.appendChild(undoBtn);
+  t.className = 'diario-toast diario-toast--success diario-toast--show';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(() => {
+    t.classList.remove('diario-toast--show');
+    setTimeout(() => { t.textContent = ''; }, 300);
+  }, 6000);
+}
+
+function _initCopyPrevDay() {
+  if (document.getElementById('diario-copy-prev')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'diario-copy-prev';
+  btn.className = 'diario-copy-prev-btn';
+  btn.setAttribute('aria-label', 'Copiar refeições do dia anterior para hoje');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar dia anterior`;
+  document.querySelector('.diario-actions')?.appendChild(btn);
+  btn.addEventListener('click', async () => {
+    const curVal = document.getElementById('diario-date-input')?.value;
+    if (!curVal) return;
+    const d = new Date(curVal + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    const prev = d.toISOString().split('T')[0];
+    btn.disabled = true;
+    btn.textContent = 'Carregando...';
+    const sb = window._supabase;
+    if (!sb) { btn.disabled = false; btn.textContent = 'Copiar dia anterior'; return; }
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const { data } = await sb.from('diario_alimentar')
+        .select('cafe, lanche_manha, almoco, lanche_tarde, jantar, ceia')
+        .eq('user_id', session.user.id)
+        .eq('data', prev)
+        .maybeSingle();
+      if (!data) {
+        _showToast('Nenhum registro encontrado para ontem', 'error');
+      } else {
+        _storeUndoState();
+        const map = {
+          'cafe': data.cafe, 'lanche-manha': data.lanche_manha, 'almoco': data.almoco,
+          'lanche-tarde': data.lanche_tarde, 'jantar': data.jantar, 'ceia': data.ceia,
+        };
+        Object.entries(map).forEach(([id, val]) => {
+          const el = document.getElementById('d-' + id);
+          if (el && val) { el.value = val; el.closest('.diario-refeicao')?.classList.add('preenchida'); _autoResize(el); }
+        });
+        _updateProgress();
+        _dirty = true;
+        _showUndoToast('Refeições de ontem copiadas');
+      }
+    } catch (_) {
+      _showToast('Erro ao carregar dia anterior', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar dia anterior`;
+    }
+  });
+}
+
+// ── V5-3. Voz para registro rápido ───────────────────────────────────────────
+function _initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  document.querySelectorAll('.diario-refeicao').forEach(card => {
+    if (card.querySelector('.diario-voice-btn')) return;
+    const ta = card.querySelector('.diario-textarea');
+    if (!ta) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'diario-voice-btn';
+    btn.setAttribute('aria-label', 'Registrar por voz');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`;
+    card.querySelector('.diario-ref-header')?.appendChild(btn);
+    let rec = null;
+    btn.addEventListener('click', () => {
+      if (rec) { rec.stop(); return; }
+      rec = new SR();
+      rec.lang = 'pt-BR';
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.onstart = () => { btn.classList.add('diario-voice-btn--active'); btn.setAttribute('aria-pressed', 'true'); if ('vibrate' in navigator) navigator.vibrate(10); };
+      rec.onresult = e => {
+        const text = e.results[0][0].transcript;
+        ta.value = (ta.value ? ta.value + ', ' : '') + text;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      rec.onerror = rec.onend = () => { btn.classList.remove('diario-voice-btn--active'); btn.setAttribute('aria-pressed', 'false'); rec = null; };
+      rec.start();
+    });
+  });
+}
+
+// ── V5-4. Dark mode automático ────────────────────────────────────────────────
+function _initDarkMode() {
+  const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+  if (!mq) return;
+  const apply = dark => document.documentElement.setAttribute('data-color-scheme', dark ? 'dark' : 'light');
+  apply(mq.matches);
+  mq.addEventListener('change', e => apply(e.matches));
+}
+
+// ── V5-5. Smart placeholder por horário ───────────────────────────────────────
+function _initSmartPlaceholders() {
+  const h = new Date().getHours();
+  const hints = {
+    'cafe':         h < 9  ? 'Acabou de acordar? Anote seu café...' : 'O que você comeu no café da manhã?',
+    'lanche-manha': h >= 9 && h < 12 ? 'Hora do lanche! O que está comendo?' : 'Lanche da manhã...',
+    'almoco':       h >= 11 && h < 14 ? 'Na hora do almoço? Anote agora!' : 'O que você comeu no almoço?',
+    'lanche-tarde': h >= 14 && h < 17 ? 'Hora do lanche da tarde!' : 'Lanche da tarde...',
+    'jantar':       h >= 18 ? 'Boa noite! Anotando o jantar?' : 'O que você comeu no jantar?',
+    'ceia':         h >= 20 ? 'Alguma ceia esta noite?' : 'Ceia (se houver)...',
+  };
+  Object.entries(hints).forEach(([id, hint]) => {
+    const el = document.getElementById('d-' + id);
+    if (el && !el.value) el.placeholder = hint;
+  });
+}
+
+// ── V5-6. Lembretes por horário (Notification API) ────────────────────────────
+function _scheduleReminders() {
+  const meals = [
+    { name: 'Café da manhã', hour: 7,  min: 30 },
+    { name: 'Lanche da manhã', hour: 10, min: 0  },
+    { name: 'Almoço',        hour: 12, min: 30 },
+    { name: 'Lanche da tarde', hour: 15, min: 30 },
+    { name: 'Jantar',        hour: 19, min: 0  },
+    { name: 'Ceia',          hour: 21, min: 30 },
+  ];
+  const now = Date.now();
+  meals.forEach(({ name, hour, min }) => {
+    const t = new Date();
+    t.setHours(hour, min, 0, 0);
+    const diff = t.getTime() - now;
+    if (diff <= 0 || diff > 8 * 3600000) return;
+    setTimeout(() => {
+      if (Notification.permission !== 'granted') return;
+      try { new Notification('ERG 360 — Hora de registrar', { body: `Hora do ${name}. Registre no diário!`, icon: '/icons/icon-152x152.png', tag: `erg-meal-${name}` }); } catch (_) {}
+    }, diff);
+  });
+}
+
+function _initMealReminders() {
+  if (!('Notification' in window) || document.getElementById('diario-reminder-btn')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'diario-reminder-btn';
+  btn.className = 'diario-reminder-btn';
+  btn.setAttribute('aria-label', 'Ativar lembretes de refeição');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Lembretes`;
+  const tryAutoSchedule = () => {
+    if (Notification.permission === 'granted') {
+      try { if (localStorage.getItem('erg_meal_reminders') === '1') { btn.classList.add('diario-reminder-btn--active'); btn.setAttribute('aria-pressed', 'true'); _scheduleReminders(); } } catch (_) {}
+    }
+  };
+  document.querySelector('.diario-actions')?.appendChild(btn);
+  tryAutoSchedule();
+  btn.addEventListener('click', async () => {
+    if (Notification.permission === 'default') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { _showToast('Permissão de notificação negada', 'error'); return; }
+    }
+    const active = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(active));
+    btn.classList.toggle('diario-reminder-btn--active', active);
+    try { localStorage.setItem('erg_meal_reminders', active ? '1' : '0'); } catch (_) {}
+    _showToast(active ? 'Lembretes ativados' : 'Lembretes desativados', 'success');
+    if (active) _scheduleReminders();
+  });
+}
+
+// ── V5-7. Export como texto ───────────────────────────────────────────────────
+function _initExportBtn() {
+  if (document.getElementById('diario-export-btn')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'diario-export-btn';
+  btn.className = 'diario-export-btn';
+  btn.setAttribute('aria-label', 'Exportar diário como arquivo de texto');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar`;
+  document.querySelector('.diario-actions')?.appendChild(btn);
+  btn.addEventListener('click', () => {
+    const date = document.getElementById('diario-date-input')?.value || 'data';
+    const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    const meals = [
+      ['Café da manhã', 'd-cafe'], ['Lanche da manhã', 'd-lanche-manha'],
+      ['Almoço', 'd-almoco'], ['Lanche da tarde', 'd-lanche-tarde'],
+      ['Jantar', 'd-jantar'], ['Ceia', 'd-ceia'],
+    ];
+    let text = `DIÁRIO ALIMENTAR — ERG 360\n${dateLabel}\n${'─'.repeat(40)}\n\n`;
+    meals.forEach(([label, id]) => {
+      const val = document.getElementById(id)?.value?.trim();
+      if (val) text += `${label}:\n${val}\n\n`;
+    });
+    const obs = document.getElementById('d-obs')?.value?.trim();
+    if (obs) text += `Observações:\n${obs}\n\n`;
+    const adesao = document.getElementById('d-adesao')?.value;
+    if (adesao) text += `Adesão ao plano: ${adesao}/5\n`;
+    const agua = _getWater();
+    if (agua > 0) text += `Água: ${agua} copos\n`;
+    text += `\nGerado por ERG 360 — ${new Date().toLocaleDateString('pt-BR')}`;
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = `diario-${date}.txt`; a.click();
+      URL.revokeObjectURL(url);
+      _showToast('Diário exportado', 'success');
+    } catch (_) { _showToast('Erro ao exportar', 'error'); }
+  });
+}
+
+// ── V5-8. Filtro: mostrar só refeições preenchidas ────────────────────────────
+function _initMealFilter() {
+  if (document.getElementById('diario-filter-btn')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'diario-filter-btn';
+  btn.className = 'diario-filter-btn';
+  btn.setAttribute('aria-label', 'Mostrar apenas refeições preenchidas');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Só preenchidas`;
+  const progressWrap = document.getElementById('diario-progress-wrap');
+  if (progressWrap) progressWrap.after(btn);
+  btn.addEventListener('click', () => {
+    const active = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(active));
+    btn.classList.toggle('diario-filter-btn--active', active);
+    document.querySelectorAll('.diario-refeicao').forEach(card => {
+      const filled = card.querySelector('.diario-textarea')?.value.trim().length > 0;
+      card.classList.toggle('diario-ref--hidden', active && !filled);
+      active && !filled ? card.setAttribute('aria-hidden', 'true') : card.removeAttribute('aria-hidden');
+    });
+  });
+}
+
+// ── V5-9. Badge conquista ao completar todas as refeições ─────────────────────
+let _achievementShown = false;
+
+function _checkAchievement() {
+  const filled = _MEAL_IDS.filter(id => document.getElementById(id)?.value.trim().length > 0).length;
+  if (filled < 6 || _achievementShown) return;
+  _achievementShown = true;
+  const badge = document.getElementById('diario-streak-badge');
+  if (badge) {
+    const [prevText, prevHidden] = [badge.textContent, badge.hidden];
+    badge.hidden = false;
+    badge.textContent = 'Todas as refeicoes registradas!';
+    badge.classList.add('diario-streak-badge--achievement');
+    setTimeout(() => { badge.textContent = prevText; badge.hidden = prevHidden; badge.classList.remove('diario-streak-badge--achievement'); }, 4500);
+  }
+  _showToast('Parabens! Todas as refeicoes registradas hoje!', 'success');
+  if ('vibrate' in navigator) navigator.vibrate([20, 50, 20, 50, 20]);
+}
+
+// ── V5-10. Modo offline: banner visual ao perder/recuperar rede ───────────────
+function _initOfflineBanner() {
+  if (document.getElementById('diario-offline-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'diario-offline-banner';
+  banner.className = 'diario-offline-banner';
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
+  banner.textContent = 'Sem conexao — alteracoes serao salvas ao reconectar';
+  banner.hidden = true;
+  document.body.insertBefore(banner, document.body.firstChild);
+  const update = () => {
+    banner.hidden = navigator.onLine;
+    if (navigator.onLine) _showToast('Conexao restaurada', 'success');
+  };
+  window.addEventListener('online', update);
+  window.addEventListener('offline', () => { banner.hidden = false; });
+  update();
+}
+
+// ── V5 INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _initDarkMode();
+  _initOfflineBanner();
+  _initSmartPlaceholders();
+  _initWaterTracker();
+  _initCopyPrevDay();
+  _initVoice();
+  _initMealReminders();
+  _initExportBtn();
+  _initMealFilter();
+
+  document.querySelectorAll('.diario-textarea').forEach(el => {
+    el.addEventListener('input', _checkAchievement);
+  });
+
+  const dateFull = document.getElementById('diario-date-full');
+  if (dateFull) {
+    new MutationObserver(() => {
+      _achievementShown = false;
+      _reloadWater();
+      _initSmartPlaceholders();
+    }).observe(dateFull, { childList: true, subtree: true, characterData: true });
+  }
+});
+
+Object.assign(window._diarioExtras, {
+  getWater:          _getWater,
+  setWater:          _setWater,
+  storeUndoState:    _storeUndoState,
+  applyUndo:         _applyUndo,
+  scheduleReminders: _scheduleReminders,
+  checkAchievement:  _checkAchievement,
+});
