@@ -665,3 +665,102 @@ body.erg-presentation-mode .main-content {
     border-top: 1px solid #eee;
   }
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* V4-4. Sticky compact patient bar */
+.erg-sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 24px;
+  background: var(--bg-primary, #F7F6F2);
+  border-bottom: 1px solid var(--detail, #4CB8A0);
+  opacity: 0;
+  transform: translateY(-100%);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.erg-sticky-bar.erg-sticky-bar-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.erg-sticky-bar-nome {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.erg-sticky-bar-sem {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* V4-5. Slow connection — suprime transições e animações NH */
+body.erg-slow-connection .erg-card-anim,
+body.erg-slow-connection .erg-rel-toast,
+body.erg-slow-connection .erg-back-top,
+body.erg-slow-connection .erg-notes-panel,
+body.erg-slow-connection .erg-sticky-bar {
+  transition: none !important;
+  animation: none !important;
+}
+body.erg-slow-connection .erg-card-anim {
+  opacity: 1 !important;
+  transform: none !important;
+}
+body.erg-slow-connection .erg-sticky-bar {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* V4-6. Print — inclui timing de navegação no rodapé */
+@media print {
+  #rel-mount[data-dom-interactive]::after {
+    content: 'DOM: ' attr(data-dom-interactive) 'ms · Total: ' attr(data-load-total) 'ms · ERG 360';
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.58rem;
+    color: #aaa;
+    text-align: right;
+    margin-top: 8px;
+  }
+  .erg-sticky-bar {
+    display: none !important;
+  }
+}
+
+/* V4-7. ResizeObserver — suaviza transição de reflow nos grids */
+.rel-sug-grid,
+.rel-agenda-grid {
+  transition: grid-template-columns 0.18s ease;
+}
+
+/* V4-2/V4-4. Dark mode para sticky bar */
+body.erg-dark-mode .erg-sticky-bar {
+  background: var(--bg-primary, #1A1A16);
+  border-bottom-color: var(--border, #3A3A30);
+}
+
+/* V4. Sem movimento */
+@media (prefers-reduced-motion: reduce) {
+  .erg-sticky-bar {
+    transition: none !important;
+  }
+  .rel-sug-grid,
+  .rel-agenda-grid {
+    transition: none !important;
+  }
+}

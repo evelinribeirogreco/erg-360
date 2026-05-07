@@ -872,3 +872,211 @@ window._adminRelatorioExtras = (() => {
     initV3();
   }
 })();
+
+// ═══ POLIMENTO V4 ═══
+// V4: performance — rIC, Page Visibility, prefetch, sticky header, Network Info,
+//     Nav Timing, ResizeObserver, lazy images, sessionStorage, content-visibility
+
+(function _adminRelatorioV4() {
+  'use strict';
+
+  // V4-1. requestIdleCallback polyfill
+  const rIC = window.requestIdleCallback
+    ? (cb, opts) => window.requestIdleCallback(cb, opts)
+    : (cb) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 }), 200);
+
+  // V4-2. Page Visibility — atualiza badge de tempo ao restaurar aba
+  function setupPageVisibility() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden || !window._relatorioGeradoEm) return;
+      const badge = document.querySelector('.erg-timestamp');
+      if (!badge) return;
+      const elapsed = Math.floor((Date.now() - window._relatorioGeradoEm) / 60000);
+      const txt = elapsed < 1 ? 'Agora mesmo' : 'Há ' + elapsed + ' min';
+      badge.textContent = txt;
+      badge.setAttribute('aria-label', 'Tempo desde a geração do relatório: ' + txt);
+    });
+  }
+
+  // V4-3. Prefetch próximas páginas prováveis no idle
+  function prefetchLikelyPages() {
+    const params = new URLSearchParams(window.location.search);
+    const patient = encodeURIComponent(params.get('patient') || '');
+    const nome    = encodeURIComponent(params.get('nome') || '');
+    const qs      = patient ? ('?patient=' + patient + '&nome=' + nome) : '';
+
+    const targets = ['admin.html'];
+    if (qs) {
+      targets.push('checkin-resumo.html' + qs);
+      targets.push('admin-dossie.html' + qs);
+    }
+
+    rIC(() => {
+      targets.forEach((url) => {
+        if (document.head.querySelector('link[rel="prefetch"][href="' + url + '"]')) return;
+        const link = document.createElement('link');
+        link.rel  = 'prefetch';
+        link.href = url;
+        link.as   = 'document';
+        document.head.appendChild(link);
+      });
+    }, { timeout: 3000 });
+  }
+
+  // V4-4. Sticky compact patient bar via IntersectionObserver
+  function setupStickyPatientBar(container) {
+    if (document.getElementById('erg-sticky-bar') || !container) return;
+    const capa   = container.querySelector('.rel-capa');
+    const nomeEl = container.querySelector('.rel-nome');
+    if (!capa || !nomeEl) return;
+
+    const semEl   = container.querySelector('.rel-semaforo span');
+    const semCls  = semEl ? (semEl.parentElement.className || '') : '';
+
+    const bar = document.createElement('div');
+    bar.id        = 'erg-sticky-bar';
+    bar.className = 'erg-sticky-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    bar.innerHTML =
+      '<span class="erg-sticky-bar-nome">' + nomeEl.textContent.trim() + '</span>' +
+      (semEl ? '<span class="erg-sticky-bar-sem ' + semCls + '">' + semEl.textContent.trim() + '</span>' : '');
+
+    const main = document.getElementById('main-content') || document.querySelector('.main-content');
+    if (!main) return;
+    main.insertBefore(bar, main.firstChild);
+
+    const io = new IntersectionObserver((entries) => {
+      bar.classList.toggle('erg-sticky-bar-visible', !entries[0].isIntersecting);
+    }, { threshold: 0, rootMargin: '-40px 0px 0px 0px' });
+    io.observe(capa);
+  }
+
+  // V4-5. Network Information API — classe erg-slow-connection em conexões lentas
+  function detectConnectionQuality() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    const slow = conn.saveData || ['slow-2g', '2g'].includes(conn.effectiveType);
+    if (!slow) return;
+    document.body.classList.add('erg-slow-connection');
+    document.querySelectorAll('.erg-card-anim:not(.erg-card-visible)').forEach((el) => {
+      el.classList.add('erg-card-visible');
+    });
+  }
+
+  // V4-6. PerformanceNavigationTiming — atributos de timing no #rel-mount
+  function enrichTimingData() {
+    if (!window.performance || !performance.getEntriesByType) return;
+    const [nav] = performance.getEntriesByType('navigation');
+    if (!nav) return;
+    const mount = document.getElementById('rel-mount');
+    if (!mount) return;
+    const interactive = Math.round(nav.domInteractive);
+    const total       = Math.round(nav.loadEventEnd - nav.startTime);
+    if (interactive > 0) mount.setAttribute('data-dom-interactive', interactive);
+    if (total > 0)       mount.setAttribute('data-load-total', total);
+  }
+
+  // V4-7. ResizeObserver — ajuste dinâmico de colunas dos grids
+  function setupResizeObserver() {
+    if (!window.ResizeObserver) return;
+    const mount = document.getElementById('rel-mount');
+    if (!mount) return;
+
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      const sugGrid = mount.querySelector('.rel-sug-grid');
+      if (sugGrid) {
+        sugGrid.style.gridTemplateColumns =
+          w < 460 ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))';
+      }
+      const agendaGrid = mount.querySelector('.rel-agenda-grid');
+      if (agendaGrid) {
+        agendaGrid.style.gridTemplateColumns =
+          w < 520 ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))';
+      }
+    });
+
+    ro.observe(mount);
+  }
+
+  // V4-8. Lazy loading em imagens do relatório
+  function lazyImages(container) {
+    rIC(() => {
+      container.querySelectorAll('img:not([loading])').forEach((img) => {
+        img.loading  = 'lazy';
+        img.decoding = 'async';
+      });
+    });
+  }
+
+  // V4-9. SessionStorage — persiste nome do paciente para navegação rápida
+  function setupPatientNameCache() {
+    const KEY    = 'erg_cached_patient_nome';
+    const params = new URLSearchParams(window.location.search);
+    const nome   = params.get('nome');
+
+    if (nome) {
+      try { sessionStorage.setItem(KEY, decodeURIComponent(nome)); } catch (_) {}
+    }
+
+    const sidebar = document.getElementById('rel-nome-sidebar');
+    if (!sidebar) return;
+
+    if (!nome && (!sidebar.textContent.trim() || sidebar.textContent.trim() === '—')) {
+      const cached = sessionStorage.getItem(KEY);
+      if (cached) sidebar.textContent = cached;
+    }
+
+    new MutationObserver(() => {
+      const txt = sidebar.textContent.trim();
+      if (txt && txt !== '—') {
+        try { sessionStorage.setItem(KEY, txt); } catch (_) {}
+      }
+    }).observe(sidebar, { childList: true, characterData: true, subtree: true });
+  }
+
+  // V4-10. content-visibility: auto em seções abaixo da dobra
+  function applyContentVisibility(container) {
+    if (!CSS.supports('content-visibility', 'auto')) return;
+    container.querySelectorAll('.rel-section-wide').forEach((sec, i) => {
+      if (i < 2) return;
+      sec.style.contentVisibility = 'auto';
+      sec.style.setProperty('contain-intrinsic-block-size', '300px');
+    });
+  }
+
+  // Observa o #rel-mount para executar features que dependem do container renderizado
+  function watchMount() {
+    const mount = document.getElementById('rel-mount');
+    if (!mount) return;
+
+    const obs = new MutationObserver(() => {
+      const container = mount.querySelector('.rel-container');
+      if (!container) return;
+      obs.disconnect();
+      setupStickyPatientBar(container);
+      lazyImages(container);
+      applyContentVisibility(container);
+    });
+
+    obs.observe(mount, { childList: true, subtree: false });
+  }
+
+  function initV4() {
+    setupPageVisibility();
+    detectConnectionQuality();
+    setupResizeObserver();
+    setupPatientNameCache();
+    watchMount();
+    rIC(() => {
+      prefetchLikelyPages();
+      enrichTimingData();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV4);
+  } else {
+    initV4();
+  }
+})();
