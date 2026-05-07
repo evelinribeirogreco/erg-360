@@ -1259,3 +1259,243 @@ window._adminDossieExtras = (() => {
 
   document.addEventListener('DOMContentLoaded', initV2);
 })();
+
+// ═══ POLIMENTO V3 ═══
+// Acessibilidade avançada: focus traps · roving tabindex · aria-controls · reduced-motion — 10 melhorias
+(function () {
+  'use strict';
+
+  // ─── V3.1 Focus trap utility ──────────────────────────────────
+  var _FOCUSABLE = [
+    'a[href]:not([disabled])',
+    'button:not([disabled])',
+    'textarea:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+
+  function createFocusTrap(container) {
+    function getFocusable() {
+      return Array.prototype.slice.call(container.querySelectorAll(_FOCUSABLE))
+        .filter(function (el) { return el.offsetParent !== null; });
+    }
+    function handleTab(e) {
+      if (e.key !== 'Tab') return;
+      var els = getFocusable();
+      if (!els.length) { e.preventDefault(); return; }
+      var first = els[0], last = els[els.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first || !container.contains(document.activeElement)) {
+          e.preventDefault(); last.focus();
+        }
+      } else {
+        if (document.activeElement === last || !container.contains(document.activeElement)) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    }
+    return {
+      activate: function () {
+        container.addEventListener('keydown', handleTab);
+        var els = getFocusable();
+        if (els.length) els[0].focus();
+      },
+      deactivate: function () {
+        container.removeEventListener('keydown', handleTab);
+      }
+    };
+  }
+
+  // ─── V3.2 Focus restoration ───────────────────────────────────
+  var _savedFocus = null;
+  function saveFocus() { _savedFocus = document.activeElement; }
+  function restoreFocus() {
+    if (_savedFocus && typeof _savedFocus.focus === 'function') {
+      try { _savedFocus.focus(); } catch (e) { /* ignore */ }
+      _savedFocus = null;
+    }
+  }
+
+  // ─── V3.3 ToC panel: focus trap + restoration ─────────────────
+  function patchTocFocusTrap() {
+    var panel = document.getElementById('ded-toc-panel');
+    if (!panel || panel.dataset.v3Trap) return;
+    panel.dataset.v3Trap = '1';
+    var trap = createFocusTrap(panel);
+    new MutationObserver(function () {
+      if (panel.classList.contains('ded-toc-open')) {
+        saveFocus();
+        trap.activate();
+      } else {
+        trap.deactivate();
+        restoreFocus();
+      }
+    }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // ─── V3.4 Tags modal: focus trap via body MutationObserver ────
+  function patchTagsModalFocusTrap() {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (mut) {
+        mut.addedNodes.forEach(function (node) {
+          if (!node.classList || !node.classList.contains('ded-tags-modal')) return;
+          if (node.dataset.v3Trap) return;
+          node.dataset.v3Trap = '1';
+          saveFocus();
+          var box = node.querySelector('.ded-tags-modal-box') || node;
+          var trap = createFocusTrap(box);
+          trap.activate();
+          var release = function () { trap.deactivate(); restoreFocus(); };
+          var cancel = node.querySelector('#ded-tags-cancel');
+          var save = node.querySelector('#ded-tags-save');
+          if (cancel) cancel.addEventListener('click', release, { once: true });
+          if (save) save.addEventListener('click', release, { once: true });
+          new MutationObserver(function (_, obs) {
+            if (!document.body.contains(node)) { obs.disconnect(); trap.deactivate(); restoreFocus(); }
+          }).observe(document.body, { childList: true });
+        });
+      });
+    }).observe(document.body, { childList: true });
+  }
+
+  // ─── V3.5 Keyboard help overlay: focus trap ───────────────────
+  function patchKbFocusTrap() {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (mut) {
+        mut.addedNodes.forEach(function (node) {
+          if (!node.id || node.id !== 'ded-kb-overlay') return;
+          saveFocus();
+          var trap = createFocusTrap(node);
+          trap.activate();
+          var release = function () { trap.deactivate(); restoreFocus(); };
+          var closeBtn = node.querySelector('#ded-kb-close');
+          if (closeBtn) closeBtn.addEventListener('click', release, { once: true });
+          new MutationObserver(function (_, obs) {
+            if (!document.body.contains(node)) { obs.disconnect(); trap.deactivate(); restoreFocus(); }
+          }).observe(document.body, { childList: true });
+        });
+      });
+    }).observe(document.body, { childList: true });
+  }
+
+  // ─── V3.6 Arrow key navigation in ToC list ────────────────────
+  function wireRovingToc() {
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      var panel = document.getElementById('ded-toc-panel');
+      if (!panel || !panel.classList.contains('ded-toc-open')) return;
+      if (!panel.contains(document.activeElement)) return;
+      var items = Array.prototype.slice.call(panel.querySelectorAll('.ded-toc-item'));
+      if (!items.length) return;
+      var idx = items.indexOf(document.activeElement);
+      e.preventDefault();
+      var next = e.key === 'ArrowDown'
+        ? items[idx === -1 ? 0 : (idx + 1) % items.length]
+        : items[idx === -1 ? items.length - 1 : (idx - 1 + items.length) % items.length];
+      next.focus();
+    });
+  }
+
+  // ─── V3.7 aria-controls: section headers → section bodies ─────
+  function wireAriaControls() {
+    var counter = 0;
+    document.querySelectorAll('.dos-secao:not([data-v3-ctrl])').forEach(function (sec) {
+      sec.dataset.v3Ctrl = '1';
+      var header = sec.querySelector('.dos-sec-header');
+      var body = sec.querySelector('.ded-section-body');
+      if (!header || !body) return;
+      if (!body.id) body.id = 'ded-body-' + (counter++);
+      header.setAttribute('aria-controls', body.id);
+    });
+  }
+
+  // ─── V3.8 Toolbar roving tabindex (Left/Right arrows) ─────────
+  function wireToolbarRovingTabindex() {
+    var toolbar = document.getElementById('ded-toolbar');
+    if (!toolbar || toolbar.dataset.v3Tab) return;
+    toolbar.dataset.v3Tab = '1';
+    var btns = Array.prototype.slice.call(toolbar.querySelectorAll('.ded-toolbar-btn'));
+    btns.forEach(function (btn, i) { btn.tabIndex = i === 0 ? 0 : -1; });
+    toolbar.addEventListener('focusin', function (e) {
+      if (!e.target.classList || !e.target.classList.contains('ded-toolbar-btn')) return;
+      btns.forEach(function (b) { b.tabIndex = -1; });
+      e.target.tabIndex = 0;
+    });
+    toolbar.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      var live = Array.prototype.slice.call(toolbar.querySelectorAll('.ded-toolbar-btn'));
+      var idx = live.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      var next = e.key === 'ArrowRight'
+        ? live[(idx + 1) % live.length]
+        : live[(idx - 1 + live.length) % live.length];
+      live.forEach(function (b) { b.tabIndex = -1; });
+      next.tabIndex = 0;
+      next.focus();
+    });
+  }
+
+  // ─── V3.9 Verbose ARIA for section collapse/expand ────────────
+  function wireVerboseCollapseAria() {
+    document.addEventListener('click', function (e) {
+      var header = e.target.closest && e.target.closest('.ded-section-toggle');
+      if (!header) return;
+      setTimeout(function () {
+        var sec = header.closest('.dos-secao');
+        if (!sec) return;
+        var titulo = (sec.querySelector('.dos-sec-titulo') || {}).textContent || 'Seção';
+        var collapsed = sec.classList.contains('ded-section-collapsed');
+        var live = document.getElementById('ded-aria-live');
+        if (!live) return;
+        live.textContent = '';
+        requestAnimationFrame(function () {
+          live.textContent = titulo.trim() + (collapsed ? ' — recolhida' : ' — expandida');
+        });
+      }, 60);
+    });
+  }
+
+  // ─── V3.10 Reduced motion detection ──────────────────────────
+  function initReducedMotion() {
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    function apply(on) { document.body.classList.toggle('ded-reduced-motion', !!on); }
+    apply(mq.matches);
+    if (mq.addEventListener) mq.addEventListener('change', function (ev) { apply(ev.matches); });
+    else if (mq.addListener) mq.addListener(function (ev) { apply(ev.matches); });
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────
+  function onDossierReadyV3() {
+    setTimeout(function () {
+      wireAriaControls();
+      wireToolbarRovingTabindex();
+    }, 250);
+  }
+
+  function initV3() {
+    initReducedMotion();
+    patchTocFocusTrap();
+    patchTagsModalFocusTrap();
+    patchKbFocusTrap();
+    wireRovingToc();
+    wireVerboseCollapseAria();
+
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      onDossierReadyV3();
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      onDossierReadyV3();
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', initV3);
+})();

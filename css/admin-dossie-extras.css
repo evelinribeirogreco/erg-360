@@ -1002,3 +1002,151 @@ body.ded-presentation .ded-presentation-exit {
 .ded-section-toggle:hover {
   color: var(--accent, #2D6A56);
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+/* Focus traps · roving tabindex · reduced-motion · high contrast — 10 melhorias */
+
+/* V3.10 Reduced motion — media query override */
+@media (prefers-reduced-motion: reduce) {
+  .ded-reveal-ready {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .ded-ripple {
+    display: none !important;
+  }
+  .ded-section-body,
+  .ded-chevron,
+  .ded-toc-panel,
+  .ded-search-bar,
+  .ded-back-top,
+  .ded-toast,
+  .ded-notif {
+    transition: none !important;
+  }
+  .ded-tag.ded-tag-enter,
+  .ded-note-area.ded-note-slide-in,
+  .ded-insights-panel.ded-insights-enter {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .ded-toolbar-btn:active {
+    transform: none !important;
+  }
+}
+
+/* V3.10 JS-applied class (detects dynamic preference changes) */
+body.ded-reduced-motion .ded-reveal-ready {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+body.ded-reduced-motion .ded-ripple {
+  display: none !important;
+}
+body.ded-reduced-motion .ded-section-body,
+body.ded-reduced-motion .ded-chevron,
+body.ded-reduced-motion .ded-toc-panel,
+body.ded-reduced-motion .ded-search-bar,
+body.ded-reduced-motion .ded-back-top,
+body.ded-reduced-motion .ded-toast,
+body.ded-reduced-motion .ded-notif {
+  transition: none !important;
+}
+body.ded-reduced-motion .ded-tag.ded-tag-enter,
+body.ded-reduced-motion .ded-note-area.ded-note-slide-in,
+body.ded-reduced-motion .ded-insights-panel.ded-insights-enter {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+body.ded-reduced-motion .ded-toolbar-btn:active {
+  transform: none !important;
+}
+
+/* V3.5 High contrast mode */
+@media (prefers-contrast: more) {
+  .ded-toolbar-btn {
+    border-color: ButtonText;
+    color: ButtonText;
+  }
+  .ded-toolbar-btn:hover {
+    background: ButtonText;
+    color: ButtonFace;
+  }
+  .ded-toc-item:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+  mark.ded-highlight {
+    background: Mark;
+    color: MarkText;
+    outline: 2px solid currentColor;
+  }
+  mark.ded-highlight-active {
+    background: Highlight;
+    color: HighlightText;
+  }
+  .ded-back-top {
+    border: 2px solid ButtonFace;
+  }
+  .ded-skip-link {
+    border: 2px solid ButtonFace;
+  }
+  .ded-insights-panel {
+    border-color: currentColor;
+  }
+  .ded-tag {
+    border: 1px solid currentColor;
+  }
+}
+
+/* V3.6–V3.7 Focus-visible on all extras interactive elements */
+.ded-toc-item:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: -2px;
+  background: rgba(76, 184, 160, 0.1);
+}
+.ded-section-toggle:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.ded-note-textarea:focus {
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.35);
+  border-radius: 2px;
+}
+.ded-tags-option:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.ded-btn-sm:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+.ded-toc-close:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.ded-search-nav-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.ded-note-btn:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.7);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.ded-tags-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.ded-back-top:focus-visible {
+  outline: 3px solid var(--detail, #4CB8A0);
+  outline-offset: 3px;
+}
