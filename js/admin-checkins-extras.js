@@ -1165,3 +1165,225 @@ function v3TableCaption() {
     if (grid.children.length) setTimeout(inject, 300);
   }).observe(grid, { childList: true });
 }
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance
+// V4: ric() polyfill, prefetch de rotas, IntersectionObserver (fade-in seções),
+//     ResizeObserver heatmap, memoização análises, flash de cards,
+//     histograma de energia, performance.mark, Page Visibility pause,
+//     idle watcher que orquestra tudo
+
+window._adminCheckinsExtras.version = 4;
+
+// ── V4-1. ric() — requestIdleCallback com fallback para setTimeout ─────────
+function ric(cb, opts) {
+  if (typeof requestIdleCallback === 'function') {
+    return requestIdleCallback(cb, opts);
+  }
+  const start = Date.now();
+  return setTimeout(() => cb({
+    didTimeout: false,
+    timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
+  }), 1);
+}
+window._ric = ric;
+
+// ── V4-2. Prefetch de rotas ao passar o mouse em links de navegação ────────
+(function v4Prefetch() {
+  const _seen = new Set();
+  document.addEventListener('mouseenter', e => {
+    const a = e.target.closest('a[href]');
+    const href = a?.getAttribute('href');
+    if (!href || _seen.has(href) || !/\.html($|\?|#)/.test(href)) return;
+    _seen.add(href);
+    ric(() => {
+      if (document.head.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+      const link = Object.assign(document.createElement('link'), { rel: 'prefetch', href });
+      document.head.appendChild(link);
+    }, { timeout: 2000 });
+  }, true);
+})();
+
+// ── V4-3. IntersectionObserver: fade-in de seções abaixo do fold ──────────
+(function v4SectionFadeIn() {
+  if (!('IntersectionObserver' in window)) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.remove('aci-section-pre');
+      entry.target.classList.add('aci-section-visible');
+      io.unobserve(entry.target);
+    });
+  }, { threshold: 0.05 });
+
+  const attach = () => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.section').forEach(s => {
+        if (s.classList.contains('aci-section-visible') ||
+            s.classList.contains('aci-section-pre')) return;
+        const rect = s.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) return;
+        if (rect.top >= window.innerHeight * 0.85) {
+          s.classList.add('aci-section-pre');
+        }
+        io.observe(s);
+      });
+    });
+  };
+
+  const resumoGrid = document.getElementById('resumo-grid');
+  if (resumoGrid) {
+    let _attachTimer = null;
+    new MutationObserver(() => {
+      if (!resumoGrid.children.length) return;
+      clearTimeout(_attachTimer);
+      _attachTimer = setTimeout(attach, 120);
+    }).observe(resumoGrid, { childList: true });
+  }
+})();
+
+// ── V4-4. ResizeObserver: células do heatmap responsivas ──────────────────
+(function v4ResizeHeatmap() {
+  if (!('ResizeObserver' in window)) return;
+  const ro = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const hGrid = entry.target.querySelector('.aci-heatmap-grid');
+      if (!hGrid) continue;
+      const w    = entry.contentRect.width;
+      const size = w < 300 ? '9px' : w < 440 ? '12px' : '16px';
+      hGrid.querySelectorAll('.aci-hm-cell').forEach(c => {
+        c.style.width  = size;
+        c.style.height = size;
+      });
+    }
+  });
+  const attach = () => {
+    document.querySelectorAll('.section').forEach(s => {
+      if (s.querySelector('.aci-heatmap-grid') && !s._v4roWatched) {
+        s._v4roWatched = true;
+        ro.observe(s);
+      }
+    });
+  };
+  setTimeout(attach, 900);
+  new MutationObserver(attach).observe(document.body, { childList: true, subtree: true });
+})();
+
+// ── V4-5. Memoização de análises por chave de período + dados ─────────────
+const _v4Memo = new Map();
+
+function v4MemoKey() {
+  const active = document.querySelector('[id^="per-"].active');
+  const period = active ? active.id.replace('per-', '') : '?';
+  const rows   = document.querySelectorAll('#tabela-checkins tbody tr');
+  const first  = rows[0]?.querySelectorAll('td')[0]?.textContent.trim() || '';
+  return `${period}:${rows.length}:${first}`;
+}
+
+// ── V4-6. Flash nos cards de resumo ao atualizar dados ────────────────────
+function v4FlashCards() {
+  document.querySelectorAll('#resumo-grid .info-card').forEach((card, i) => {
+    card.classList.remove('aci-card-flash');
+    setTimeout(() => card.classList.add('aci-card-flash'), i * 45);
+    setTimeout(() => card.classList.remove('aci-card-flash'), i * 45 + 620);
+  });
+}
+
+// ── V4-7. Histograma de distribuição de energia (feature nova) ─────────────
+function v4EnergyHistogram() {
+  if (document.querySelector('.aci-energy-histogram')) return;
+  const rows = Array.from(document.querySelectorAll('#tabela-checkins tbody tr'));
+  const energies = rows
+    .map(r => parseFloat(r.querySelectorAll('td')[3]?.textContent.trim()))
+    .filter(v => !isNaN(v) && v >= 1 && v <= 5);
+  if (energies.length < 5) return;
+
+  const buckets = [0, 0, 0, 0, 0];
+  energies.forEach(v => {
+    const i = Math.min(Math.round(v) - 1, 4);
+    if (i >= 0) buckets[i]++;
+  });
+  const maxB = Math.max(...buckets, 1);
+  const avg  = (energies.reduce((a, b) => a + b, 0) / energies.length).toFixed(1);
+  const COLORS = ['#e05252', '#e08852', '#C9A84C', '#4CB8A0', '#2D6A56'];
+  const LABELS = ['1', '2', '3', '4', '5'];
+
+  const div = document.createElement('div');
+  div.className = 'aci-energy-histogram';
+  div.setAttribute('role', 'img');
+  div.setAttribute('aria-label',
+    `Distribuição de energia: ${energies.length} registros, média ${avg}`);
+  div.innerHTML = `
+    <p class="aci-hist-title">Distribuição de Energia</p>
+    <div class="aci-hist-bars" aria-hidden="true">
+      ${buckets.map((count, i) => `
+        <div class="aci-hist-col">
+          <span class="aci-hist-count">${count || ''}</span>
+          <div class="aci-hist-bar"
+               style="background:${COLORS[i]}"
+               data-pct="${(count / maxB * 100).toFixed(1)}"></div>
+          <span class="aci-hist-label">${LABELS[i]}</span>
+        </div>`).join('')}
+    </div>
+    <p class="aci-hist-caption">${energies.length} registros · média <strong>${avg}</strong>/5</p>
+  `;
+
+  const grid = document.getElementById('resumo-grid');
+  if (!grid) return;
+  grid.after(div);
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    div.querySelectorAll('.aci-hist-bar').forEach(bar => {
+      bar.style.height = bar.dataset.pct + '%';
+    });
+  }));
+}
+
+// ── V4-8. performance.mark para métricas de render em DevTools ────────────
+function v4Mark(name) {
+  try { performance.mark(`aci:${name}`); } catch (_) {}
+}
+function v4Measure(label, start, end) {
+  try { performance.measure(`aci:${label}`, `aci:${start}`, `aci:${end}`); } catch (_) {}
+}
+
+// ── V4-9. Page Visibility: pausa timers de análise quando tab fica oculta ─
+(function v4PageVisibility() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden') return;
+    clearTimeout(window._aciTimer);
+    clearTimeout(window._v4IdleTimer);
+  });
+})();
+
+// ── V4-10. Idle watcher: orquestra features V4 após análise V1/V2/V3 ──────
+(function v4IdleWatch() {
+  const attach = grid => {
+    new MutationObserver(() => {
+      if (!grid.children.length) return;
+      const key = v4MemoKey();
+      if (_v4Memo.has(key)) return;
+      clearTimeout(window._v4IdleTimer);
+      window._v4IdleTimer = setTimeout(() => {
+        ric(deadline => {
+          if (_v4Memo.has(key)) return;
+          _v4Memo.set(key, true);
+          v4Mark('idle-start');
+          if (deadline.timeRemaining() > 5 || deadline.didTimeout) v4FlashCards();
+          if (deadline.timeRemaining() > 8 || deadline.didTimeout) v4EnergyHistogram();
+          v4Mark('idle-end');
+          v4Measure('idle-analysis', 'idle-start', 'idle-end');
+        }, { timeout: 2500 });
+      }, 450);
+    }).observe(grid, { childList: true });
+  };
+
+  const grid = document.getElementById('resumo-grid');
+  if (grid) { attach(grid); return; }
+  document.addEventListener('DOMContentLoaded', () => {
+    const g = document.getElementById('resumo-grid');
+    if (g) attach(g);
+  });
+})();
