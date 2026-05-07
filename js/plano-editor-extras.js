@@ -388,6 +388,211 @@
 
 })();
 
+// ═══ POLIMENTO V4 ═══
+
+(function () {
+  'use strict';
+
+  window._planoEditorExtras.version = 4;
+
+  // ── V4.1: LRU cache para sb() — evita re-fetch da mesma query ─
+  const _sbCache = new Map();
+  const _CACHE_TTL = 3 * 60 * 1000;
+
+  function initSbCache() {
+    const origSb = window.sb;
+    if (!origSb) return;
+    window.sb = async function (path, params) {
+      params = params !== undefined ? params : '';
+      const key = path + params;
+      const hit = _sbCache.get(key);
+      if (hit && Date.now() - hit.ts < _CACHE_TTL) return hit.data;
+      const data = await origSb.call(this, path, params);
+      if (Array.isArray(data)) {
+        _sbCache.set(key, { data, ts: Date.now() });
+        if (_sbCache.size > 60) _sbCache.delete(_sbCache.keys().next().value);
+      }
+      return data;
+    };
+    window._planoEditorExtras.clearSbCache = () => _sbCache.clear();
+  }
+
+  // ── V4.2: IntersectionObserver stagger reveal nos modelos ─────
+  function initModeloReveal() {
+    if (!('IntersectionObserver' in window)) return;
+    const list = document.getElementById('modelos-list');
+    if (!list) return;
+
+    function revealModelos() {
+      list.querySelectorAll('.modelo-item:not([data-v4r])').forEach((item, i) => {
+        item.dataset.v4r = '1';
+        item.classList.add('pe-modelo-hidden');
+        const obs = new IntersectionObserver(entries => {
+          if (!entries[0].isIntersecting) return;
+          setTimeout(() => {
+            item.classList.remove('pe-modelo-hidden');
+            item.classList.add('pe-modelo-visible');
+          }, i * 45);
+          obs.disconnect();
+        }, { threshold: 0.05 });
+        obs.observe(item);
+      });
+    }
+
+    revealModelos();
+    new MutationObserver(revealModelos).observe(list, { childList: true });
+  }
+
+  // ── V4.3: requestIdleCallback para draft silencioso ───────────
+  function initIdleDraftSave() {
+    if (!('requestIdleCallback' in window)) return;
+    const DRAFT_KEY = 'plano_editor_draft';
+    const g = id => (document.getElementById(id) || {}).value;
+
+    function idleSave(deadline) {
+      if (deadline.timeRemaining() > 8 || deadline.didTimeout) {
+        try {
+          const existing = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+          if (!existing.ts || Date.now() - existing.ts >= 25000) {
+            if (window.planoItens) {
+              localStorage.setItem(DRAFT_KEY, JSON.stringify({
+                itens: window.planoItens,
+                titulo: g('plano-titulo'), data: g('plano-data'), validade: g('plano-validade'),
+                metaKcal: g('meta-kcal'), metaPtn: g('meta-ptn'),
+                metaCho: g('meta-cho'), metaLip: g('meta-lip'),
+                ts: Date.now()
+              }));
+            }
+          }
+        } catch (e) {}
+      }
+      requestIdleCallback(idleSave, { timeout: 40000 });
+    }
+
+    requestIdleCallback(idleSave, { timeout: 40000 });
+  }
+
+  // ── V4.4: Prefetch de links de navegação ──────────────────────
+  function initPrefetch() {
+    const enqueue = href => {
+      if (document.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+      const l = document.createElement('link');
+      l.rel = 'prefetch'; l.href = href; l.as = 'document';
+      document.head.appendChild(l);
+    };
+    const patient = new URLSearchParams(location.search).get('patient');
+    const idle = cb => 'requestIdleCallback' in window
+      ? requestIdleCallback(cb, { timeout: 3000 })
+      : setTimeout(cb, 2000);
+    idle(() => {
+      enqueue(patient ? `admin.html?patient=${encodeURIComponent(patient)}` : 'admin.html');
+      if (patient) enqueue(`plano-paciente.html?patient=${encodeURIComponent(patient)}`);
+    });
+  }
+
+  // ── V4.5: Page Visibility API — flush draft ao mudar aba ──────
+  function initVisibilityDraft() {
+    const DRAFT_KEY = 'plano_editor_draft';
+    const g = id => (document.getElementById(id) || {}).value;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'hidden' || !window.planoItens) return;
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          itens: window.planoItens,
+          titulo: g('plano-titulo'), data: g('plano-data'), validade: g('plano-validade'),
+          metaKcal: g('meta-kcal'), metaPtn: g('meta-ptn'),
+          metaCho: g('meta-cho'), metaLip: g('meta-lip'),
+          ts: Date.now()
+        }));
+      } catch (e) {}
+    });
+  }
+
+  // ── V4.6: pagehide — draft flush para bfcache ─────────────────
+  function initPagehideDraft() {
+    const DRAFT_KEY = 'plano_editor_draft';
+    const g = id => (document.getElementById(id) || {}).value;
+    window.addEventListener('pagehide', () => {
+      if (!window.planoItens) return;
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          itens: window.planoItens,
+          titulo: g('plano-titulo'), data: g('plano-data'), validade: g('plano-validade'),
+          metaKcal: g('meta-kcal'), metaPtn: g('meta-ptn'),
+          metaCho: g('meta-cho'), metaLip: g('meta-lip'),
+          ts: Date.now()
+        }));
+      } catch (e) {}
+    });
+  }
+
+  // ── V4.7: input nas metas atualiza barras em tempo real ───────
+  function initMetaLiveUpdate() {
+    let t = null;
+    ['meta-kcal', 'meta-ptn', 'meta-cho', 'meta-lip'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => { if (window.atualizarTotais) window.atualizarTotais(); }, 300);
+      });
+    });
+  }
+
+  // ── V4.8: ResizeObserver — modo compact abaixo de 620px ───────
+  function initCompactMode() {
+    if (!('ResizeObserver' in window)) return;
+    const layout = document.querySelector('.editor-layout');
+    const right = document.querySelector('.panel-right');
+    if (!layout || !right) return;
+    new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width;
+      right.classList.toggle('pe-panel-compact', w < 620);
+    }).observe(layout);
+  }
+
+  // ── V4.9: passive listeners nos painéis e touch ───────────────
+  function initPassiveListeners() {
+    ['panel-left', 'panel-center', 'panel-right'].forEach(cls => {
+      const el = document.querySelector('.' + cls);
+      if (el) el.addEventListener('scroll', () => {}, { passive: true });
+    });
+    document.addEventListener('touchstart', () => {}, { passive: true });
+    document.addEventListener('touchmove', () => {}, { passive: true });
+  }
+
+  // ── V4.10: invalida cache ao salvar (dados frescos após save) ─
+  function initSaveCacheBust() {
+    const origSalvar = window.salvarPlano;
+    if (!origSalvar) return;
+    window.salvarPlano = async function () {
+      _sbCache.clear();
+      return origSalvar.call(this);
+    };
+  }
+
+  // ── INIT V4 ───────────────────────────────────────────────────
+  function initV4() {
+    initSbCache();
+    initModeloReveal();
+    initIdleDraftSave();
+    initPrefetch();
+    initVisibilityDraft();
+    initPagehideDraft();
+    initMetaLiveUpdate();
+    initCompactMode();
+    initPassiveListeners();
+    initSaveCacheBust();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV4);
+  } else {
+    initV4();
+  }
+
+})();
+
 // ═══ POLIMENTO V3 ═══
 
 (function () {

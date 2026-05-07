@@ -236,6 +236,50 @@
   .pe-print-btn { display: none; }
 }
 
+/* ═══ POLIMENTO V4 ═══ */
+
+/* ── MODELO REVEAL STAGGER ──────────────────────────────────── */
+.pe-modelo-hidden {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.pe-modelo-visible {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+
+/* ── PANEL-RIGHT COMPACT MODE (< 620px layout) ───────────────── */
+.panel-right.pe-panel-compact .macro-card-val {
+  font-size: 1.2rem;
+}
+.panel-right.pe-panel-compact .totais-title {
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+.panel-right.pe-panel-compact .meta-section {
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+/* ── CSS CONTAINMENT NOS MODELOS ─────────────────────────────── */
+#modelos-list {
+  contain: layout;
+}
+#modelos-list .modelo-item {
+  contain: layout style;
+}
+
+/* ── PREFERS-REDUCED-MOTION: cancela reveal stagger ──────────── */
+@media (prefers-reduced-motion: reduce) {
+  .pe-modelo-hidden,
+  .pe-modelo-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 /* ═══ POLIMENTO V3 ═══ */
 
 /* ── SR-ONLY (screen readers) ─────────────────────────────── */
