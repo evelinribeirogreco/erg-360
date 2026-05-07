@@ -2322,3 +2322,323 @@ if (window._adminExtras) {
     _v6CheckMilestones,
   });
 }
+
+// ═══ POLIMENTO V7 ═══
+// 10 melhorias de telemetria local: rastreamento de uso de features,
+// tempo de sessão com idle detection + Page Visibility, histograma
+// de horários de pico, pacientes mais acessados, profundidade de
+// scroll via IntersectionObserver, card colapsável de estatísticas,
+// item no command palette, nudge de features pouco usadas,
+// filter-use tracker, e reset de dados locais.
+
+// ── V7 Storage keys ──────────────────────────────────────────────
+const _V7_FEATURES_KEY = 'erg_v7_feature_usage';
+const _V7_SESSION_KEY  = 'erg_v7_session_log';
+const _V7_HOURS_KEY    = 'erg_v7_peak_hours';
+const _V7_PATIENTS_KEY = 'erg_v7_patient_views';
+const _V7_SCROLL_KEY   = 'erg_v7_scroll_depth';
+
+// ── V7.1 Feature usage counter ───────────────────────────────────
+function _v7TrackFeature(name) {
+  const data = getJSON(_V7_FEATURES_KEY, {});
+  data[name] = (data[name] || 0) + 1;
+  setJSON(_V7_FEATURES_KEY, data);
+}
+function _v7GetFeatureUsage() { return getJSON(_V7_FEATURES_KEY, {}); }
+
+// ── V7.2 Feature name map (human-readable) ───────────────────────
+function _v7FeatureName(key) {
+  const MAP = {
+    command_palette:     'Command Palette',
+    export_csv:          'Exportar CSV',
+    agenda_click:        'Agenda',
+    fav_toggle:          'Favoritos',
+    copy_field:          'Copiar campo',
+    filter_use:          'Filtros',
+    sound_toggle:        'Sons',
+    telemetry_card_open: 'Card Telemetria',
+  };
+  return MAP[key] || key.replace(/_/g, ' ');
+}
+
+// ── V7.3 Patch rastreadores nas interações existentes ─────────────
+function _v7PatchFeatureTrackers() {
+  if (window._v7Patched) return;
+  window._v7Patched = true;
+
+  document.querySelectorAll('.admin-cmd-trigger,[data-cmd-trigger]').forEach(el => {
+    if (el.dataset.v7t) return;
+    el.dataset.v7t = '1';
+    el.addEventListener('click', () => _v7TrackFeature('command_palette'), { passive: true });
+  });
+
+  document.querySelectorAll(
+    '[data-action="export-csv"],[id*="csv"],[onclick*="exportCSV" i],.export-csv-btn,#btn-export-csv'
+  ).forEach(el => {
+    if (el.dataset.v7t) return;
+    el.dataset.v7t = '1';
+    el.addEventListener('click', () => _v7TrackFeature('export_csv'), { passive: true });
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('.agenda-day'))                    _v7TrackFeature('agenda_click');
+    if (e.target.closest('.row-fav'))                       _v7TrackFeature('fav_toggle');
+    if (e.target.closest('[data-copy]'))                    _v7TrackFeature('copy_field');
+    if (e.target.closest('.filter-btn,.filter-tag,[data-filter],[data-fase]')) _v7TrackFeature('filter_use');
+    if (e.target.closest('#v6-sound-btn'))                  _v7TrackFeature('sound_toggle');
+  }, { passive: true, capture: true });
+}
+
+// ── V7.4 Session time tracker com idle detection ─────────────────
+let _v7SessionStart  = Date.now();
+let _v7IdleTimer     = null;
+let _v7IsIdle        = false;
+let _v7ActiveMs      = 0;
+const _V7_IDLE_MS    = 180_000; // 3 min sem interação = idle
+
+function _v7ResetIdle() {
+  if (_v7IsIdle) { _v7IsIdle = false; _v7SessionStart = Date.now(); }
+  clearTimeout(_v7IdleTimer);
+  _v7IdleTimer = setTimeout(() => { _v7IsIdle = true; }, _V7_IDLE_MS);
+}
+
+function _v7FlushSessionTime() {
+  if (_v7IsIdle) return;
+  _v7ActiveMs += Date.now() - _v7SessionStart;
+  _v7SessionStart = Date.now();
+}
+
+function _v7SaveSession() {
+  _v7FlushSessionTime();
+  if (_v7ActiveMs < 5000) return;
+  const log  = getJSON(_V7_SESSION_KEY, []);
+  const hoje = new Date().toISOString().split('T')[0];
+  if (log[0]?.date === hoje) log[0].duration += _v7ActiveMs;
+  else log.unshift({ date: hoje, duration: _v7ActiveMs });
+  setJSON(_V7_SESSION_KEY, log.slice(0, 30));
+  _v7ActiveMs = 0;
+}
+
+function _v7InitSessionTracker() {
+  ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, _v7ResetIdle, { passive: true, capture: true })
+  );
+  _v7ResetIdle();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { _v7FlushSessionTime(); _v7IsIdle = true; }
+    else { _v7IsIdle = false; _v7SessionStart = Date.now(); }
+  });
+  window.addEventListener('beforeunload', _v7SaveSession, { once: true });
+  setInterval(_v7SaveSession, 120_000);
+}
+
+// ── V7.5 Histograma de horários de pico ──────────────────────────
+function _v7RecordAccessHour() {
+  const hour = new Date().getHours();
+  const hist = getJSON(_V7_HOURS_KEY, {});
+  hist[hour] = (hist[hour] || 0) + 1;
+  setJSON(_V7_HOURS_KEY, hist);
+}
+
+// ── V7.6 Pacientes mais acessados ────────────────────────────────
+function _v7TrackPatientView(patientId) {
+  if (!patientId) return;
+  const views = getJSON(_V7_PATIENTS_KEY, {});
+  views[patientId] = (views[patientId] || 0) + 1;
+  setJSON(_V7_PATIENTS_KEY, views);
+}
+
+function _v7PatchPatientRowTracking() {
+  if (window._v7RowPatched) return;
+  window._v7RowPatched = true;
+  document.addEventListener('click', e => {
+    const row  = e.target.closest('tr[data-id],.patient-row[data-id]');
+    const chip = e.target.closest('.recent-chip[data-id]');
+    const id   = row?.dataset?.id || chip?.dataset?.id;
+    if (id) _v7TrackPatientView(id);
+  }, { passive: true, capture: true });
+}
+
+// ── V7.7 Scroll depth via IntersectionObserver ───────────────────
+function _v7InitScrollDepthTracker() {
+  if (window._v7ScrollObs) return;
+  const rows = document.querySelectorAll('#patients-table tbody tr,.patient-card');
+  if (!rows.length) return;
+  let maxIdx = getJSON(_V7_SCROLL_KEY, 0);
+  const obs  = new IntersectionObserver(entries => {
+    let changed = false;
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const idx = [...rows].indexOf(e.target);
+      if (idx > maxIdx) { maxIdx = idx; changed = true; }
+    }
+    if (changed) setJSON(_V7_SCROLL_KEY, maxIdx);
+  }, { threshold: 0.1 });
+  rows.forEach(r => obs.observe(r));
+  window._v7ScrollObs = obs;
+}
+
+// ── V7.8 Card colapsável de estatísticas de telemetria ───────────
+function _v7BuildTelemetryCard() {
+  if (document.getElementById('v7-telemetry-card')) return;
+
+  const features  = _v7GetFeatureUsage();
+  const sessions  = getJSON(_V7_SESSION_KEY, []);
+  const hours     = getJSON(_V7_HOURS_KEY, {});
+  const patViews  = getJSON(_V7_PATIENTS_KEY, {});
+
+  const topFeat  = Object.entries(features).sort((a, b) => b[1] - a[1])[0];
+  const featLabel = topFeat ? `${_v7FeatureName(topFeat[0])} (${topFeat[1]}×)` : '—';
+
+  const hoje  = new Date();
+  const last7 = sessions
+    .filter(s => (hoje - new Date(s.date)) < 7 * 86_400_000)
+    .reduce((sum, s) => sum + s.duration, 0);
+  const minutos = Math.round(last7 / 60_000);
+
+  const peakHour  = Object.entries(hours).sort((a, b) => b[1] - a[1])[0];
+  const peakLabel = peakHour ? `${String(peakHour[0]).padStart(2, '0')}h` : '—';
+
+  const topPat   = Object.entries(patViews).sort((a, b) => b[1] - a[1])[0];
+  const patients = getPatients();
+  const topPName = topPat
+    ? (patients.find(p => p.id === topPat[0])?.nome?.split(' ')[0] || '—')
+    : '—';
+
+  const card = document.createElement('div');
+  card.id        = 'v7-telemetry-card';
+  card.className = 'v7-telemetry-card';
+  card.setAttribute('role', 'region');
+  card.setAttribute('aria-label', 'Telemetria local de uso');
+  card.innerHTML = `
+    <button type="button" class="v7-tele-toggle" id="v7-tele-toggle"
+      aria-expanded="false" aria-controls="v7-tele-body">
+      <span class="v7-tele-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Telemetria de Uso
+      </span>
+      <svg class="v7-tele-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="v7-tele-body" id="v7-tele-body" hidden>
+      <dl class="v7-tele-dl">
+        <div class="v7-tele-row"><dt>Tempo ativo (7d)</dt><dd>${minutos} min</dd></div>
+        <div class="v7-tele-row"><dt>Feature preferida</dt><dd title="${escapeHTML(featLabel)}">${escapeHTML(featLabel.length > 22 ? featLabel.slice(0, 20) + '…' : featLabel)}</dd></div>
+        <div class="v7-tele-row"><dt>Horário de pico</dt><dd>${escapeHTML(peakLabel)}</dd></div>
+        <div class="v7-tele-row"><dt>Paciente + vista</dt><dd>${escapeHTML(topPName)}</dd></div>
+      </dl>
+      <button type="button" class="v7-tele-reset" id="v7-tele-reset"
+        aria-label="Limpar todos os dados de telemetria local">Limpar dados</button>
+    </div>`;
+
+  card.querySelector('#v7-tele-toggle').addEventListener('click', () => {
+    const body   = card.querySelector('#v7-tele-body');
+    const btn    = card.querySelector('#v7-tele-toggle');
+    const isOpen = !body.hidden;
+    body.hidden  = isOpen;
+    btn.setAttribute('aria-expanded', String(!isOpen));
+    card.classList.toggle('v7-tele-open', !isOpen);
+    if (!isOpen) _v7TrackFeature('telemetry_card_open');
+  });
+
+  card.querySelector('#v7-tele-reset').addEventListener('click', () => {
+    [_V7_FEATURES_KEY, _V7_SESSION_KEY, _V7_HOURS_KEY, _V7_PATIENTS_KEY, _V7_SCROLL_KEY]
+      .forEach(k => localStorage.removeItem(k));
+    card.remove();
+    window._adminExtras?.showToast?.('Dados de telemetria apagados.', 'info');
+  });
+
+  const heroRow = document.querySelector('.admin-hero-row,.hero-row');
+  if (heroRow?.parentElement) heroRow.insertAdjacentElement('afterend', card);
+  else document.body.insertAdjacentElement('afterbegin', card);
+}
+
+// ── V7.9 Item "Ver telemetria" no command palette ─────────────────
+function _v7InjectCmdPaletteItem() {
+  if (window._v7CmdInjected) return;
+  window._v7CmdInjected = true;
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.admin-cmd-trigger,[data-cmd-trigger]')) return;
+    requestAnimationFrame(() => {
+      const list = document.querySelector('#cmd-list,.cmd-list');
+      if (!list || list.querySelector('[data-v7tele]')) return;
+      const item = document.createElement('div');
+      item.className = 'cmd-item';
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('role', 'option');
+      item.dataset.v7tele = '1';
+      item.innerHTML = `
+        <div class="cmd-item-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="cmd-item-text"><span class="cmd-item-title">Ver telemetria de uso</span></div>`;
+      item.addEventListener('click', () => {
+        document.getElementById('cmd-overlay')?.dispatchEvent(new MouseEvent('click'));
+        setTimeout(() => {
+          const card   = document.getElementById('v7-telemetry-card');
+          const toggle = card?.querySelector('#v7-tele-toggle');
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (card.querySelector('#v7-tele-body')?.hidden !== false) toggle?.click();
+          } else {
+            _v7BuildTelemetryCard();
+          }
+        }, 200);
+      });
+      item.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+      });
+      list.appendChild(item);
+    });
+  }, { passive: true });
+}
+
+// ── V7.10 Nudge de features pouco usadas ─────────────────────────
+function _v7FeatureNudge() {
+  if (window._v7NudgeDone) return;
+  window._v7NudgeDone = true;
+  const sessions = getJSON(_V7_SESSION_KEY, []);
+  if (sessions.length < 3) return; // só após 3+ dias de uso
+  const features = _v7GetFeatureUsage();
+  const CANDIDATES = [
+    { key: 'command_palette', msg: 'Dica: use Ctrl+K para busca rápida de pacientes.', icon: '⌨️' },
+    { key: 'fav_toggle',      msg: 'Marque pacientes como favoritos para acesso instantâneo.', icon: '⭐' },
+    { key: 'export_csv',      msg: 'Exporte sua lista de pacientes em CSV a qualquer momento.', icon: '📥' },
+  ];
+  const unused = CANDIDATES.filter(c => !features[c.key]);
+  if (!unused.length) return;
+  const pick = unused[Math.floor(Math.random() * unused.length)];
+  setTimeout(() => {
+    window._adminExtras?.showToast?.(`${pick.icon} ${pick.msg}`, 'info');
+  }, 9000);
+}
+
+// ── V7 DOMContentLoaded ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v7RecordAccessHour();
+  _v7InitSessionTracker();
+  _v7PatchFeatureTrackers();
+  _v7PatchPatientRowTracking();
+  requestAnimationFrame(_v7InjectCmdPaletteItem);
+
+  let _v7WaitAttempts = 0;
+  const _v7WaitPatients = () => {
+    if (window._allPatients?.length) {
+      _v7InitScrollDepthTracker();
+      _v7BuildTelemetryCard();
+      _v7FeatureNudge();
+      return;
+    }
+    if (++_v7WaitAttempts < 20) setTimeout(_v7WaitPatients, 600);
+  };
+  setTimeout(_v7WaitPatients, 1200);
+});
+
+// Expõe para hooks externos
+if (window._adminExtras) {
+  Object.assign(window._adminExtras, {
+    _v7TrackFeature,
+    _v7TrackPatientView,
+    _v7BuildTelemetryCard,
+    _v7GetFeatureUsage,
+  });
+}

@@ -1630,3 +1630,164 @@ html[data-theme="dark"] .v6-progress-ring-wrapper {
 html[data-theme="dark"] .v6-milestone-toast {
   background: linear-gradient(135deg, #1E4A38, #3A9078) !important;
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+/* 10 melhorias de telemetria local: card colapsável de estatísticas,
+   session tracker, histograma de horas, paciente top, scroll depth,
+   command palette item, nudge de features, dark mode, reduced-motion,
+   e mobile responsivo */
+
+/* ── V7.1 Telemetry card container ─────────────────────────────── */
+.v7-telemetry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 12px 0 4px;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.v7-telemetry-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+/* ── V7.2 Toggle header ─────────────────────────────────────────── */
+.v7-tele-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: var(--text-light);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.v7-tele-toggle:hover {
+  color: var(--accent, #4CB8A0);
+}
+.v7-tele-toggle:focus-visible {
+  outline: 2px solid var(--accent, #4CB8A0);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+.v7-tele-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── V7.3 Chevron animation ─────────────────────────────────────── */
+.v7-tele-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.v7-tele-open .v7-tele-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── V7.4 Body (colapsado por padrão) ──────────────────────────── */
+.v7-tele-body {
+  padding: 4px 16px 14px;
+  border-top: 1px solid var(--border);
+  animation: v7TeleSlide 0.22s ease;
+}
+@keyframes v7TeleSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── V7.5 Data list ─────────────────────────────────────────────── */
+.v7-tele-dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin: 12px 0;
+}
+.v7-tele-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.v7-tele-row dt {
+  font-size: 0.60rem;
+  font-weight: 500;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.v7-tele-row dd {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── V7.6 Reset button ──────────────────────────────────────────── */
+.v7-tele-reset {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.v7-tele-reset:hover {
+  border-color: #e53e3e;
+  color: #e53e3e;
+}
+.v7-tele-reset:focus-visible {
+  outline: 2px solid #e53e3e;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── V7.7 Command palette item de telemetria ────────────────────── */
+.cmd-item[data-v7tele="1"] .cmd-item-icon svg {
+  stroke: var(--accent, #4CB8A0);
+}
+
+/* ── V7.8 Dark mode ─────────────────────────────────────────────── */
+html[data-theme="dark"] .v7-telemetry-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .v7-tele-row dd {
+  color: var(--text);
+}
+html[data-theme="dark"] .v7-tele-reset:hover {
+  border-color: #fc8181;
+  color: #fc8181;
+}
+
+/* ── V7.9 Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .v7-tele-chevron { transition: none !important; }
+  .v7-tele-body    { animation: none !important; }
+  .v7-telemetry-card { transition: none !important; }
+}
+
+/* ── V7.10 Mobile responsivo ────────────────────────────────────── */
+@media (max-width: 600px) {
+  .v7-tele-dl {
+    grid-template-columns: 1fr;
+  }
+  .v7-telemetry-card {
+    margin: 8px 0;
+  }
+}
