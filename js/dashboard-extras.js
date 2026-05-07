@@ -669,3 +669,222 @@
     window._dashboardExtras.v3 = true;
   }
 })();
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: requestIdleCallback, ResizeObserver,
+// Navigator.connection, pagehide-cleanup, ripple-delegation,
+// fonts.ready gate, prefetch-rootMargin, debounced-resize,
+// CSS will-change hints, scroll-progress rAF upgrade.
+
+(function () {
+  'use strict';
+
+  // ── Shared cleanup registry ───────────────────────────────────────────────
+  var _observers = [];
+  var _intervals = [];
+
+  function _trackObserver(io) { _observers.push(io); return io; }
+  function _trackInterval(id) { _intervals.push(id); return id; }
+
+  window.addEventListener('pagehide', function () {
+    _observers.forEach(function (io) { try { io.disconnect(); } catch (_) {} });
+    _intervals.forEach(function (id) { clearInterval(id); clearTimeout(id); });
+    _observers = [];
+    _intervals = [];
+  });
+
+  // ── 31. requestIdleCallback wrapper ──────────────────────────────────────
+  var _idle = window.requestIdleCallback
+    ? window.requestIdleCallback.bind(window)
+    : function (cb) { return setTimeout(cb, 1); };
+
+  // ── 32. ResizeObserver — dynamic grid column count for kbd nav ────────────
+  function initResizeObserver() {
+    var grid = document.querySelector('.db-quick-grid');
+    if (!grid || !window.ResizeObserver) return;
+
+    grid.__cols = 1;
+
+    var ro = new ResizeObserver(function (entries) {
+      var entry = entries[0];
+      var w = entry.contentRect.width;
+      var cols = w > 600 ? 3 : w > 380 ? 2 : 1;
+      if (grid.__cols !== cols) {
+        grid.__cols = cols;
+        grid.dataset.cols = cols;
+      }
+    });
+    ro.observe(grid);
+    _trackObserver(ro);
+
+    // Patch the existing keyboard nav to use ResizeObserver value
+    var existing = grid._dbKbdNav;
+    if (!existing) {
+      grid.addEventListener('keydown', function (e) {
+        var cards = Array.from(grid.querySelectorAll('.db-quick-card'));
+        var idx   = cards.indexOf(document.activeElement);
+        if (idx === -1) return;
+        var cols  = grid.__cols || 1;
+        var next  = -1;
+        if      (e.key === 'ArrowRight') next = idx + 1;
+        else if (e.key === 'ArrowLeft')  next = idx - 1;
+        else if (e.key === 'ArrowDown')  next = idx + cols;
+        else if (e.key === 'ArrowUp')    next = idx - cols;
+        if (next >= 0 && next < cards.length) {
+          e.preventDefault();
+          cards[next].focus();
+        }
+      });
+      grid._dbKbdNav = true;
+    }
+  }
+
+  // ── 33. Navigator.connection — reduce animation on slow networks ──────────
+  function initConnectionAware() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    function applyNetworkClass() {
+      var slow = conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g';
+      document.documentElement.classList.toggle('db-slow-network', slow);
+    }
+    applyNetworkClass();
+    conn.addEventListener('change', applyNetworkClass);
+  }
+
+  // ── 34. Ripple event delegation on grid container ─────────────────────────
+  function initRippleDelegation() {
+    var grid = document.querySelector('.db-quick-grid');
+    if (!grid || grid._dbRippleDelegated) return;
+    grid._dbRippleDelegated = true;
+
+    grid.addEventListener('pointerdown', function (e) {
+      var card = e.target.closest('.db-quick-card');
+      if (!card) return;
+      var rect = card.getBoundingClientRect();
+      var r    = document.createElement('span');
+      r.className = 'db-ripple';
+      var size = Math.max(rect.width, rect.height) * 2;
+      r.style.cssText = 'width:' + size + 'px;height:' + size + 'px;'
+        + 'left:' + (e.clientX - rect.left - size / 2) + 'px;'
+        + 'top:'  + (e.clientY - rect.top  - size / 2) + 'px;';
+      card.appendChild(r);
+      setTimeout(function () { r.remove(); }, 600);
+    });
+  }
+
+  // ── 35. document.fonts.ready gate for nav indicator ──────────────────────
+  function initFontsGate() {
+    if (!document.fonts || !document.fonts.ready) return;
+    document.fonts.ready.then(function () {
+      var indicator = document.querySelector('.db-nav-indicator');
+      if (indicator) {
+        indicator.style.transition = 'none';
+        indicator.offsetHeight; // reflow
+        indicator.style.transition = '';
+      }
+    });
+  }
+
+  // ── 36. Prefetch with IntersectionObserver rootMargin (eager prefetch) ────
+  function initEagerPrefetch() {
+    var prefetched = new Set();
+    var io = _trackObserver(new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var href = e.target.getAttribute('href');
+        if (!href || prefetched.has(href)) return;
+        prefetched.add(href);
+        var link = document.createElement('link');
+        link.rel  = 'prefetch';
+        link.href = href;
+        document.head.appendChild(link);
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: '0px 0px 200px 0px', threshold: 0 }));
+
+    document.querySelectorAll('.db-quick-card[href]').forEach(function (card) {
+      io.observe(card);
+    });
+  }
+
+  // ── 37. Debounced resize handler for bottom-nav visibility ───────────────
+  function initDebouncedResize() {
+    var nav = document.getElementById('bottom-nav');
+    if (!nav) return;
+    var timer;
+    window.addEventListener('resize', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var isMobile = window.innerWidth <= 900;
+        if (!isMobile) nav.classList.remove('bottom-nav--hidden');
+      }, 150);
+    }, { passive: true });
+  }
+
+  // ── 38. Scroll progress bar upgrade to rAF ───────────────────────────────
+  function initScrollProgressRaf() {
+    var bar = document.getElementById('db-scroll-progress');
+    if (!bar) return;
+
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        var h   = document.documentElement;
+        var max = h.scrollHeight - h.clientHeight;
+        var pct = max > 0 ? h.scrollTop / max : 0;
+        bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, pct)) + ')';
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+
+  // ── 39. will-change hints managed by IntersectionObserver ─────────────────
+  function initWillChangeHints() {
+    var targets = document.querySelectorAll('.db-card-hidden, .db-tip-hidden, .db-reveal');
+    if (!targets.length) return;
+    var io = _trackObserver(new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.style.willChange = 'transform, opacity';
+          setTimeout(function () {
+            e.target.style.willChange = 'auto';
+            io.unobserve(e.target);
+          }, 600);
+        }
+      });
+    }, { rootMargin: '50px 0px' }));
+    targets.forEach(function (t) { io.observe(t); });
+  }
+
+  // ── 40. Idle init — defer non-critical startup via requestIdleCallback ─────
+  function initIdle() {
+    _idle(function () {
+      initConnectionAware();
+      initEagerPrefetch();
+      initWillChangeHints();
+      initFontsGate();
+    });
+  }
+
+  // ── Bootstrap V4 ─────────────────────────────────────────────────────────
+  function initV4() {
+    initResizeObserver();
+    initRippleDelegation();
+    initScrollProgressRaf();
+    initDebouncedResize();
+    initIdle();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV4);
+  } else {
+    initV4();
+  }
+
+  if (window._dashboardExtras) {
+    window._dashboardExtras.version = 4;
+    window._dashboardExtras.v4 = true;
+  }
+})();

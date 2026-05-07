@@ -356,3 +356,85 @@ button:focus-visible,
 .db-forced-colors .db-ripple {
   display: none;
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* 8 otimizações CSS de performance: containment, will-change gerenciado,
+   GPU-compositing, touch-action, overscroll, print, slow-network,
+   backface-visibility */
+
+/* ── CSS Containment na grade de cards ──────────────────────────────────── */
+.db-quick-grid {
+  contain: layout style;
+}
+
+/* ── Backface-visibility nos ripples (evita repaint) ───────────────────── */
+.db-ripple {
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* ── GPU compositing para barra de progresso ────────────────────────────── */
+#db-scroll-progress {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* ── touch-action: manipulation — remove 300ms click delay ─────────────── */
+.db-quick-card,
+.fab-checkin,
+.bottom-nav-item,
+.db-skip-link,
+#db-skip-quick {
+  touch-action: manipulation;
+}
+
+/* ── Overscroll containment na sidebar ──────────────────────────────────── */
+.sidebar {
+  overscroll-behavior-y: contain;
+}
+
+/* ── Slow network: desabilita animações de stagger e reveal ─────────────── */
+.db-slow-network .db-reveal,
+.db-slow-network .db-card-hidden,
+.db-slow-network .db-tip-hidden {
+  transition: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.db-slow-network .db-ripple {
+  display: none;
+}
+.db-slow-network .db-score-pulse {
+  animation: none !important;
+}
+
+/* ── Containment no card individual ────────────────────────────────────── */
+.db-quick-card {
+  contain: layout;
+}
+
+/* ── Print: oculta elementos decorativos e de navegação ─────────────────── */
+@media print {
+  #db-scroll-progress,
+  .fab-checkin,
+  #bottom-nav,
+  .sidebar,
+  .mobile-header,
+  .sidebar-overlay,
+  .db-skip-link,
+  #db-skip-quick,
+  .db-nav-indicator,
+  .db-ripple,
+  #ptr-indicator {
+    display: none !important;
+  }
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .nh-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
