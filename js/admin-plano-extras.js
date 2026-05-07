@@ -1095,3 +1095,195 @@ window.abrirModalValidacao = function () {
 window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
   v3: { anunciarSR: _anunciarSR, criarFocusTrap: _criarFocusTrap },
 });
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: debounce autocomplete, rIC pré-indexação,
+// IntersectionObserver fade-in blocos, prefetch substituições ao hover,
+// debounce recálculo macros, autosave diff-aware + Page Visibility API,
+// scroll fecha dropdown, loading placeholder banco, validação idle.
+
+// ── V4.1 DEBOUNCE NO AUTOCOMPLETE INPUT (280ms) ─────────────
+// Intercepta capture phase e adia a chamada, cancelando o listener
+// original (bubble) via stopImmediatePropagation — reduz round-trips
+const _v4AcDebounce = new WeakMap();
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('input[name="item-nome"]')) return;
+  e.stopImmediatePropagation(); // cancela listener original (bubble)
+  clearTimeout(_v4AcDebounce.get(e.target));
+  const inp = e.target;
+  _v4AcDebounce.set(inp, setTimeout(() => {
+    _v4AcDebounce.delete(inp);
+    if (inp.isConnected) abrirDropdownAutocomplete(inp);
+  }, 280));
+}, true); // capture phase
+
+// ── V4.2 requestIdleCallback — PRÉ-INDEXAÇÃO O(1) DO BANCO ──
+// Cria Map nome→alimento para lookups instantâneos em fuzzyMatch
+const _v4AlimIdx = new Map();
+let _v4IdxBuilt = false;
+function _v4BuildIdx() {
+  if (_v4IdxBuilt || !autocompleteCache.length) return;
+  autocompleteCache.forEach(a => _v4AlimIdx.set(a.nome.toLowerCase(), a));
+  _v4IdxBuilt = true;
+}
+(window.requestIdleCallback || (fn => setTimeout(fn, 600)))(
+  () => autocompleteCache.length
+    ? _v4BuildIdx()
+    : carregarBancoAlimentos().then(_v4BuildIdx),
+  { timeout: 5000 }
+);
+
+// ── V4.3 IntersectionObserver — FADE-IN BLOCOS DE REFEIÇÃO ──
+// Anima blocos quando entram no viewport (só una vez cada)
+const _v4BlockIO = new IntersectionObserver((entries) => {
+  entries.forEach(({ isIntersecting, target }) => {
+    if (!isIntersecting || target._v4Seen) return;
+    target._v4Seen = true;
+    target.classList.add('ap-block-enter');
+    _v4BlockIO.unobserve(target);
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+function _v4WatchBlocks() {
+  document.querySelectorAll('.dynamic-block[data-refid]:not([data-v4io])').forEach(el => {
+    el.dataset.v4io = '1';
+    _v4BlockIO.observe(el);
+  });
+}
+new MutationObserver(_v4WatchBlocks).observe(document.body, { childList: true, subtree: true });
+setTimeout(_v4WatchBlocks, 300);
+
+// ── V4.4 PREFETCH DE SUBSTITUIÇÕES AO HOVER DO BTN ──────────
+// Inicia request Supabase ao mouseenter — quando usuário clica, dados
+// já chegaram (ou estão em voo) eliminando latência percebida
+const _v4SubstPF = new Map();
+document.addEventListener('mouseenter', (e) => {
+  const btn = e.target.closest('.btn-subst-inline');
+  if (!btn) return;
+  const nome = btn.closest('.refeicao-item-row')
+    ?.querySelector('input[name="item-nome"]')?.value?.trim();
+  if (!nome || _v4SubstPF.has(nome)) return;
+  const alim = autocompleteCache.find(a => a.nome === nome);
+  if (!alim) return;
+  _v4SubstPF.set(nome, supabase
+    .from('substituicoes_alimentos')
+    .select('alimento_substituto_id,base_equivalencia,fator_multiplicador,notas')
+    .eq('alimento_origem_id', alim.id)
+    .limit(20)
+  );
+}, true);
+
+// ── V4.5 DEBOUNCE DO RECÁLCULO DE MACROS (300ms) ────────────
+// Evita recalcular a cada tecla ao editar quantidade dos alimentos
+const _v4MacroDebounce = new WeakMap();
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('input[name="item-qty"]')) return;
+  const ref = e.target.closest('.dynamic-block[data-refid]');
+  if (!ref) return;
+  clearTimeout(_v4MacroDebounce.get(ref));
+  _v4MacroDebounce.set(ref, setTimeout(() => {
+    _v4MacroDebounce.delete(ref);
+    _recalcularMacrosRefeicao(ref);
+  }, 300));
+});
+
+// ── V4.6–V4.8 AUTOSAVE DIFF-AWARE + PAGE VISIBILITY ─────────
+// Substitui o setInterval cego por save inteligente: só persiste
+// quando o formulário realmente mudou (reduz I/O localStorage)
+function _v4FormHash() {
+  try {
+    const root = document.querySelector('#plano-form')
+      || document.querySelector('form')
+      || document.body;
+    return Array.from(root.querySelectorAll('input,textarea,select'))
+      .map(el => `${el.name || el.id}:${el.type === 'checkbox' ? +el.checked : el.value}`)
+      .join('\x00');
+  } catch (_) { return ''; }
+}
+let _v4PrevHash = '';
+function _v4AutosaveIfChanged() {
+  const h = _v4FormHash();
+  if (h && h !== _v4PrevHash) { _v4PrevHash = h; salvarRascunhoLocal(); }
+}
+function _v4StartSmartSave() {
+  clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(_v4AutosaveIfChanged, AUTOSAVE_INTERVAL);
+}
+_v4StartSmartSave();
+
+// Pausa autosave quando aba está em background; retoma ao voltar
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(autosaveTimer);
+    autosaveTimer = null;
+  } else {
+    salvarRascunhoLocal();
+    _v4StartSmartSave();
+  }
+});
+
+// ── V4.7 SCROLL/RESIZE FECHA DROPDOWN (passive, throttled) ──
+let _v4ScrollTimer = null;
+window.addEventListener('scroll', () => {
+  clearTimeout(_v4ScrollTimer);
+  _v4ScrollTimer = setTimeout(fecharDropdownAutocomplete, 60);
+}, { passive: true });
+window.addEventListener('resize', fecharDropdownAutocomplete, { passive: true });
+
+// ── V4.9 requestIdleCallback — VALIDAÇÃO PRÉ-EMPTIVA ─────────
+// Valida o plano durante idle e guarda resultado; ao clicar Publicar
+// o resultado já está pronto → modal abre instantaneamente
+let _v4CachedVal = null;
+(function _scheduleIdleVal() {
+  (window.requestIdleCallback || (fn => setTimeout(fn, 4000)))(() => {
+    try { _v4CachedVal = window.validarPlanoAntesPublicar?.(); } catch (_) {}
+    setTimeout(_scheduleIdleVal, 60000); // re-valida a cada 60s
+  }, { timeout: 8000 });
+})();
+
+const _origAbrirModalValV4 = window.abrirModalValidacao;
+window.abrirModalValidacao = function () {
+  const cached = _v4CachedVal;
+  _v4CachedVal = null;
+  if (cached) {
+    // Injeta resultado cached para que a chamada interna retorne instantâneo
+    const _origVal = window.validarPlanoAntesPublicar;
+    window.validarPlanoAntesPublicar = () => {
+      window.validarPlanoAntesPublicar = _origVal;
+      return cached;
+    };
+  }
+  return _origAbrirModalValV4.apply(this, arguments);
+};
+
+// ── V4.10 LOADING PLACEHOLDER ENQUANTO BANCO CARREGA ─────────
+// Exibe spinner no dropdown se autocomplete acionado antes dos dados
+// chegarem, depois atualiza automaticamente com os resultados reais
+const _origAbrirDropV4 = abrirDropdownAutocomplete;
+abrirDropdownAutocomplete = function _v4DropLoader(input) {
+  if (!autocompleteFetched && input.value.trim().length >= 2) {
+    fecharDropdownAutocomplete();
+    const pl = document.createElement('div');
+    pl.className = 'alim-autocomplete-dropdown';
+    pl.setAttribute('aria-live', 'polite');
+    pl.innerHTML = '<div class="ap-ac-loading-msg"><span class="ap-spinner"></span> Carregando banco de alimentos…</div>';
+    const r = input.getBoundingClientRect();
+    pl.style.cssText = `position:absolute;top:${r.bottom + scrollY + 4}px;left:${r.left + scrollX}px;width:${Math.max(r.width, 280)}px;z-index:1000;`;
+    document.body.appendChild(pl);
+    carregarBancoAlimentos().then(() => {
+      pl.remove();
+      if (input.isConnected) _origAbrirDropV4(input);
+    });
+    return;
+  }
+  _origAbrirDropV4(input);
+};
+
+// ── EXPÕE EXTENSÕES V4 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v4: {
+    lookupAlimento: n => _v4AlimIdx.get(n?.toLowerCase()),
+    blockObserver: _v4BlockIO,
+    prefetchSubst: _v4SubstPF,
+  },
+});

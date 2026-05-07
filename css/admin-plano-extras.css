@@ -311,3 +311,36 @@
   }
   .alim-ac-nome { color: inherit; }
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* performance: IntersectionObserver fade-in, loading placeholder banco */
+
+/* ── V4.3 Fade-in de entrada dos blocos de refeição ─────────── */
+@keyframes ap-block-fade-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ap-block-enter {
+  animation: ap-block-fade-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── V4.10 Loading placeholder no dropdown ───────────────────── */
+.ap-ac-loading-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-light, #6B6659);
+  font-style: italic;
+}
+
+/* ── V4 Reduced-motion: desativa animações de entrada ───────── */
+@media (prefers-reduced-motion: reduce) {
+  .ap-block-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
