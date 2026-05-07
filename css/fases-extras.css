@@ -383,3 +383,51 @@ kbd {
     transform: none !important;
   }
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+/* 10 melhorias de performance: CSS containment, will-change, prefers-reduced-data,
+   overscroll, fase-dot paint hint */
+
+/* ── V4.9: CSS containment — isola layout/estilo de cada item ───────────── */
+.fase-item {
+  contain: layout style;
+}
+
+/* ── V4.10: Conexões lentas — remove animações custosas ─────────────────── */
+@media (prefers-reduced-data: reduce) {
+  .fases-extras-loaded .fase-item {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .fase-detalhe {
+    transition:
+      max-height 0.01s,
+      opacity    0.01s,
+      visibility 0s,
+      margin-top 0.01s,
+      border-width 0s !important;
+  }
+  .fases-progress-fill {
+    transition: none !important;
+  }
+  .fase-item.ativa .fase-dot {
+    animation: none !important;
+  }
+  .fases-toast {
+    transition: none !important;
+  }
+  .fases-help-panel {
+    animation: none !important;
+  }
+}
+
+/* ── V4.11: overscroll-behavior na timeline (sem propagação de scroll) ───── */
+.fases-timeline {
+  overscroll-behavior: contain;
+}
+
+/* ── V4.12: Hint de paint no ponto de fase (hover glow custoso) ─────────── */
+.fase-dot {
+  will-change: box-shadow;
+}

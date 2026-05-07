@@ -317,3 +317,82 @@
     break-after: avoid;
   }
 }
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* ── 19. prefers-reduced-motion: desativa todas as animações ── */
+@media (prefers-reduced-motion: reduce) {
+  .pp-skeleton,
+  .pp-macro-bar-fill,
+  .macro-card,
+  .alimento-row,
+  .resumo-line,
+  .back-link,
+  .page-header,
+  .page-header-title,
+  .page-header-meta,
+  #pp-toast,
+  .refeicao-block {
+    animation: none !important;
+    transition: none !important;
+  }
+  @keyframes ppShimmer {
+    0%, 100% { background-position: 0 0; }
+  }
+  @keyframes ppRipple {
+    to { opacity: 0; }
+  }
+}
+
+/* ── 20. JS-driven reduced-motion (pp-no-motion class) ── */
+body.pp-no-motion .pp-skeleton,
+body.pp-no-motion .pp-macro-bar-fill,
+body.pp-no-motion .macro-card,
+body.pp-no-motion .alimento-row,
+body.pp-no-motion #pp-toast,
+body.pp-no-motion .refeicao-block {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── 21. forced-colors: suporte alto contraste Windows ── */
+@media (forced-colors: active) {
+  .pp-macro-bar {
+    border: 1px solid ButtonText;
+  }
+  .pp-macro-bar-fill {
+    background: Highlight !important;
+  }
+  .tab.active {
+    border-bottom-color: Highlight !important;
+  }
+  .tab:focus-visible {
+    outline: 3px solid ButtonText;
+  }
+  #pp-toast {
+    border: 2px solid ButtonText;
+    background: ButtonFace !important;
+    color: ButtonText !important;
+  }
+  #pp-sticky-macro {
+    border-top-color: ButtonText !important;
+  }
+  .skip-nav {
+    background: ButtonFace !important;
+    color: ButtonText !important;
+    border: 2px solid ButtonText;
+  }
+  .empty-state {
+    border-color: ButtonText !important;
+  }
+}
+
+/* ── 22. ref-title focável sem anel visual indesejado ── */
+.ref-title:focus {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.ref-title:focus:not(:focus-visible) {
+  outline: none;
+}

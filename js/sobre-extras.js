@@ -454,3 +454,205 @@
   var _prev = window._sobreExtras || {};
   window._sobreExtras = Object.assign({}, _prev, { version: 3, v3: true });
 })();
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: hover-prefetch, sessionStorage reading-time,
+// img.decode async, document.fonts.ready, ResizeObserver pilares,
+// preconnect Google Fonts, rIC section index, fetchpriority hero/cta,
+// will-change lifecycle, pagehide cleanup.
+
+(function () {
+  'use strict';
+
+  var _ioList = [];
+  var _timers = [];
+
+  function ric(fn, timeout) {
+    if (typeof requestIdleCallback === 'function') {
+      return requestIdleCallback(fn, { timeout: timeout || 2000 });
+    }
+    return setTimeout(fn, 60);
+  }
+
+  // 1. Hover-intent prefetch — inject <link rel="prefetch"> após 220ms de hover
+  function initHoverPrefetch() {
+    var prefetched = new Set();
+    var hoverTimer = null;
+
+    function prefetch(href) {
+      if (!href || prefetched.has(href)) return;
+      try {
+        var url = new URL(href, location.href);
+        if (url.origin !== location.origin) return;
+        prefetched.add(href);
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = href;
+        link.as = 'document';
+        document.head.appendChild(link);
+      } catch (e) {}
+    }
+
+    document.querySelectorAll('a[href]').forEach(function (a) {
+      a.addEventListener('mouseenter', function () {
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function () { prefetch(a.getAttribute('href')); }, 220);
+      });
+      a.addEventListener('mouseleave', function () { clearTimeout(hoverTimer); });
+      a.addEventListener('touchstart', function () { prefetch(a.getAttribute('href')); }, { passive: true });
+    });
+  }
+
+  // 2. sessionStorage reading-time cache — evita retraversão do DOM em visitas repetidas
+  function initReadingTimeCache() {
+    var heroInner = document.querySelector('.sobre-hero-inner');
+    if (!heroInner) return;
+    var KEY = 'erg360_sobre_rt';
+    var el = heroInner.querySelector('.sobre-reading-time');
+    if (!el) return;
+
+    var cached = sessionStorage.getItem(KEY);
+    if (cached) {
+      el.textContent = cached + ' min de leitura';
+      el.setAttribute('aria-label', 'Tempo estimado de leitura: ' + cached +
+        (cached === '1' ? ' minuto' : ' minutos'));
+      return;
+    }
+    ric(function () {
+      var main = document.querySelector('.sobre-main');
+      if (!main) return;
+      var mins = String(Math.max(1, Math.round(
+        (main.innerText || '').trim().split(/\s+/).length / 200
+      )));
+      try { sessionStorage.setItem(KEY, mins); } catch (e) {}
+    });
+  }
+
+  // 3. img.decode() assíncrono — libera thread principal durante decode
+  function initImgDecode() {
+    document.querySelectorAll('img').forEach(function (img) {
+      if (typeof img.decode === 'function') {
+        img.decode().then(function () {
+          img.dataset.decoded = '1';
+        }).catch(function () {});
+      }
+    });
+  }
+
+  // 4. document.fonts.ready — aplica classe quando web fonts carregam
+  function initFontReady() {
+    if (!document.fonts || typeof document.fonts.ready !== 'object') return;
+    document.fonts.ready.then(function () {
+      document.body.classList.add('sobre-fonts-loaded');
+    });
+  }
+
+  // 5. ResizeObserver pilares grid — expõe largura e contagem de colunas via data/CSS prop
+  function initPilaresResizeObserver() {
+    var grid = document.querySelector('.pilares-grid');
+    if (!grid || typeof ResizeObserver === 'undefined') return;
+
+    var ro = new ResizeObserver(function (entries) {
+      var w = entries[0].contentRect ? entries[0].contentRect.width : grid.offsetWidth;
+      grid.style.setProperty('--grid-width', Math.round(w) + 'px');
+      grid.dataset.cols = w >= 900 ? '3' : w >= 580 ? '2' : '1';
+    });
+    ro.observe(grid);
+    _ioList.push({ disconnect: function () { ro.disconnect(); } });
+  }
+
+  // 6. Preconnect Google Fonts — reduz latência de DNS+TLS se não declarado no HTML
+  function initFontPreconnect() {
+    [
+      { href: 'https://fonts.googleapis.com', crossOrigin: false },
+      { href: 'https://fonts.gstatic.com',    crossOrigin: true  }
+    ].forEach(function (cfg) {
+      var sel = 'link[rel="preconnect"][href="' + cfg.href + '"]';
+      if (document.querySelector(sel)) return;
+      var link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = cfg.href;
+      if (cfg.crossOrigin) link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+  }
+
+  // 7. rIC section index — constrói mapa de seções no localStorage durante idle
+  function initSectionIndex() {
+    ric(function () {
+      try {
+        var sections = [];
+        document.querySelectorAll('.sobre-section, .sobre-hero, .sobre-cta').forEach(function (sec) {
+          var h = sec.querySelector('h1, h2');
+          if (h && sec.id) sections.push({ id: sec.id, label: h.textContent.trim() });
+        });
+        if (sections.length) localStorage.setItem('erg360_sobre_nav_v1', JSON.stringify(sections));
+      } catch (e) {}
+    }, 3000);
+  }
+
+  // 8. fetchpriority — alta prioridade no logo do header, baixa + lazy no CTA
+  function initFetchPriority() {
+    var heroImg = document.querySelector('.sobre-header .checkin-logo');
+    if (heroImg && 'fetchPriority' in heroImg) heroImg.fetchPriority = 'high';
+
+    var ctaLogo = document.querySelector('.sobre-cta-logo');
+    if (ctaLogo) {
+      if ('fetchPriority' in ctaLogo) ctaLogo.fetchPriority = 'low';
+      if (!ctaLogo.hasAttribute('loading')) ctaLogo.setAttribute('loading', 'lazy');
+    }
+  }
+
+  // 9. will-change lifecycle — ativa antes da animação, remove após para liberar layer
+  function initWillChange() {
+    var animTargets = document.querySelectorAll(
+      '.pilar-card--hidden, .sobre-razao--hidden, .sobre-step--hidden, .sobre-reveal'
+    );
+    animTargets.forEach(function (el) { el.style.willChange = 'opacity, transform'; });
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var t = e.target;
+        var tid = setTimeout(function () { t.style.willChange = 'auto'; }, 750);
+        _timers.push(tid);
+        io.unobserve(t);
+      });
+    }, { threshold: 0.05 });
+
+    animTargets.forEach(function (el) { io.observe(el); });
+    _ioList.push(io);
+  }
+
+  // 10. pagehide cleanup — desconecta observers e limpa timers ao sair da página
+  function initPagehideCleanup() {
+    window.addEventListener('pagehide', function () {
+      _ioList.forEach(function (io) { try { io.disconnect(); } catch (e) {} });
+      _timers.forEach(function (t) { clearTimeout(t); });
+      _ioList.length = 0;
+      _timers.length = 0;
+    });
+  }
+
+  function initV4() {
+    initHoverPrefetch();
+    initReadingTimeCache();
+    initImgDecode();
+    initFontReady();
+    initPilaresResizeObserver();
+    initFontPreconnect();
+    initSectionIndex();
+    initFetchPriority();
+    initWillChange();
+    initPagehideCleanup();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV4);
+  } else {
+    initV4();
+  }
+
+  var _prev = window._sobreExtras || {};
+  window._sobreExtras = Object.assign({}, _prev, { version: 4, v4: true });
+})();

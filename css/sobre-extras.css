@@ -325,3 +325,67 @@ figure[aria-label="Filosofia do ERG 360"] {
   .sobre-hero { break-inside: avoid; }
   .sobre-quote { border-left: 2px solid #000; padding-left: 1rem; }
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* 1. CSS containment — isola layout de cada seção para reduzir reflow */
+.sobre-section,
+.sobre-hero,
+.sobre-cta {
+  contain: layout style;
+}
+
+/* 2. GPU compositing hint para elementos que vão animar */
+.pilar-card--hidden,
+.sobre-razao--hidden,
+.sobre-step--hidden,
+.sobre-reveal {
+  backface-visibility: hidden;
+}
+
+/* 3. Otimização tipográfica após web fonts carregarem */
+.sobre-fonts-loaded .sobre-hero-title,
+.sobre-fonts-loaded .sobre-section-title,
+.sobre-fonts-loaded .sobre-cta-title {
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+}
+
+/* 4. CTA logo lazy shimmer enquanto carrega */
+.sobre-cta-logo[loading="lazy"]:not([data-decoded]) {
+  background: linear-gradient(
+    90deg,
+    var(--bg-primary, #F7F6F2) 25%,
+    #e8e6df 50%,
+    var(--bg-primary, #F7F6F2) 75%
+  );
+  background-size: 200% 100%;
+  animation: sobre-shimmer 1.4s infinite linear;
+  border-radius: 50%;
+}
+@keyframes sobre-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 5. Hover prefetch visual — sutil na decoração de links internos */
+a[href]:not(.sobre-cta-btn):not(.sobre-skip-link):not(.sobre-skipnav-link):hover {
+  text-decoration-color: rgba(76, 184, 160, 0.4);
+}
+
+/* 6. Pilares grid responde ao data-cols do ResizeObserver */
+.pilares-grid[data-cols="1"] {
+  grid-template-columns: 1fr !important;
+}
+.pilares-grid[data-cols="2"] {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+/* 7. Imagens decodificadas — transição suave na opacidade */
+img[data-decoded] {
+  animation: sobre-img-in 0.3s ease both;
+}
+@keyframes sobre-img-in {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}

@@ -1000,3 +1000,707 @@
     initV4();
   }
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias com Web APIs modernas — Wake Lock, Web Share, Clipboard,
+// Vibration, Offline, Battery, Notification, Page Visibility stale-reload,
+// Performance marks, Network Information.
+// Não duplica: Page Visibility básico (V4-7), sessionStorage cache (V4-6),
+//              passive listeners (V4-9), aria-live/assertive (V1/V3).
+
+(function () {
+  'use strict';
+
+  // V5-1. Wake Lock API — tela ligada durante edição longa ──────────────────
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.body.setAttribute('data-wake-lock', 'active');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+        document.body.removeAttribute('data-wake-lock');
+      });
+    } catch (_) {}
+  }
+
+  function releaseWakeLock() {
+    wakeLock?.release().catch(() => {});
+    wakeLock = null;
+    document.body.removeAttribute('data-wake-lock');
+  }
+
+  function initWakeLock() {
+    const viewNova = document.getElementById('view-nova');
+    if (!viewNova) return;
+    new MutationObserver(() => {
+      if (viewNova.style.display !== 'none') {
+        requestWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    }).observe(viewNova, { attributes: true, attributeFilter: ['style'] });
+    // Reacquire após tab retornar ao foco (Wake Lock é liberado quando tab fica oculta)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && viewNova.style.display !== 'none') requestWakeLock();
+    }, { passive: true });
+  }
+
+  // V5-2. Web Share API — compartilhar resumo do plano ─────────────────────
+  function injectShareButton() {
+    if (!navigator.share || document.getElementById('v5-share-btn')) return;
+    const btn = document.createElement('button');
+    btn.id   = 'v5-share-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Compartilhar resumo do plano de fases');
+    btn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>Compartilhar plano`;
+    btn.addEventListener('click', async () => {
+      const fases  = window._adminFasesExtrasCache || [];
+      const resumo = fases.map((f, i) =>
+        `${i + 1}. ${f.nome} — ${f.duracao_semanas || '?'} sem. (${f.status})`
+      ).join('\n');
+      try {
+        await navigator.share({
+          title: 'Plano de Fases — ERG 360',
+          text:  `Plano de fases:\n${resumo || 'Nenhuma fase carregada.'}`,
+        });
+      } catch (e) {
+        if (e.name !== 'AbortError' && navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(resumo);
+            if (window.showToast) window.showToast('Resumo copiado.');
+          } catch (_) {}
+        }
+      }
+    });
+    const kpis = document.getElementById('kpis-fases');
+    if (kpis) kpis.parentElement?.insertBefore(btn, kpis);
+  }
+
+  // V5-3. Clipboard API — copiar detalhes de uma fase por card ──────────────
+  function enrichCardsWithCopyBtn() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper || !navigator.clipboard) return;
+
+    function addCopyBtns() {
+      wrapper.querySelectorAll('[data-v3-card]:not([data-v5-copy])').forEach(card => {
+        card.setAttribute('data-v5-copy', '');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'v5-copy-btn';
+        btn.setAttribute('aria-label', 'Copiar detalhes desta fase');
+        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>`;
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const m     = (card.querySelector('button[onclick*="editarFase"]')?.getAttribute('onclick') || '').match(/'([^']+)'/);
+          const fases = window._adminFasesExtrasCache || [];
+          const f     = fases.find(x => x.id === m?.[1]);
+          const texto = f
+            ? `Fase: ${f.nome}\nStatus: ${f.status}\nDuração: ${f.duracao_semanas} semanas\nInício: ${f.data_inicio || 'não definido'}`
+            : card.querySelector('p,h3,h4,strong')?.textContent.trim() || '';
+          try {
+            await navigator.clipboard.writeText(texto);
+            btn.classList.add('v5-copy-ok');
+            setTimeout(() => btn.classList.remove('v5-copy-ok'), 1600);
+            if (window.showToast) window.showToast('Fase copiada.');
+          } catch (_) {}
+        });
+        const row = card.querySelector('.fase-action-row') || card;
+        row.appendChild(btn);
+      });
+    }
+
+    new MutationObserver(addCopyBtns).observe(wrapper, { childList: true });
+    addCopyBtns();
+  }
+
+  // V5-4. Vibration API — feedback tátil em mobile ──────────────────────────
+  function initVibration() {
+    if (!navigator.vibrate) return;
+    document.addEventListener('click', (e) => {
+      if (e.target?.id === 'cbox-ok') navigator.vibrate([40, 30, 70]);
+    }, { capture: true, passive: true });
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) navigator.vibrate([55]);
+        }, 2200);
+      });
+    }
+  }
+
+  // V5-5. navigator.onLine — banner de conexão perdida ─────────────────────
+  function initOfflineBanner() {
+    let banner = null;
+    const show = () => {
+      if (banner) return;
+      banner = document.createElement('div');
+      banner.id = 'v5-offline-banner';
+      banner.setAttribute('role', 'alert');
+      banner.setAttribute('aria-live', 'assertive');
+      banner.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <line x1="1" y1="1" x2="23" y2="23"/>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+          <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+          <line x1="12" y1="20" x2="12.01" y2="20"/>
+        </svg>
+        Sem conexão — alterações não serão salvas.`;
+      document.body.appendChild(banner);
+    };
+    const hide = () => { banner?.remove(); banner = null; };
+    if (!navigator.onLine) show();
+    window.addEventListener('offline', show,  { passive: true });
+    window.addEventListener('online',  hide,  { passive: true });
+  }
+
+  // V5-6. Battery Status API — aviso bateria baixa ──────────────────────────
+  async function initBatteryWarning() {
+    if (!('getBattery' in navigator)) return;
+    try {
+      const bat = await navigator.getBattery();
+      const check = () => {
+        const low = !bat.charging && bat.level < 0.15;
+        const el  = document.getElementById('v5-battery-warn');
+        if (low && !el) {
+          const div = document.createElement('div');
+          div.id = 'v5-battery-warn';
+          div.setAttribute('role', 'status');
+          div.setAttribute('aria-live', 'polite');
+          div.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="var(--gold)" stroke-width="1.8" aria-hidden="true">
+              <rect x="2" y="7" width="18" height="11" rx="2" ry="2"/>
+              <line x1="22" y1="11" x2="22" y2="13"/>
+            </svg>
+            Bateria ${Math.round(bat.level * 100)}% — salve o rascunho.
+            <button type="button" id="v5-battery-dismiss" aria-label="Dispensar aviso">×</button>`;
+          document.body.appendChild(div);
+          document.getElementById('v5-battery-dismiss')?.addEventListener('click', () => div.remove());
+        } else if (!low && el) {
+          el.remove();
+        }
+      };
+      bat.addEventListener('levelchange',    check, { passive: true });
+      bat.addEventListener('chargingchange', check, { passive: true });
+      check();
+    } catch (_) {}
+  }
+
+  // V5-7. Notification API — notificar ao salvar fase ───────────────────────
+  function initSaveNotification() {
+    if (!('Notification' in window)) return;
+    let granted = Notification.permission === 'granted';
+    const form  = document.getElementById('fase-form');
+    if (!form) return;
+    form.addEventListener('focusin', async () => {
+      if (Notification.permission === 'default') {
+        try { granted = (await Notification.requestPermission()) === 'granted'; } catch (_) {}
+      }
+    }, { once: true, passive: true });
+    form.addEventListener('submit', () => {
+      setTimeout(() => {
+        if (!form.querySelector('.form-message.error.visible') && granted) {
+          try {
+            new Notification('ERG 360 — Fase salva', {
+              body: 'A fase foi salva com sucesso.',
+              icon: '/favicon.png',
+              tag:  'fase-salva',
+              silent: true,
+            });
+          } catch (_) {}
+        }
+      }, 2000);
+    });
+  }
+
+  // V5-8. Page Visibility stale-reload — recarrega lista após 3 min oculta ──
+  // Complemento ao V4-7 (que apenas sinaliza pausa); este efetivamente recarrega.
+  function initVisibilityReload() {
+    let hiddenAt = null;
+    const STALE  = 3 * 60 * 1000;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+      } else if (hiddenAt && Date.now() - hiddenAt > STALE) {
+        const lista = document.getElementById('view-lista');
+        if (lista && lista.style.display !== 'none') {
+          window._adminFasesExtras?.loadFasesExtras?.();
+        }
+        hiddenAt = null;
+      }
+    }, { passive: true });
+  }
+
+  // V5-9. Performance API — marca tempos de operações críticas ──────────────
+  function initPerformanceMarks() {
+    if (!window.performance?.mark) return;
+    const ext = window._adminFasesExtras;
+    if (ext?.loadFasesExtras) {
+      const orig = ext.loadFasesExtras;
+      ext.loadFasesExtras = async function () {
+        performance.mark('adminFases:loadStart');
+        const r = await orig.apply(this, arguments);
+        performance.mark('adminFases:loadEnd');
+        try { performance.measure('adminFases:load', 'adminFases:loadStart', 'adminFases:loadEnd'); } catch (_) {}
+        return r;
+      };
+    }
+    const form = document.getElementById('fase-form');
+    if (form) form.addEventListener('submit', () => performance.mark('adminFases:submitStart'));
+  }
+
+  // V5-10. Network Information API — reduz animações em conexão lenta ────────
+  function initNetworkAdaptation() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    const SLOW = new Set(['slow-2g', '2g']);
+    const apply = () => {
+      const slow = SLOW.has(conn.effectiveType);
+      document.body.classList.toggle('v5-slow-connection', slow);
+      if (slow && !document.getElementById('v5-slow-banner')) {
+        const el = document.createElement('div');
+        el.id = 'v5-slow-banner';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.textContent = 'Conexão lenta — animações reduzidas.';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+    };
+    conn.addEventListener('change', apply, { passive: true });
+    apply();
+  }
+
+  // ── Init V5 ───────────────────────────────────────────────────────────────
+  function initV5() {
+    initWakeLock();
+    injectShareButton();
+    enrichCardsWithCopyBtn();
+    initVibration();
+    initOfflineBanner();
+    initBatteryWarning();
+    initSaveNotification();
+    initVisibilityReload();
+    initPerformanceMarks();
+    initNetworkAdaptation();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+})();
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamificação — streak diário, confetti canvas, AudioContext feedback,
+// badge "Primeira Fase", XP system, level badge, milestone toasts,
+// visual de fase concluída, badge "plano 100%", combo de saves por sessão.
+// Não duplica: vibration (V5-4), aria-live/assertive (V1/V3), toast patch (V1),
+//              performance marks (V5-9), offline/battery banners (V5-5/6).
+
+(function () {
+  'use strict';
+
+  const NS  = 'v6';
+  const LSK = {
+    streak:    `${NS}_streak`,
+    streakDay: `${NS}_streak_day`,
+    xp:        `${NS}_xp`,
+    badges:    `${NS}_badges`,
+  };
+
+  function lsGet(key, def) {
+    try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; } catch(_) { return def; }
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(_) {}
+  }
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  // ── V6-1. Streak de uso diário ─────────────────────────────────────────────
+  function initStreak() {
+    const last    = lsGet(LSK.streakDay, null);
+    const current = lsGet(LSK.streak, 0);
+    const today   = todayStr();
+    let streak    = current;
+
+    if (!last) {
+      streak = 1;
+    } else {
+      const diff = Math.round((new Date(today) - new Date(last)) / 86400000);
+      if (diff === 0) {
+        streak = current;
+      } else if (diff === 1) {
+        streak = current + 1;
+      } else {
+        streak = 1;
+      }
+    }
+
+    lsSet(LSK.streakDay, today);
+    lsSet(LSK.streak, streak);
+
+    if (streak >= 2) renderStreakBadge(streak);
+  }
+
+  function renderStreakBadge(count) {
+    if (document.getElementById('v6-streak-badge')) return;
+    const badge = document.createElement('div');
+    badge.id = 'v6-streak-badge';
+    badge.setAttribute('title', `${count} dias consecutivos de acesso`);
+    badge.setAttribute('aria-label', `Sequência: ${count} dias`);
+    badge.setAttribute('role', 'status');
+    badge.innerHTML = `
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M12 2c0 0-4 5.5-4 10a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/>
+        <path d="M12 14c0 0 1.5-1.2 1.5-2.5"/>
+      </svg>
+      <span>${count}</span>`;
+    document.body.appendChild(badge);
+    requestAnimationFrame(() => badge.classList.add('v6-streak-in'));
+  }
+
+  // ── V6-2. Confetti canvas ao salvar ───────────────────────────────────────
+  function launchConfetti({ cx = window.innerWidth / 2, cy = window.innerHeight * 0.4, n = 42 } = {}) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'v6-confetti-canvas';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const COLS = ['#4CB8A0','#2D6A56','#C9A84C','#7DD4C0','#E8C874'];
+
+    const parts = Array.from({ length: n }, () => ({
+      x: cx, y: cy,
+      vx: (Math.random() - 0.5) * 9,
+      vy: -(Math.random() * 7 + 2.5),
+      rot: Math.random() * 360,
+      rv: (Math.random() - 0.5) * 14,
+      w: Math.random() * 5 + 3,
+      h: Math.random() * 3 + 2,
+      color: COLS[Math.floor(Math.random() * COLS.length)],
+      life: 1,
+    }));
+
+    let frames = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      parts.forEach(p => {
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.vy += 0.28;
+        p.rot += p.rv;
+        p.life = Math.max(0, p.life - 0.019);
+        if (p.life <= 0) return;
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (alive && ++frames < 220) requestAnimationFrame(draw);
+      else canvas.remove();
+    })();
+  }
+
+  // ── V6-3. AudioContext feedback sutil ─────────────────────────────────────
+  let audioCtx = null;
+
+  function getACtx() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_) { return null; }
+    }
+    return audioCtx;
+  }
+
+  function playTone({ f1 = 440, f2, dur = 0.18, vol = 0.055, type = 'sine' } = {}) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = getACtx();
+    if (!ctx) return;
+    try {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(f1, ctx.currentTime);
+      if (f2) osc.frequency.linearRampToValueAtTime(f2, ctx.currentTime + dur * 0.65);
+      gain.gain.setValueAtTime(vol, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur + 0.05);
+    } catch(_) {}
+  }
+
+  function initAudioFeedback() {
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) {
+            playTone({ f1: 440, f2: 660, dur: 0.22, vol: 0.05 });
+          } else {
+            playTone({ f1: 220, dur: 0.14, vol: 0.04, type: 'triangle' });
+          }
+        }, 2300);
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target?.id === 'cbox-ok')     playTone({ f1: 520, f2: 440, dur: 0.13, vol: 0.04 });
+      if (e.target?.id === 'cbox-cancel') playTone({ f1: 300, dur: 0.09, vol: 0.03, type: 'triangle' });
+    }, { capture: true, passive: true });
+  }
+
+  // ── V6-4. Badge "Primeira Fase" (conquista single-use) ─────────────────────
+  function checkFirstFaseBadge() {
+    const badges = lsGet(LSK.badges, []);
+    if (badges.includes('primeira_fase')) return;
+    const fases = window._adminFasesExtrasCache || [];
+    if (!fases.length) return;
+    lsSet(LSK.badges, [...badges, 'primeira_fase']);
+    showAchievement({ title: 'Primeira Fase', desc: 'Plano de tratamento iniciado com sucesso.' });
+  }
+
+  function showAchievement({ title, desc }) {
+    const el = document.createElement('div');
+    el.className = 'v6-achievement';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = `
+      <svg class="v6-ach-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="var(--gold)" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="8" r="6"/>
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+      </svg>
+      <div>
+        <p class="v6-ach-title">Conquista: ${title}</p>
+        <p class="v6-ach-desc">${desc}</p>
+      </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('v6-ach-in'));
+    setTimeout(() => {
+      el.classList.remove('v6-ach-in');
+      el.addEventListener('transitionend', () => el.remove(), { once: true });
+    }, 4600);
+  }
+
+  // ── V6-5 + V6-6. XP system + level badge ──────────────────────────────────
+  const LEVELS = [
+    { min: 0,   label: 'Nutri I',   color: 'var(--subtitle)' },
+    { min: 50,  label: 'Nutri II',  color: 'var(--detail)' },
+    { min: 150, label: 'Nutri III', color: 'var(--accent)' },
+    { min: 300, label: 'Expert',    color: 'var(--gold)' },
+  ];
+
+  function getLevel(xp) {
+    for (let i = LEVELS.length - 1; i >= 0; i--) {
+      if (xp >= LEVELS[i].min) return LEVELS[i];
+    }
+    return LEVELS[0];
+  }
+
+  function addXP(amount) {
+    if (!amount) return;
+    const prev = lsGet(LSK.xp, 0);
+    const xp   = prev + amount;
+    lsSet(LSK.xp, xp);
+    showXPGain(xp, amount);
+    if (getLevel(prev).label !== getLevel(xp).label) {
+      showAchievement({ title: `Nível ${getLevel(xp).label}`, desc: 'Novo nível alcançado — continue!' });
+    }
+    updateLevelBadge(xp);
+  }
+
+  function showXPGain(total, gained) {
+    let disp = document.getElementById('v6-xp-display');
+    if (!disp) {
+      disp = document.createElement('div');
+      disp.id = 'v6-xp-display';
+      document.body.appendChild(disp);
+    }
+    disp.setAttribute('aria-label', `XP total: ${total}`);
+    disp.innerHTML = `<span class="v6-xp-total">${total} XP</span>
+      <span class="v6-xp-gain" aria-hidden="true">+${gained}</span>`;
+    disp.classList.remove('v6-xp-pop');
+    void disp.offsetWidth;
+    disp.classList.add('v6-xp-pop');
+  }
+
+  function updateLevelBadge(xp) {
+    const lvl = getLevel(xp);
+    let badge = document.getElementById('v6-level-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'v6-level-badge';
+      badge.setAttribute('role', 'status');
+      document.body.appendChild(badge);
+    }
+    badge.textContent = lvl.label;
+    badge.style.setProperty('--v6-lc', lvl.color);
+    badge.setAttribute('aria-label', `Nível: ${lvl.label}`);
+  }
+
+  function initXPSystem() {
+    updateLevelBadge(lsGet(LSK.xp, 0));
+
+    const form = document.getElementById('fase-form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          if (!form.querySelector('.form-message.error.visible')) {
+            addXP(15);
+            updateSessionSaves();
+          }
+        }, 2450);
+      });
+    }
+
+    const origEdit = window.editarFase;
+    if (typeof origEdit === 'function') {
+      window.editarFase = function (...args) {
+        addXP(5);
+        return origEdit.apply(this, args);
+      };
+    }
+  }
+
+  // ── V6-7. Milestone toasts ao atingir marcos de fases ─────────────────────
+  const MILESTONE_MSGS = {
+    3:  'Plano com 3 fases — excelente estrutura!',
+    5:  'Marco: 5 fases criadas!',
+    10: 'Marco: 10 fases — plano avançado!',
+    15: 'Plano robusto: 15 fases!',
+    20: 'Especialista: 20 fases no plano!',
+  };
+
+  function checkMilestones(fases) {
+    const n   = fases.length;
+    const key = `v6_ms_${n}`;
+    if (!MILESTONE_MSGS[n] || lsGet(key, false)) return;
+    lsSet(key, true);
+    if (window.showToast) window.showToast(MILESTONE_MSGS[n]);
+    launchConfetti({ n: 28, cy: window.innerHeight * 0.25 });
+  }
+
+  // ── V6-8. Visual de fase concluída nos cards ───────────────────────────────
+  function initFaseConcluidaVisual() {
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (!wrapper) return;
+
+    function tagCards() {
+      wrapper.querySelectorAll('[data-v3-card]:not([data-v6-tagged])').forEach(card => {
+        card.setAttribute('data-v6-tagged', '');
+        const rawText = (card.textContent || '').toLowerCase();
+        if (rawText.includes('conclu')) card.setAttribute('data-v6-done', '');
+      });
+    }
+
+    new MutationObserver(tagCards).observe(wrapper, { childList: true, subtree: false });
+    tagCards();
+  }
+
+  // ── V6-9. Badge "plano 100% concluído" ────────────────────────────────────
+  function checkPlanoConcluido(fases) {
+    const el = document.getElementById('v6-plan-done');
+    if (!fases.length) return;
+    const allDone = fases.every(f =>
+      f.status === 'concluida' || f.status === 'concluída' || f.status === 'concluido'
+    );
+
+    if (allDone && !el) {
+      const badge = document.createElement('div');
+      badge.id = 'v6-plan-done';
+      badge.setAttribute('role', 'status');
+      badge.setAttribute('aria-live', 'polite');
+      badge.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="var(--gold)" stroke-width="1.5" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Plano 100% concluído`;
+      const kpis = document.getElementById('kpis-fases');
+      if (kpis) kpis.after(badge);
+
+      const msKey = `v6_plan_done_${fases.length}`;
+      if (!lsGet(msKey, false)) {
+        lsSet(msKey, true);
+        setTimeout(() => launchConfetti({ n: 65 }), 450);
+      }
+    } else if (!allDone && el) {
+      el.remove();
+    }
+  }
+
+  // ── V6-10. Combo de saves por sessão ──────────────────────────────────────
+  function updateSessionSaves() {
+    const prev = parseInt(sessionStorage.getItem('v6_ssaves') || '0');
+    const next = prev + 1;
+    sessionStorage.setItem('v6_ssaves', String(next));
+    if (next === 2) {
+      if (window.showToast) window.showToast('Bom ritmo — 2 fases salvas nesta sessão!');
+    } else if (next >= 3 && next % 3 === 0) {
+      if (window.showToast) window.showToast(`${next} fases salvas — sequência incrível!`);
+      launchConfetti({ n: 22, cy: window.innerHeight * 0.5 });
+    }
+  }
+
+  // ── Patch loadFasesExtras: pós-carga executa checks de gamificação ─────────
+  function patchLoadForGamification() {
+    const ext = window._adminFasesExtras;
+    if (!ext?.loadFasesExtras) return;
+    const orig = ext.loadFasesExtras;
+    ext.loadFasesExtras = async function () {
+      const r = await orig.apply(this, arguments);
+      const fases = window._adminFasesExtrasCache || [];
+      checkMilestones(fases);
+      checkPlanoConcluido(fases);
+      checkFirstFaseBadge();
+      initFaseConcluidaVisual();
+      return r;
+    };
+  }
+
+  // ── Init V6 ────────────────────────────────────────────────────────────────
+  function initV6() {
+    initStreak();
+    initAudioFeedback();
+    initXPSystem();
+    initFaseConcluidaVisual();
+    patchLoadForGamification();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV6);
+  } else {
+    initV6();
+  }
+})();

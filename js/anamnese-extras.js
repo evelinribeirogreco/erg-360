@@ -1356,3 +1356,237 @@ if (document.readyState === 'loading') {
 } else {
   _initV3();
 }
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: requestIdleCallback, IntersectionObserver,
+// Page Visibility API, prefetch especulativo, preconnect, memoização risk score,
+// performance.mark, throttle renderRiskAlerts, dirty-field tracking, IO review rows
+
+// V4-1 — requestIdleCallback polyfill + wrapper helper
+const _v4RIC = typeof requestIdleCallback !== 'undefined'
+  ? (cb, opts) => requestIdleCallback(cb, opts)
+  : (cb) => { const s = Date.now(); return setTimeout(() => cb({ timeRemaining: () => Math.max(0, 50 - (Date.now() - s)), didTimeout: false }), 1); };
+const _v4CIC = typeof cancelIdleCallback !== 'undefined' ? cancelIdleCallback : clearTimeout;
+
+// V4-2 — IntersectionObserver: lazy first-render do #anamnese-risk-score (começa vazio)
+function _v4LazyRiskScore() {
+  const el = document.getElementById('anamnese-risk-score');
+  if (!el || el.dataset.v4io) return;
+  el.dataset.v4io = '1';
+  let rendered = false;
+  new IntersectionObserver(([e], obs) => {
+    if (!e.isIntersecting || rendered) return;
+    rendered = true;
+    window._anamneseExtras?.renderRiskScore?.();
+    obs.disconnect();
+  }, { threshold: 0.1, rootMargin: '80px' }).observe(el);
+}
+
+// V4-3 — Page Visibility API: salva rascunho e pausa animações quando aba oculta
+function _v4PageVisibility() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      window._anamneseExtras?.saveDraft?.();
+      document.documentElement.classList.add('v4-tab-hidden');
+    } else {
+      document.documentElement.classList.remove('v4-tab-hidden');
+    }
+  });
+}
+
+// V4-4 — Prefetch especulativo de admin.html/dashboard.html na penúltima step
+let _v4PrefetchDone = false;
+function _v4Prefetch(idx, total) {
+  if (_v4PrefetchDone || idx < total - 2) return;
+  _v4PrefetchDone = true;
+  _v4RIC(() => {
+    ['admin.html', 'dashboard.html'].forEach(href => {
+      if (document.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = href;
+      link.as = 'document';
+      document.head.appendChild(link);
+    });
+  }, { timeout: 3000 });
+}
+
+// V4-5 — Preconnect ao Supabase + esm.sh (reduz latência de DNS/TLS nos primeiros fetch)
+function _v4Preconnect() {
+  _v4RIC(() => {
+    ['https://gqnlrhmriufepzpustna.supabase.co', 'https://esm.sh'].forEach(href => {
+      if (document.querySelector(`link[rel="preconnect"][href="${href}"]`)) return;
+      const link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = href;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+  });
+}
+
+// V4-6 — Memoização do renderRiskScore: skip se inputs relevantes não mudaram
+function _v4MemoizeRiskScore() {
+  const api = window._anamneseExtras;
+  if (!api?.renderRiskScore || api.renderRiskScore._v4m) return;
+  let _cache = '';
+  const orig = api.renderRiskScore;
+  api.renderRiskScore = function _v4Memoized() {
+    const vals = ['fumante', 'ingere_alcool', 'horas_sono', 'nivel_af', 'agua_litros']
+      .map(id => document.getElementById(id)?.value ?? '').join('|');
+    const pats = Array.from(document.querySelectorAll('.patologia-btn.active'))
+      .map(b => b.dataset.value || '').sort().join(',');
+    const key = vals + '|' + pats;
+    if (key === _cache) return;
+    _cache = key;
+    orig.apply(this, arguments);
+  };
+  api.renderRiskScore._v4m = true;
+}
+
+// V4-7 — performance.mark + measure nas transições de step (visível no DevTools > Performance)
+function _v4PatchStepPerf() {
+  const api = window._anamneseExtras;
+  if (!api?.onStepChange || api.onStepChange._v4p) return;
+  const orig = api.onStepChange;
+  api.onStepChange = function _v4PerfStep(idx, total, stepId) {
+    const markStart = `erg:anamnese:step-${idx}:start`;
+    try { performance.mark(markStart); } catch (_) {}
+    orig.apply(this, arguments);
+    requestAnimationFrame(() => {
+      try {
+        const markPaint = `erg:anamnese:step-${idx}:painted`;
+        performance.mark(markPaint);
+        performance.measure(`erg:anamnese:step-${idx}`, markStart, markPaint);
+      } catch (_) {}
+      _v4Prefetch(idx, total);
+    });
+  };
+  api.onStepChange._v4p = true;
+}
+
+// V4-8 — Throttle temporal do renderRiskAlerts (máx 1 re-render/500ms durante digitação rápida)
+function _v4ThrottleRiskAlerts() {
+  const api = window._anamneseExtras;
+  if (!api?.renderRiskAlerts || api.renderRiskAlerts._v4t) return;
+  let _last = 0;
+  const THROTTLE = 500;
+  const orig = api.renderRiskAlerts;
+  api.renderRiskAlerts = function _v4Throttled() {
+    const now = Date.now();
+    if (now - _last < THROTTLE) return;
+    _last = now;
+    orig.apply(this, arguments);
+  };
+  api.renderRiskAlerts._v4t = true;
+}
+
+// V4-9 — Dirty field tracking: rastreia campos modificados + badge visual de unsaved changes
+function _v4DirtyTracking() {
+  const dirty = new Set();
+
+  function ensureBadge() {
+    if (document.getElementById('v4-dirty-badge')) return;
+    const ref = document.getElementById('autosave-badge');
+    if (!ref) return;
+    const badge = document.createElement('span');
+    badge.id = 'v4-dirty-badge';
+    badge.className = 'v4-dirty-badge';
+    badge.setAttribute('aria-live', 'polite');
+    badge.style.display = 'none';
+    ref.parentElement?.insertBefore(badge, ref.nextSibling);
+  }
+
+  function updateBadge() {
+    ensureBadge();
+    const badge = document.getElementById('v4-dirty-badge');
+    if (!badge) return;
+    const n = dirty.size;
+    if (n > 0) {
+      badge.textContent = `${n} campo${n > 1 ? 's' : ''} alterado${n > 1 ? 's' : ''}`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (el.id && el.matches('#anamnese-form input, #anamnese-form textarea, #anamnese-form select')) {
+      dirty.add(el.id);
+      updateBadge();
+    }
+  });
+  document.addEventListener('click', e => {
+    const el = e.target.closest?.('.toggle-btn, .patologia-btn');
+    if (el?.dataset.field) { dirty.add(el.dataset.field); updateBadge(); }
+  });
+
+  const api = window._anamneseExtras;
+  if (api) {
+    api.getDirtyFields = () => Array.from(dirty);
+    if (api.onSaved && !api.onSaved._v4d) {
+      const origSaved = api.onSaved;
+      api.onSaved = function() {
+        origSaved.apply(this, arguments);
+        dirty.clear();
+        updateBadge();
+      };
+      api.onSaved._v4d = true;
+    }
+  }
+
+  ensureBadge();
+}
+
+// V4-10 — IntersectionObserver nos review-rows: animação staggered ao entrar no viewport
+function _v4AnimateReviewRows(root) {
+  const rows = (root || document).querySelectorAll?.('.review-row:not([data-v4r])');
+  if (!rows?.length) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('v4-row-in');
+      obs.unobserve(e.target);
+    });
+  }, { threshold: 0.1, rootMargin: '30px' });
+  rows.forEach((r, i) => {
+    r.dataset.v4r = '1';
+    r.style.animationDelay = `${Math.min(i * 25, 200)}ms`;
+    obs.observe(r);
+  });
+}
+
+function _v4PatchReviewPanel() {
+  const api = window._anamneseExtras;
+  if (!api?.showReviewPanel || api.showReviewPanel._v4rv) return;
+  const orig = api.showReviewPanel;
+  api.showReviewPanel = function() {
+    orig.apply(this, arguments);
+    requestAnimationFrame(() => _v4AnimateReviewRows(document.getElementById('anamnese-review')));
+  };
+  api.showReviewPanel._v4rv = true;
+}
+
+// ── Init V4 ──
+function _initV4() {
+  _v4Preconnect();
+  _v4PageVisibility();
+  _v4LazyRiskScore();
+
+  // Patches ordenados: throttle → memoize → step perf → review → dirty
+  setTimeout(() => {
+    _v4ThrottleRiskAlerts();
+    _v4MemoizeRiskScore();
+    _v4PatchStepPerf();
+    _v4PatchReviewPanel();
+    _v4DirtyTracking();
+    _v4AnimateReviewRows();
+  }, 200);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV4);
+} else {
+  _initV4();
+}

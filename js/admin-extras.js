@@ -1648,3 +1648,677 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   _v4DeferredSetup();
 });
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias com Web APIs modernas: Clipboard, Web Share,
+// Notifications, Wake Lock, Vibration, Online/Offline,
+// Network Information, Battery, Fullscreen, dynamic title
+
+// ── V5.1 Clipboard API — copia telefone/email ao clicar ──────
+function _v5InitClipboard() {
+  if (!navigator.clipboard?.writeText) return;
+  document.addEventListener('click', async e => {
+    const el = e.target.closest('[data-copy]');
+    if (!el) return;
+    const text = el.dataset.copy || el.textContent.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      _v5ClipboardFeedback(el);
+    } catch (_) {}
+  });
+}
+function _v5ClipboardFeedback(el) {
+  const prev = el.getAttribute('aria-label');
+  el.setAttribute('aria-label', 'Copiado!');
+  el.classList.add('v5-copied');
+  setTimeout(() => {
+    el.classList.remove('v5-copied');
+    if (prev) el.setAttribute('aria-label', prev);
+    else el.removeAttribute('aria-label');
+  }, 1800);
+}
+function _v5PatchRowCopyTargets() {
+  document.querySelectorAll('tr.patient-row:not([data-v5copy])').forEach(row => {
+    row.dataset.v5copy = '1';
+    row.querySelectorAll('[data-phone],[data-email],.patient-phone,.patient-email').forEach(el => {
+      const val = el.dataset.phone || el.dataset.email || el.textContent.trim();
+      if (!val) return;
+      el.setAttribute('data-copy', val);
+      el.setAttribute('title', 'Clique para copiar');
+      el.style.cursor = 'copy';
+    });
+  });
+}
+
+// ── V5.2 Web Share API — botão share na linha ────────────────
+function _v5InitWebShare() {
+  if (!navigator.share) return;
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-share-patient]');
+    if (!btn) return;
+    const id  = btn.dataset.sharePatient;
+    const row = document.querySelector(`tr.patient-row[data-id="${CSS.escape(id)}"]`);
+    const nome = row?.querySelector('.patient-name,[data-name]')?.textContent.trim() || id;
+    try {
+      await navigator.share({
+        title: `Paciente: ${nome}`,
+        text : `Dossiê ERG 360 — ${nome}`,
+        url  : `${location.origin}${location.pathname.replace('admin.html', '')}admin-dossie.html?id=${encodeURIComponent(id)}`
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') console.warn('[V5 Share]', err);
+    }
+  });
+}
+function _v5PatchShareButtons() {
+  if (!navigator.share) return;
+  document.querySelectorAll('tr.patient-row[data-id]:not([data-v5share])').forEach(row => {
+    row.dataset.v5share = '1';
+    const actions = row.querySelector('.row-actions, td:last-child');
+    if (!actions) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'row-action v5-share-btn';
+    btn.setAttribute('aria-label', 'Compartilhar paciente');
+    btn.setAttribute('title', 'Compartilhar');
+    btn.dataset.sharePatient = row.dataset.id;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+    actions.appendChild(btn);
+  });
+}
+
+// ── V5.3 Notification API — aniversariantes do dia ───────────
+let _v5NotifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'denied';
+function _v5InjectNotifButton() {
+  if (typeof Notification === 'undefined') return;
+  if (document.getElementById('v5-notif-btn')) return;
+  const actions = document.querySelector('.admin-hero-actions');
+  if (!actions) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-notif-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-notif-btn';
+  btn.setAttribute('aria-label', 'Ativar notificações de aniversariantes');
+  btn.setAttribute('aria-pressed', String(_v5NotifPermission === 'granted'));
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Alertas';
+  if (_v5NotifPermission === 'granted') btn.classList.add('v5-notif-active');
+  btn.addEventListener('click', async () => {
+    if (_v5NotifPermission === 'denied') return;
+    if (_v5NotifPermission !== 'granted') {
+      _v5NotifPermission = await Notification.requestPermission();
+    }
+    if (_v5NotifPermission === 'granted') {
+      btn.classList.add('v5-notif-active');
+      btn.setAttribute('aria-pressed', 'true');
+      btn.setAttribute('aria-label', 'Notificações ativas');
+      _v5NotifyBirthdays();
+    }
+  });
+  actions.appendChild(btn);
+}
+function _v5NotifyBirthdays() {
+  const patients = window._allPatients || [];
+  if (!patients.length || _v5NotifPermission !== 'granted') return;
+  const d  = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const aniv = patients.filter(p => {
+    const parts = (p.data_nascimento || '').split('-');
+    return parts[1] === mm && parts[2] === dd;
+  });
+  if (!aniv.length) return;
+  const nomes = aniv.map(p => p.nome?.split(' ')[0] || '?').join(', ');
+  new Notification('🎂 Aniversariantes hoje — ERG 360', {
+    body: `${nomes} ${aniv.length === 1 ? 'faz' : 'fazem'} aniversário hoje!`,
+    icon: '/favicon.ico',
+    tag : `erg-birthdays-${dd}${mm}`
+  });
+}
+
+// ── V5.4 Wake Lock API — tela ativa durante consulta ─────────
+let _v5WakeLock = null;
+async function _v5RequestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    _v5WakeLock = await navigator.wakeLock.request('screen');
+    _v5WakeLock.addEventListener('release', () => {
+      _v5WakeLock = null;
+      _v5UpdateWakeLockUI(false);
+    }, { once: true });
+    _v5UpdateWakeLockUI(true);
+  } catch (_) {}
+}
+async function _v5ReleaseWakeLock() {
+  try { await _v5WakeLock?.release(); } catch (_) {}
+  _v5WakeLock = null;
+  _v5UpdateWakeLockUI(false);
+}
+function _v5UpdateWakeLockUI(active) {
+  const btn = document.getElementById('v5-wakelock-btn');
+  if (!btn) return;
+  btn.classList.toggle('v5-wakelock-active', active);
+  btn.setAttribute('aria-pressed', String(active));
+  btn.setAttribute('aria-label', active
+    ? 'Tela sempre ativa — clique para desativar'
+    : 'Manter tela ativa durante consulta');
+}
+function _v5InjectWakeLockButton() {
+  if (!('wakeLock' in navigator)) return;
+  if (document.getElementById('v5-wakelock-btn')) return;
+  const actions = document.querySelector('.admin-hero-actions');
+  if (!actions) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-wakelock-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-wakelock-btn';
+  btn.setAttribute('aria-label', 'Manter tela ativa durante consulta');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('title', 'Wake Lock');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+  btn.addEventListener('click', () => {
+    _v5WakeLock ? _v5ReleaseWakeLock() : _v5RequestWakeLock();
+  });
+  actions.appendChild(btn);
+}
+function _v5InitWakeLockVisibility() {
+  // Wake Lock é liberado automaticamente quando aba some; re-adquire ao voltar
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden && document.getElementById('v5-wakelock-btn')?.classList.contains('v5-wakelock-active')) {
+      await _v5RequestWakeLock();
+    }
+  });
+}
+
+// ── V5.5 Vibration API — haptic em ações destrutivas ─────────
+function _v5InitVibration() {
+  if (!navigator.vibrate) return;
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="remove"],[data-action="archive"],.patient-delete-btn,.confirm-action-btn');
+    if (!btn) return;
+    navigator.vibrate(
+      (btn.dataset.action === 'remove' || btn.classList.contains('patient-delete-btn'))
+        ? [50, 30, 50]
+        : 30
+    );
+  }, { passive: true });
+}
+
+// ── V5.6 Online / Offline — banner de status de rede ─────────
+function _v5GetOrCreateOfflineBanner() {
+  let b = document.getElementById('v5-offline-banner');
+  if (b) return b;
+  b = document.createElement('div');
+  b.id = 'v5-offline-banner';
+  b.role = 'status';
+  b.setAttribute('aria-live', 'assertive');
+  b.className = 'v5-offline-banner';
+  b.hidden = true;
+  b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Sem conexão — alterações podem não ser salvas';
+  document.body.appendChild(b);
+  return b;
+}
+function _v5InitOnlineOffline() {
+  const banner = _v5GetOrCreateOfflineBanner();
+  function update() {
+    const online = navigator.onLine;
+    banner.hidden = online;
+    banner.setAttribute('aria-hidden', String(online));
+    document.body.classList.toggle('v5-offline', !online);
+  }
+  window.addEventListener('online',  update, { passive: true });
+  window.addEventListener('offline', update, { passive: true });
+  update();
+}
+
+// ── V5.7 Network Information API — detecta conexão lenta ──────
+function _v5InitNetworkInfo() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn) return;
+  function apply() {
+    const slow = conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g' || conn.saveData === true;
+    document.body.classList.toggle('v5-slow-connection', slow);
+    if (slow) {
+      document.querySelectorAll('link[rel="prefetch"]').forEach(l => l.remove());
+    }
+  }
+  conn.addEventListener('change', apply, { passive: true });
+  apply();
+}
+
+// ── V5.8 Battery API — reduz animações em bateria baixa ───────
+async function _v5InitBattery() {
+  if (!('getBattery' in navigator)) return;
+  try {
+    const bat = await navigator.getBattery();
+    function apply() {
+      document.body.classList.toggle('v5-battery-saver', bat.level < 0.20 && !bat.charging);
+    }
+    bat.addEventListener('levelchange',   apply, { passive: true });
+    bat.addEventListener('chargingchange', apply, { passive: true });
+    apply();
+  } catch (_) {}
+}
+
+// ── V5.9 Fullscreen API — modo tela cheia para a tabela ───────
+function _v5InjectFullscreenButton() {
+  if (!document.documentElement.requestFullscreen) return;
+  if (document.getElementById('v5-fullscreen-btn')) return;
+  const container = document.querySelector('.patients-table-header,.section-header,.table-controls')
+    || document.querySelector('.section-card > *');
+  if (!container) return;
+  const btn = document.createElement('button');
+  btn.id = 'v5-fullscreen-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v5-fullscreen-btn';
+  btn.setAttribute('aria-label', 'Tela cheia');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('title', 'Tela cheia (Esc para sair)');
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  container.appendChild(btn);
+}
+function _v5InitFullscreen() {
+  const btn = document.getElementById('v5-fullscreen-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const target = document.querySelector('.patients-table-section,.admin-table-section,[data-table-section]')
+      || document.querySelector('.section-card');
+    if (!target) return;
+    try {
+      if (!document.fullscreenElement) {
+        await target.requestFullscreen();
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-label', 'Sair da tela cheia');
+      } else {
+        await document.exitFullscreen();
+        btn.setAttribute('aria-pressed', 'false');
+        btn.setAttribute('aria-label', 'Tela cheia');
+      }
+    } catch (_) {}
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Tela cheia');
+    }
+  });
+}
+
+// ── V5.10 Dynamic document title — badge de pendências ────────
+function _v5UpdateDocTitle() {
+  const patients = window._allPatients || [];
+  if (!patients.length) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const pendentes = patients.filter(p =>
+    p.status === 'ativo' && (!p.ultimo_checkin || p.ultimo_checkin < hoje)
+  ).length;
+  document.title = pendentes > 0 ? `(${pendentes}) ERG 360 — Admin` : 'ERG 360 — Admin';
+}
+function _v5InitDynTitle() {
+  if (window._v5TitlePatched) return;
+  window._v5TitlePatched = true;
+  ['renderPatientsTable', 'renderPatients'].forEach(key => {
+    if (typeof window[key] !== 'function') return;
+    const orig = window[key];
+    window[key] = (...args) => { orig(...args); _v5UpdateDocTitle(); };
+  });
+  _v5UpdateDocTitle();
+}
+
+// ── V5 DOMContentLoaded ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v5InitClipboard();
+  _v5InitVibration();
+  _v5InitOnlineOffline();
+  _v5InitNetworkInfo();
+  _v5InjectNotifButton();
+  _v5InjectWakeLockButton();
+  _v5InitWakeLockVisibility();
+  _v5InjectFullscreenButton();
+  _v5InitFullscreen();
+  _v5InitDynTitle();
+  requestAnimationFrame(() => {
+    _v5PatchRowCopyTargets();
+    _v5PatchShareButtons();
+    _v5InitWebShare();
+  });
+  _v5InitBattery();
+});
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamificação: streak de dias consecutivos,
+// confetti canvas leve, badges de conquistas, AudioContext feedback
+// sutil, milestone toast especial, progress ring SVG de check-ins,
+// indicador de meta de adesão, easter egg no command palette,
+// toggle de som, e hook nos eventos existentes (copy + CSV)
+
+// ── V6.1 Streak tracker — dias consecutivos abrindo o painel ──
+const _V6_STREAK_KEY    = 'erg_admin_streak_v6';
+const _V6_MILESTONE_KEY = 'erg_v6_milestones';
+const _V6_SOUND_KEY     = 'erg_v6_sound';
+
+function _v6GetStreak() {
+  return getJSON(_V6_STREAK_KEY, { count: 0, lastDate: '' });
+}
+function _v6UpdateStreak() {
+  const hoje  = new Date().toISOString().split('T')[0];
+  let { count, lastDate } = _v6GetStreak();
+  if (lastDate === hoje) return count;
+  const ontem = new Date(Date.now() - 86_400_000).toISOString().split('T')[0];
+  count = (lastDate === ontem) ? count + 1 : 1;
+  setJSON(_V6_STREAK_KEY, { count, lastDate: hoje });
+  return count;
+}
+
+// ── V6.2 Badge de streak na saudação ─────────────────────────
+function _v6InjectStreakBadge() {
+  if (document.getElementById('v6-streak-badge')) return;
+  const count = _v6UpdateStreak();
+  if (count < 2) return;
+  const target = document.getElementById('admin-greeting')
+    || document.querySelector('[class*="greeting"] h1, .hero-name, h1');
+  if (!target) return;
+  const badge = document.createElement('span');
+  badge.id = 'v6-streak-badge';
+  badge.className = 'v6-streak-badge';
+  badge.setAttribute('aria-label', `${count} dias seguidos`);
+  badge.setAttribute('title', `Você abriu o painel ${count} dias seguidos!`);
+  badge.innerHTML = `<span aria-hidden="true">🔥</span> ${count}`;
+  target.insertAdjacentElement('afterend', badge);
+}
+
+// ── V6.3 Confetti canvas leve (sem dependências) ──────────────
+function _v6Confetti(opts = {}) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const {
+    count  = 45,
+    x      = 0.5,
+    y      = 0.28,
+    colors = ['#4CB8A0', '#2D6A56', '#C9A84C', '#B8506E', '#ffffff', '#E8E6DF'],
+  } = opts;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'v6-confetti-canvas';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const particles = Array.from({ length: count }, () => ({
+    x:        canvas.width  * x + (Math.random() - 0.5) * 100,
+    y:        canvas.height * y,
+    vx:       (Math.random() - 0.5) * 7,
+    vy:       -(Math.random() * 7 + 3),
+    rot:      Math.random() * 360,
+    rotSpd:   (Math.random() - 0.5) * 9,
+    w:        Math.random() * 7 + 4,
+    h:        Math.random() * 4 + 3,
+    color:    colors[Math.floor(Math.random() * colors.length)],
+    opacity:  1,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      if (p.opacity <= 0) continue;
+      alive = true;
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.vy += 0.22;
+      p.rot += p.rotSpd;
+      if (frame > 38) p.opacity -= 0.020;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.fillStyle   = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    frame++;
+    if (alive && frame < 160) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
+}
+
+// ── V6.4 AudioContext — feedback sonoro sutil (opt-in) ────────
+let _v6AudioCtx = null;
+function _v6SoundEnabled() { return localStorage.getItem(_V6_SOUND_KEY) === '1'; }
+function _v6GetAudioCtx() {
+  if (_v6AudioCtx && _v6AudioCtx.state !== 'closed') return _v6AudioCtx;
+  try { _v6AudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  return _v6AudioCtx;
+}
+function _v6PlayTone(freq = 440, dur = 0.09, vol = 0.10, type = 'sine') {
+  if (!_v6SoundEnabled()) return;
+  const ctx = _v6GetAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch (_) {}
+}
+function _v6PlayCopy()      { _v6PlayTone(880, 0.06, 0.08); }
+function _v6PlaySuccess()   { _v6PlayTone(660, 0.10, 0.09); }
+function _v6PlayMilestone() {
+  _v6PlayTone(523, 0.10, 0.10);
+  setTimeout(() => _v6PlayTone(784, 0.20, 0.10), 115);
+}
+
+// ── V6.5 Toggle de som na barra de ações da hero ──────────────
+function _v6InjectSoundToggle() {
+  if (document.getElementById('v6-sound-btn')) return;
+  const actions = document.querySelector('.admin-hero-actions');
+  if (!actions) return;
+  const on  = _v6SoundEnabled();
+  const btn = document.createElement('button');
+  btn.id   = 'v6-sound-btn';
+  btn.type = 'button';
+  btn.className = 'btn-secondary v6-sound-btn' + (on ? ' v6-sound-active' : '');
+  btn.setAttribute('aria-pressed', String(on));
+  btn.setAttribute('aria-label', on ? 'Desativar sons' : 'Ativar sons de feedback');
+  btn.setAttribute('title', 'Sons de feedback (AudioContext)');
+  const iconOn  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+  const iconOff = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+  btn.innerHTML = on ? iconOn : iconOff;
+  btn.addEventListener('click', () => {
+    const nowOn = !_v6SoundEnabled();
+    localStorage.setItem(_V6_SOUND_KEY, nowOn ? '1' : '0');
+    btn.setAttribute('aria-pressed', String(nowOn));
+    btn.setAttribute('aria-label', nowOn ? 'Desativar sons' : 'Ativar sons de feedback');
+    btn.innerHTML = nowOn ? iconOn : iconOff;
+    btn.classList.toggle('v6-sound-active', nowOn);
+    if (nowOn) _v6GetAudioCtx()?.resume?.().then(() => _v6PlaySuccess());
+  });
+  actions.appendChild(btn);
+}
+
+// ── V6.6 Milestone toast especial (usa toast existente) ───────
+function _v6GetMilestones() { return getJSON(_V6_MILESTONE_KEY, {}); }
+function _v6SetMilestone(key) {
+  const m = _v6GetMilestones();
+  if (m[key]) return false;
+  m[key] = Date.now();
+  setJSON(_V6_MILESTONE_KEY, m);
+  return true;
+}
+function _v6MilestoneToast(icon, msg) {
+  const tc = document.getElementById('erg-toast-container') || (() => {
+    const c = document.createElement('div');
+    c.id = 'erg-toast-container';
+    c.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:8px;z-index:2000;pointer-events:none;align-items:center;';
+    document.body.appendChild(c);
+    return c;
+  })();
+  const t = document.createElement('div');
+  t.className = 'erg-toast erg-toast-ok v6-milestone-toast';
+  t.style.pointerEvents = 'all';
+  t.innerHTML = `<span aria-hidden="true">${icon}</span><span>${escapeHTML(msg)}</span>`;
+  tc.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('toast-show'));
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 320); }, 4200);
+}
+
+// ── V6.7 Verificação de milestones ao carregar pacientes ──────
+function _v6CheckMilestones() {
+  const patients = window._allPatients || [];
+  if (!patients.length) return;
+
+  if (_v6SetMilestone('first-ever-load')) {
+    _v6MilestoneToast('🎉', 'Bem-vinda ao ERG 360! Sistema pronto.');
+    _v6PlayMilestone();
+    return;
+  }
+
+  const hoje     = new Date().toISOString().split('T')[0];
+  const ativos   = patients.filter(p => p.status === 'ativo');
+  const agendados = patients.filter(p => p.data_proxima_consulta === hoje);
+  const comCheckin = agendados.filter(p => p.ultimo_checkin === hoje);
+
+  if (agendados.length > 0 && comCheckin.length === agendados.length) {
+    if (_v6SetMilestone(`all-checkins-${hoje}`)) {
+      _v6MilestoneToast('✅', `Todos os ${agendados.length} pacientes de hoje fizeram check-in!`);
+      _v6Confetti({ count: 60, y: 0.22 });
+      _v6PlayMilestone();
+    }
+  }
+
+  if (ativos.length >= 10 && _v6SetMilestone('ten-active-patients')) {
+    _v6MilestoneToast('🌿', '10 pacientes ativos — clínica em pleno funcionamento!');
+    _v6PlaySuccess();
+  }
+
+  // Indicador visual de meta de adesão atingida (≥80%)
+  _v6MarkAdesaoMeta();
+}
+
+// ── V6.8 Progress ring SVG de check-ins do dia ────────────────
+function _v6RenderProgressRing() {
+  const patients = window._allPatients || [];
+  if (!patients.length) return;
+  const hoje      = new Date().toISOString().split('T')[0];
+  const agendados = patients.filter(p => p.data_proxima_consulta === hoje);
+  const feitos    = agendados.filter(p => p.ultimo_checkin === hoje);
+
+  const existing = document.getElementById('v6-progress-ring-wrapper');
+
+  if (!agendados.length) { existing?.remove(); return; }
+
+  const pct   = Math.round((feitos.length / agendados.length) * 100);
+  const r     = 18;
+  const circ  = 2 * Math.PI * r;
+  const dash  = (pct / 100) * circ;
+
+  if (existing) {
+    const circle = existing.querySelector('.v6-ring-fill');
+    const label  = existing.querySelector('.v6-ring-label');
+    if (circle) circle.style.strokeDasharray = `${dash} ${circ}`;
+    if (label)  label.textContent = pct + '%';
+    existing.setAttribute('aria-label', `${feitos.length} de ${agendados.length} check-ins hoje`);
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.id        = 'v6-progress-ring-wrapper';
+  wrapper.className = 'v6-progress-ring-wrapper';
+  wrapper.setAttribute('role', 'img');
+  wrapper.setAttribute('aria-label', `${feitos.length} de ${agendados.length} check-ins hoje`);
+  wrapper.innerHTML = `
+    <svg class="v6-ring-svg" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+      <circle class="v6-ring-track" cx="22" cy="22" r="${r}" fill="none" stroke-width="3"/>
+      <circle class="v6-ring-fill"  cx="22" cy="22" r="${r}" fill="none" stroke-width="3"
+        stroke-linecap="round"
+        stroke-dasharray="${dash} ${circ}"
+        transform="rotate(-90 22 22)"
+        style="transition:stroke-dasharray 0.7s ease"/>
+    </svg>
+    <div class="v6-ring-info">
+      <span class="v6-ring-label">${pct}%</span>
+      <span class="v6-ring-sub">check-ins hoje</span>
+    </div>`;
+
+  const heroRow = document.querySelector('.admin-hero-row,.hero-row')
+    || document.querySelector('[id*="kpi"]')?.parentElement?.parentElement;
+  if (heroRow) heroRow.appendChild(wrapper);
+}
+
+// ── V6.9 Easter egg no command palette — "confetti" ou "festa" ─
+function _v6InitCmdEasterEgg() {
+  const input = document.getElementById('cmd-input');
+  if (!input || input.dataset.v6egg) return;
+  input.dataset.v6egg = '1';
+  input.addEventListener('input', () => {
+    const val = input.value.trim().toLowerCase();
+    if (val !== 'confetti' && val !== 'festa' && val !== '🎉') return;
+    _v6Confetti({ count: 80, x: 0.5, y: 0.38 });
+    _v6PlayMilestone();
+    input.value = '';
+    document.getElementById('cmd-overlay')?.dispatchEvent(new MouseEvent('click'));
+  });
+}
+
+// ── V6.10 Sons ao copiar e ao exportar CSV ────────────────────
+function _v6PatchCopySoundAndCSV() {
+  if (window._v6SoundPatched) return;
+  window._v6SoundPatched = true;
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-copy]')) _v6PlayCopy();
+  }, { capture: true, passive: true });
+  const csvBtn = document.querySelector(
+    '[data-action="export-csv"],[id*="csv"],[onclick*="exportCSV" i],.export-csv-btn,#btn-export-csv'
+  );
+  if (csvBtn && !csvBtn.dataset.v6csvsnd) {
+    csvBtn.dataset.v6csvsnd = '1';
+    csvBtn.addEventListener('click', () => setTimeout(_v6PlaySuccess, 120), { passive: true });
+  }
+}
+
+// ── Util: marca KPI de adesão com badge dourado ───────────────
+function _v6MarkAdesaoMeta() {
+  const el = document.getElementById('kpi-adesao');
+  if (!el) return;
+  const val = parseFloat(el.textContent);
+  if (isNaN(val)) return;
+  const parent = el.closest('[class*="kpi"],[class*="card"]') || el.parentElement;
+  if (!parent) return;
+  parent.classList.toggle('v6-meta-atingida', val >= 80);
+}
+
+// ── V6 DOMContentLoaded ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v6InjectStreakBadge();
+  _v6InjectSoundToggle();
+  requestAnimationFrame(() => {
+    _v6InitCmdEasterEgg();
+    _v6PatchCopySoundAndCSV();
+  });
+  // Aguarda pacientes carregarem antes de verificar milestones e ring
+  let _v6WaitAttempts = 0;
+  const _v6WaitPatients = () => {
+    if (window._allPatients?.length) {
+      _v6CheckMilestones();
+      _v6RenderProgressRing();
+      return;
+    }
+    if (++_v6WaitAttempts < 20) setTimeout(_v6WaitPatients, 500);
+  };
+  setTimeout(_v6WaitPatients, 900);
+});
+
+// Expõe para hooks externos
+if (window._adminExtras) {
+  Object.assign(window._adminExtras, {
+    _v6Confetti,
+    _v6PlayTone,
+    _v6MilestoneToast,
+    _v6RenderProgressRing,
+    _v6CheckMilestones,
+  });
+}

@@ -456,3 +456,203 @@ Object.assign(window._diarioExtras, {
   announceDateChange: _announceDateChange,
   syncAdesaoAria:     _syncAdesaoAria,
 });
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: rIC, Page Visibility, IntersectionObserver,
+// prefetch Supabase, ResizeObserver, cache de streak, limpeza de drafts,
+// CSS contain, scroll-snap mobile, performance marks
+
+// ── P1. requestIdleCallback com fallback + guard de rede ─────────────────────
+const _rIC = typeof requestIdleCallback !== 'undefined'
+  ? (cb, opts) => requestIdleCallback(cb, opts)
+  : cb => setTimeout(cb, 80);
+
+function _canPrefetch() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn) return true;
+  if (conn.saveData) return false;
+  return !['slow-2g', '2g'].includes(conn.effectiveType ?? '');
+}
+
+// ── P2. Page Visibility: flush imediato de rascunho ao ocultar aba ───────────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && _dirty) _saveDraft();
+});
+
+// ── P3. Limpeza automática de rascunhos com +30 dias via rIC ─────────────────
+_rIC(() => {
+  const TTL = 30 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('erg_diario_draft_'))
+      .forEach(k => {
+        const dateStr = k.replace('erg_diario_draft_', '');
+        const t = new Date(dateStr + 'T12:00:00').getTime();
+        if (!isNaN(t) && now - t > TTL) localStorage.removeItem(k);
+      });
+  } catch (_) {}
+}, { timeout: 10000 });
+
+// ── P4. Prefetch Supabase de datas adjacentes (armazena em Map) ───────────────
+const _diarioPrefetchCache = new Map();
+
+async function _prefetchDiarioDate(dateISO) {
+  if (!_canPrefetch()) return;
+  if (_diarioPrefetchCache.has(dateISO)) return;
+  const sb = window._supabase;
+  if (!sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    _diarioPrefetchCache.set(dateISO, '__pending__');
+    const { data } = await sb
+      .from('diario_alimentar')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('data', dateISO)
+      .maybeSingle();
+    _diarioPrefetchCache.set(dateISO, data ?? null);
+  } catch (_) {
+    _diarioPrefetchCache.delete(dateISO);
+  }
+}
+
+// ── P5. Hover/focus nos botões de nav dispara prefetch ───────────────────────
+function _initNavPrefetch() {
+  const navBtns = document.querySelectorAll('.diario-nav-btn');
+  const getAdjacentDate = (delta) => {
+    const val = document.getElementById('diario-date-input')?.value;
+    if (!val) return null;
+    const d = new Date(val + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    return d.toISOString().split('T')[0];
+  };
+  navBtns[0]?.addEventListener('mouseenter', () => {
+    const dt = getAdjacentDate(-1); if (dt) _prefetchDiarioDate(dt);
+  }, { passive: true });
+  navBtns[0]?.addEventListener('focusin', () => {
+    const dt = getAdjacentDate(-1); if (dt) _prefetchDiarioDate(dt);
+  }, { passive: true });
+  navBtns[1]?.addEventListener('mouseenter', () => {
+    const dt = getAdjacentDate(+1); if (dt) _prefetchDiarioDate(dt);
+  }, { passive: true });
+  navBtns[1]?.addEventListener('focusin', () => {
+    const dt = getAdjacentDate(+1); if (dt) _prefetchDiarioDate(dt);
+  }, { passive: true });
+}
+
+// ── P6. IntersectionObserver: adia animação de cards abaixo da fold ──────────
+function _initCardScrollAnim() {
+  if (!window.IntersectionObserver) return;
+  const cards = document.querySelectorAll('.diario-refeicao');
+  const vH = window.innerHeight || document.documentElement.clientHeight;
+
+  const belowFold = Array.from(cards).filter(c => c.getBoundingClientRect().top >= vH - 20);
+  if (!belowFold.length) return;
+
+  belowFold.forEach(c => {
+    c.classList.remove('diario-ref--enter');
+    c.style.opacity = '0';
+    c.style.transform = 'translateY(10px)';
+    c.style.willChange = 'opacity, transform';
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(({ isIntersecting, target }) => {
+      if (!isIntersecting) return;
+      target.style.opacity = '';
+      target.style.transform = '';
+      target.classList.add('diario-ref--enter');
+      io.unobserve(target);
+      target.addEventListener('animationend', () => {
+        target.style.willChange = '';
+      }, { once: true });
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+
+  belowFold.forEach(c => io.observe(c));
+}
+
+// ── P7. sessionStorage cache para streak (TTL 90 s) ──────────────────────────
+const _STREAK_CACHE_K = 'erg_streak_v4';
+
+function _getCachedStreak() {
+  try {
+    const raw = sessionStorage.getItem(_STREAK_CACHE_K);
+    if (!raw) return null;
+    const { v, t } = JSON.parse(raw);
+    return Date.now() - t < 90000 ? v : null;
+  } catch (_) { return null; }
+}
+
+function _setCachedStreak(v) {
+  try {
+    sessionStorage.setItem(_STREAK_CACHE_K, JSON.stringify({ v, t: Date.now() }));
+  } catch (_) {}
+}
+
+// Invalida cache quando historico muda (V1 já recomputa; só invalida o cache)
+(function () {
+  const list = document.getElementById('diario-historico-list');
+  if (!list) return;
+  new MutationObserver(() => sessionStorage.removeItem(_STREAK_CACHE_K))
+    .observe(list, { childList: true, subtree: true });
+})();
+
+// ── P8. ResizeObserver: auto-resize textareas ao mudar layout externo ─────────
+function _initResizeObserver() {
+  if (!window.ResizeObserver) return;
+  let _roThrottle = false;
+  const ro = new ResizeObserver(entries => {
+    if (_roThrottle) return;
+    _roThrottle = true;
+    requestAnimationFrame(() => {
+      entries.forEach(({ target }) => {
+        Array.from(target.querySelectorAll('.diario-textarea')).forEach(ta => {
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        });
+      });
+      _roThrottle = false;
+    });
+  });
+  document.querySelectorAll('.diario-refeicao').forEach(c => ro.observe(c));
+}
+
+// ── P9. Performance marks para diagnóstico de init ───────────────────────────
+if (typeof performance?.mark === 'function') {
+  performance.mark('diario-v4:start');
+  window.addEventListener('load', () => {
+    try {
+      performance.mark('diario-v4:loaded');
+      performance.measure('diario-v4:init-to-load', 'diario-v4:start', 'diario-v4:loaded');
+    } catch (_) {}
+  }, { once: true });
+}
+
+// ── P10. content-visibility: auto no historico para pular render fora da view ─
+_rIC(() => {
+  const hist = document.getElementById('diario-historico')
+             ?? document.querySelector('.diario-historico');
+  if (!hist) return;
+  if (CSS?.supports?.('content-visibility', 'auto')) {
+    hist.style.contentVisibility = 'auto';
+    hist.style.containIntrinsicSize = '0 380px';
+  }
+}, { timeout: 4000 });
+
+// ── V4 INIT ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _initNavPrefetch();
+  _initResizeObserver();
+  setTimeout(_initCardScrollAnim, 0); // após _staggerCards do V1
+});
+
+Object.assign(window._diarioExtras, {
+  prefetchDiarioDate: _prefetchDiarioDate,
+  prefetchCache:      _diarioPrefetchCache,
+  getCachedStreak:    _getCachedStreak,
+  canPrefetch:        _canPrefetch,
+  rIC:                _rIC,
+});

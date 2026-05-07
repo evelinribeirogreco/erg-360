@@ -857,3 +857,169 @@ if (document.readyState === 'loading') {
 } else {
   _initV3();
 }
+
+// ═══ POLIMENTO V4 ═══
+// Performance: debounce/throttle, requestIdleCallback, RAF batching,
+// Page Visibility API, prefetch, ResizeObserver, MutationObserver
+
+// ── V4.1 — DEBOUNCE + THROTTLE UTILITIES ────────────────────
+function _debounce(fn, ms) {
+  let t = null;
+  return function (...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+function _throttle(fn, ms) {
+  let last = 0, pending = null;
+  return function (...args) {
+    const now = Date.now();
+    if (now - last >= ms) { last = now; fn.apply(this, args); }
+    else {
+      clearTimeout(pending);
+      pending = setTimeout(() => { last = Date.now(); fn.apply(this, args); }, ms - (now - last));
+    }
+  };
+}
+
+// ── V4.2 — requestIdleCallback SHIM + SCHEDULER ─────────────
+const _ric = window.requestIdleCallback
+  ? window.requestIdleCallback.bind(window)
+  : (cb, opts) => setTimeout(cb, Math.min((opts && opts.timeout) || 1, 50));
+
+function _scheduleIdle(fn) {
+  _ric(() => { try { fn(); } catch (_) {} }, { timeout: 4000 });
+}
+
+// ── V4.3 — PAGE VISIBILITY API: SAVE IMMEDIATELY ON TAB HIDE ─
+function _initPageVisibilityPause() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearTimeout(_autosaveTimer);
+      _saveDraft();
+    }
+  }, { passive: true });
+}
+
+// ── V4.4 — PREFETCH ADJACENT PAGES IN IDLE TIME ─────────────
+function _initPrefetch() {
+  _scheduleIdle(() => {
+    ['checkin.html', 'dashboard.html', 'diario.html'].forEach(href => {
+      if (document.head.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+      const lnk = document.createElement('link');
+      lnk.rel = 'prefetch';
+      lnk.href = href;
+      lnk.as = 'document';
+      document.head.appendChild(lnk);
+    });
+  });
+}
+
+// ── V4.5 — IntersectionObserver: RESULT SECTION ENTRANCE ────
+function _initResultSectionEntrance() {
+  const section = $('resultado-tabela-wrap') || document.querySelector('.resultado-section');
+  if (!section || section.classList.contains('erg-resultado-visible')) return;
+  const io = new IntersectionObserver(([entry]) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('erg-resultado-visible');
+      io.disconnect();
+    }
+  }, { threshold: 0.05 });
+  io.observe(section);
+}
+
+// ── V4.6 — RAF-BATCHED COMPLETION + MILESTONE UPDATES ────────
+let _pendingCompletionRaf = false;
+
+function _scheduleCompletionUpdate() {
+  if (_pendingCompletionRaf) return;
+  _pendingCompletionRaf = true;
+  requestAnimationFrame(() => {
+    _pendingCompletionRaf = false;
+    _updateCompletion();
+    _checkCompletionMilestone();
+  });
+}
+
+// ── V4.7 — ResizeObserver: TOOLTIP VIEWPORT OVERFLOW FIX ─────
+function _initTooltipResizeObserver() {
+  if (!('ResizeObserver' in window)) return;
+  const ro = new ResizeObserver(_debounce(() => {
+    document.querySelectorAll('.erg-tooltip-box').forEach(box => {
+      box.style.removeProperty('--tt-offset');
+      const r = box.getBoundingClientRect();
+      const overRight = r.right - (window.innerWidth - 8);
+      const overLeft  = 8 - r.left;
+      if (overRight > 0) box.style.setProperty('--tt-offset', `-${overRight}px`);
+      else if (overLeft > 0) box.style.setProperty('--tt-offset', `${overLeft}px`);
+    });
+  }, 120));
+  ro.observe(document.body);
+}
+
+// ── V4.8 — MutationObserver: REACTIVE IMC CHIP UPDATES ───────
+function _initIMCMutationWatch() {
+  const target = $('imc-class') || document.querySelector('.imc-classification');
+  if (!target) return;
+  let _prevVal = '';
+  new MutationObserver(_throttle(() => {
+    const cur = $('imc')?.value || '';
+    if (cur !== _prevVal) { _prevVal = cur; _updateIMCChip(); }
+  }, 250)).observe(target, { childList: true, characterData: true, subtree: true });
+}
+
+// ── V4.9 — DEBOUNCED + THROTTLED FORM INPUT HANDLERS ─────────
+function _initDebouncedFormHandlers() {
+  const debouncedSave    = _debounce(_saveDraft, 7000);
+  const debouncedSidebar = _debounce(_updateSidebarMarks, 200);
+  const throttledFill    = _throttle(_scheduleCompletionUpdate, 150);
+
+  document.getElementById('antro-form')?.addEventListener('input', () => {
+    debouncedSave();
+    debouncedSidebar();
+    throttledFill();
+  }, { passive: true });
+}
+
+// ── V4.10 — IDLE-DEFERRED LOW-PRIORITY OPS ───────────────────
+function _initIdleDeferredOps() {
+  _scheduleIdle(_fixTabOrder);
+  _scheduleIdle(() => _initTooltipKeyboard());
+  _scheduleIdle(() => {
+    new MutationObserver(_debounce(() => {
+      document.querySelectorAll('.circ-form-table:not([data-v4-watched])').forEach(t => {
+        t.setAttribute('data-v4-watched', '1');
+        if (!t.querySelector('tfoot')) _initCopyBilateral();
+      });
+    }, 600)).observe(
+      document.getElementById('antro-form') || document.body,
+      { childList: true, subtree: true }
+    );
+  });
+}
+
+// ── V4 — INIT ────────────────────────────────────────────────
+function _initV4() {
+  _initPageVisibilityPause();
+  _initPrefetch();
+  _initResultSectionEntrance();
+  _initTooltipResizeObserver();
+  _initIMCMutationWatch();
+  _initDebouncedFormHandlers();
+  _initIdleDeferredOps();
+}
+
+// Estende API pública com utilitários V4
+Object.assign(window._antropometriaExtras, {
+  debounce:                 _debounce,
+  throttle:                 _throttle,
+  scheduleIdle:             _scheduleIdle,
+  scheduleCompletionUpdate: _scheduleCompletionUpdate,
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV4);
+} else {
+  _initV4();
+}

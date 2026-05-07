@@ -1,5 +1,6 @@
-/* ═══ POLIMENTO V1 ═══ */
+/* ═══ POLIMENTO V2 ═══ */
 /* css/admin-relatorio-extras.css — ERG 360 */
+/* 22 melhorias UX: acessibilidade, produtividade clínica, dark mode, exportação */
 
 /* ── 1. Skip link ─────────────────────────────────────────── */
 .erg-skip-link {
@@ -78,7 +79,7 @@
 }
 @keyframes erg-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.45; transform: scale(0.75); }
+  50% { opacity: 0.45; transform: scale(0.75); }
 }
 
 /* ── 6. Animações de entrada escalonadas ──────────────────── */
@@ -86,7 +87,6 @@
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 0.45s ease, transform 0.45s ease;
-  transition-delay: var(--erg-delay, 0ms);
 }
 .erg-card-anim.erg-card-visible {
   opacity: 1;
@@ -96,7 +96,7 @@
 /* ── 7. Pulso no semáforo crítico ─────────────────────────── */
 @keyframes erg-sem-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(179, 48, 48, 0.35); }
-  55%      { box-shadow: 0 0 0 7px rgba(179, 48, 48, 0); }
+  55% { box-shadow: 0 0 0 7px rgba(179, 48, 48, 0); }
 }
 .erg-semaforo-critico {
   animation: erg-sem-pulse 2.2s ease-in-out infinite;
@@ -171,11 +171,596 @@
   white-space: nowrap;
 }
 
-/* ── Print: oculta extras ─────────────────────────────────── */
+/* ── 18. Badge contagem de palavras ──────────────────────── */
+.erg-word-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.67rem;
+  color: var(--sub, #9A7D5E);
+  background: var(--bg2, #f0ede6);
+  border: 1px solid var(--border, #E0DBD0);
+  padding: 2px 9px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ── 16. Dark Mode ───────────────────────────────────────── */
+body.erg-dark-mode {
+  --bg-primary: #1A1A16;
+  --bg-secondary: #212118;
+  --bg-card: #26261E;
+  --bg2: #212118;
+  --text: #E8E4D8;
+  --text-light: #9E9A8E;
+  --subtitle: #9E9A8E;
+  --sub: #9E9A8E;
+  --border: #3A3A30;
+  --detail: #3D9B87;
+  --accent: #4CB8A0;
+  background-color: #1A1A16;
+  color: #E8E4D8;
+}
+body.erg-dark-mode .sidebar {
+  background: #212118 !important;
+  border-right-color: #3A3A30 !important;
+}
+body.erg-dark-mode .mobile-header {
+  background: #26261E !important;
+  border-bottom-color: #3A3A30 !important;
+}
+body.erg-dark-mode .rel-card,
+body.erg-dark-mode .rel-sug-card {
+  background: #26261E;
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .rel-peso-card {
+  background: #212118;
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .rel-agenda-item {
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .rel-agenda-grid {
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .rel-comp-bar-bg {
+  background: #3A3A30;
+}
+body.erg-dark-mode .erg-rel-toast {
+  background: #26261E;
+  color: #E8E4D8;
+}
+body.erg-dark-mode .erg-notes-panel {
+  background: #26261E;
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .erg-notes-textarea {
+  background: #212118;
+  color: #E8E4D8;
+  border-color: #3A3A30;
+}
+body.erg-dark-mode .erg-notes-header {
+  border-bottom-color: #3A3A30;
+}
+body.erg-dark-mode .erg-notes-footer {
+  border-top-color: #3A3A30;
+}
+body.erg-dark-mode .erg-notes-title {
+  color: #E8E4D8;
+}
+body.erg-dark-mode .erg-timestamp,
+body.erg-dark-mode .erg-word-count {
+  background: #212118;
+  color: #9E9A8E;
+}
+
+/* ── 17. Modo apresentação ───────────────────────────────── */
+body.erg-presentation-mode .sidebar,
+body.erg-presentation-mode .mobile-header,
+body.erg-presentation-mode .admin-back-bottom,
+body.erg-presentation-mode .sidebar-overlay {
+  display: none !important;
+}
+body.erg-presentation-mode .dashboard-layout {
+  display: block !important;
+}
+body.erg-presentation-mode .main-content {
+  margin-left: 0 !important;
+  padding: 32px !important;
+  max-width: 900px !important;
+  margin-right: auto !important;
+}
+
+.erg-exit-presentation {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 9998;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  transition: background 0.2s;
+}
+.erg-exit-presentation:hover {
+  background: var(--accent-hover, #225041);
+}
+.erg-exit-presentation:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── 19. Print header ────────────────────────────────────── */
+#erg-print-header {
+  display: none;
+}
+.erg-print-header-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #4CB8A0;
+  margin-bottom: 20px;
+}
+.erg-print-clinic-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1A1A16;
+  margin: 0 0 4px;
+}
+.erg-print-clinic-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.66rem;
+  color: #6B6659;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.erg-print-date-val {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1A1A16;
+  margin: 0 0 2px;
+  text-align: right;
+}
+.erg-print-date-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: #6B6659;
+  margin: 0;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── 20. Assinatura digital ──────────────────────────────── */
+#erg-signature-footer {
+  display: none;
+  margin-top: 40px;
+}
+.erg-sig-line {
+  height: 1px;
+  background: #4CB8A0;
+  margin-bottom: 16px;
+}
+.erg-sig-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.erg-sig-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1A1A16;
+  margin: 0 0 3px;
+}
+.erg-sig-role {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: #6B6659;
+  margin: 0 0 2px;
+}
+.erg-sig-date {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: #9A7D5E;
+  margin: 0;
+}
+.erg-sig-stamp {
+  border: 1.5px solid #4CB8A0;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.erg-sig-stamp-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4CB8A0;
+  margin: 0;
+  line-height: 1;
+}
+.erg-sig-stamp-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.48rem;
+  color: #4CB8A0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 2px 0 0;
+}
+
+/* ── 21. Painel de notas clínicas ────────────────────────── */
+.erg-notes-panel {
+  position: fixed;
+  bottom: 0;
+  right: 72px;
+  z-index: 900;
+  width: 320px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--detail, #4CB8A0);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.erg-notes-panel.open {
+  transform: translateY(0);
+}
+.erg-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border, #E0DBD0);
+}
+.erg-notes-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.erg-notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.erg-notes-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-light, #6B6659);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.erg-notes-action-btn:hover {
+  background: var(--accent-dim, rgba(76, 184, 160, 0.12));
+  color: var(--accent, #2D6A56);
+}
+.erg-notes-action-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.erg-notes-action-btn.erg-notes-voice-active {
+  color: #B33030;
+  background: rgba(179, 48, 48, 0.1);
+  animation: erg-voice-pulse 1.5s ease-in-out infinite;
+}
+@keyframes erg-voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(179, 48, 48, 0.3); }
+  50% { box-shadow: 0 0 0 5px rgba(179, 48, 48, 0); }
+}
+.erg-notes-textarea {
+  width: 100%;
+  height: 160px;
+  padding: 10px 14px;
+  border: none;
+  resize: vertical;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text, #1A1A16);
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+}
+.erg-notes-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px 10px;
+  border-top: 1px solid var(--border, #E0DBD0);
+}
+.erg-notes-status {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  color: var(--detail, #4CB8A0);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.erg-notes-status.erg-notes-status-show {
+  opacity: 1;
+}
+.erg-notes-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--sub, #9A7D5E);
+  opacity: 0.7;
+}
+
+/* ── Print: oculta extras, exibe header e assinatura ──────── */
 @media print {
   .erg-skip-link,
   .erg-rel-toast,
   .erg-back-top,
-  #erg-aria-live { display: none !important; }
-  .erg-card-anim { opacity: 1 !important; transform: none !important; }
+  #erg-aria-live,
+  .erg-notes-panel,
+  #btn-notas,
+  .erg-exit-presentation {
+    display: none !important;
+  }
+  .erg-card-anim {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #erg-print-header {
+    display: block !important;
+  }
+  #erg-signature-footer {
+    display: block !important;
+  }
+}
+
+/* ── Sem movimento (prefers-reduced-motion) ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .erg-card-anim {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .erg-semaforo-critico {
+    animation: none !important;
+  }
+  .erg-toast-dot {
+    animation: none !important;
+  }
+  .erg-notes-action-btn.erg-notes-voice-active {
+    animation: none !important;
+  }
+  .erg-notes-panel {
+    transition: none !important;
+  }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .erg-notes-panel {
+    right: 0;
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+  }
+}
+
+/* ═══ POLIMENTO V3 ═══ */
+
+/* V3-1. prefers-reduced-motion — desativa animações para quem prefere */
+@media (prefers-reduced-motion: reduce) {
+  .erg-card-anim {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .erg-rel-toast,
+  .erg-back-top {
+    transition: none !important;
+  }
+  .erg-semaforo-critico {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(179, 48, 48, 0.4) !important;
+  }
+  .erg-toast-dot {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .rel-comp-bar-fill {
+    transition: none !important;
+  }
+}
+
+/* V3-2. Focus ring consistente e visível em todos os elementos interativos */
+.sidebar-nav .nav-item:focus-visible,
+.logout-btn:focus-visible,
+.hamburger:focus-visible,
+#btn-imprimir:focus-visible,
+#btn-ver-checkins:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* V3-3. aria-current — destaque visual na página ativa */
+.sidebar-nav [aria-current="page"] {
+  background: var(--detail, #4CB8A0);
+  color: #fff !important;
+  border-radius: 2px;
+}
+.sidebar-nav [aria-current="page"]:hover {
+  background: var(--accent, #2D6A56);
+}
+.sidebar-nav [aria-current="page"] svg {
+  stroke: #fff;
+}
+
+/* V3-4. Alto contraste (forced-colors / prefers-contrast) */
+@media (forced-colors: active) {
+  .erg-rel-toast,
+  .erg-back-top,
+  .erg-retry-btn {
+    border: 2px solid ButtonText;
+    forced-color-adjust: none;
+  }
+  .erg-toast-dot {
+    background: ButtonText;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .erg-rel-toast {
+    border: 2px solid var(--accent, #2D6A56);
+    box-shadow: none;
+  }
+  .erg-timestamp {
+    border: 2px solid var(--detail, #4CB8A0);
+    font-weight: 600;
+  }
+  .rel-comp-label,
+  .rel-k {
+    color: var(--text, #1a1a1a);
+  }
+  .erg-back-top {
+    box-shadow: 0 0 0 2px var(--accent, #2D6A56);
+  }
+}
+
+/* V3-5. Print — rodapé com tempo de geração quando disponível */
+@media print {
+  #rel-mount[data-render-ms]::after {
+    content: 'Gerado em ' attr(data-render-ms) 'ms · ERG 360';
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.6rem;
+    color: #999;
+    text-align: right;
+    margin-top: 32px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+  }
+}
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* V4-4. Sticky compact patient bar */
+.erg-sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 24px;
+  background: var(--bg-primary, #F7F6F2);
+  border-bottom: 1px solid var(--detail, #4CB8A0);
+  opacity: 0;
+  transform: translateY(-100%);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.erg-sticky-bar.erg-sticky-bar-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.erg-sticky-bar-nome {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.erg-sticky-bar-sem {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* V4-5. Slow connection — suprime transições e animações NH */
+body.erg-slow-connection .erg-card-anim,
+body.erg-slow-connection .erg-rel-toast,
+body.erg-slow-connection .erg-back-top,
+body.erg-slow-connection .erg-notes-panel,
+body.erg-slow-connection .erg-sticky-bar {
+  transition: none !important;
+  animation: none !important;
+}
+body.erg-slow-connection .erg-card-anim {
+  opacity: 1 !important;
+  transform: none !important;
+}
+body.erg-slow-connection .erg-sticky-bar {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* V4-6. Print — inclui timing de navegação no rodapé */
+@media print {
+  #rel-mount[data-dom-interactive]::after {
+    content: 'DOM: ' attr(data-dom-interactive) 'ms · Total: ' attr(data-load-total) 'ms · ERG 360';
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.58rem;
+    color: #aaa;
+    text-align: right;
+    margin-top: 8px;
+  }
+  .erg-sticky-bar {
+    display: none !important;
+  }
+}
+
+/* V4-7. ResizeObserver — suaviza transição de reflow nos grids */
+.rel-sug-grid,
+.rel-agenda-grid {
+  transition: grid-template-columns 0.18s ease;
+}
+
+/* V4-2/V4-4. Dark mode para sticky bar */
+body.erg-dark-mode .erg-sticky-bar {
+  background: var(--bg-primary, #1A1A16);
+  border-bottom-color: var(--border, #3A3A30);
+}
+
+/* V4. Sem movimento */
+@media (prefers-reduced-motion: reduce) {
+  .erg-sticky-bar {
+    transition: none !important;
+  }
+  .rel-sug-grid,
+  .rel-agenda-grid {
+    transition: none !important;
+  }
 }

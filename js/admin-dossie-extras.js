@@ -1098,3 +1098,404 @@ window._adminDossieExtras = (() => {
     announce: announce,
   };
 })();
+
+// ═══ POLIMENTO V2 ═══
+// Micro-interações · hover states · animações sutis · ripples — 10 melhorias
+(function () {
+  'use strict';
+
+  // V2.1 Ripple effect on toolbar buttons
+  function injectRippleEffect() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.ded-toolbar-btn');
+      if (!btn) return;
+      var rect = btn.getBoundingClientRect();
+      var ripple = document.createElement('span');
+      ripple.className = 'ded-ripple';
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top = (e.clientY - rect.top) + 'px';
+      btn.style.position = btn.style.position || 'relative';
+      btn.style.overflow = 'hidden';
+      btn.appendChild(ripple);
+      setTimeout(function () { if (ripple.parentNode) ripple.remove(); }, 520);
+    });
+  }
+
+  // V2.2 Count-up animation on insights panel counter
+  function animateInsightsCount() {
+    var countEl = document.querySelector('.ded-insights-count');
+    if (!countEl || countEl.dataset.v2Animated) return;
+    var target = parseInt(countEl.textContent.trim(), 10);
+    if (!target || isNaN(target) || target <= 1) return;
+    countEl.dataset.v2Animated = '1';
+    var duration = 560;
+    var startTime = performance.now();
+    function step(now) {
+      var t = Math.min((now - startTime) / duration, 1);
+      var ease = 1 - Math.pow(1 - t, 3);
+      countEl.textContent = Math.round(ease * target);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // V2.3 Scroll-reveal fade-in for sections
+  function initScrollReveal() {
+    if (!window.IntersectionObserver) return;
+    var viewH = window.innerHeight;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('ded-revealed');
+        obs.unobserve(entry.target);
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -16px 0px' });
+
+    document.querySelectorAll('.dos-secao:not(.ded-revealed), .dos-capa:not(.ded-revealed)').forEach(function (el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < viewH) {
+        el.classList.add('ded-revealed');
+      } else {
+        el.classList.add('ded-reveal-ready');
+        obs.observe(el);
+      }
+    });
+  }
+
+  // V2.4 Search bar shake animation on zero results
+  function wireSearchShake() {
+    var countEl = document.getElementById('ded-search-count');
+    if (!countEl) return;
+    var obs = new MutationObserver(function () {
+      if (countEl.textContent.trim() !== 'Nenhum') return;
+      var bar = document.getElementById('ded-search-bar');
+      if (!bar) return;
+      bar.classList.remove('ded-search-shake');
+      void bar.offsetWidth;
+      bar.classList.add('ded-search-shake');
+      setTimeout(function () { bar.classList.remove('ded-search-shake'); }, 420);
+    });
+    obs.observe(countEl, { childList: true, characterData: true, subtree: true });
+  }
+
+  // V2.5 Tag pill staggered entrance animation
+  function wireTagEntrance() {
+    document.querySelectorAll('.ded-tags-area .ded-tag:not([data-v2-enter])').forEach(function (tag, i) {
+      tag.dataset.v2Enter = '1';
+      tag.style.animationDelay = (i * 55) + 'ms';
+      tag.classList.add('ded-tag-enter');
+    });
+  }
+
+  // V2.6 Note area slide-down animation on show
+  function wireNoteSlideIn() {
+    var root = document.getElementById('dos-mount') || document.body;
+    var obs = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mut) {
+        var tgt = mut.target;
+        if (
+          mut.type === 'attributes' &&
+          mut.attributeName === 'style' &&
+          tgt.classList && tgt.classList.contains('ded-note-area') &&
+          tgt.style.display === 'block'
+        ) {
+          tgt.classList.remove('ded-note-slide-in');
+          void tgt.offsetWidth;
+          tgt.classList.add('ded-note-slide-in');
+        }
+      });
+    });
+    obs.observe(root, { attributes: true, attributeFilter: ['style'], subtree: true });
+  }
+
+  // V2.7 Insights panel entrance animation
+  function animateInsightsPanelEntrance() {
+    var panel = document.getElementById('ded-insights-panel');
+    if (!panel || panel.dataset.v2Entered) return;
+    panel.dataset.v2Entered = '1';
+    panel.classList.add('ded-insights-enter');
+    animateInsightsCount();
+  }
+
+  // V2.8 Re-run tag entrance after tag modal saves
+  function watchTagModalSave() {
+    document.addEventListener('click', function (e) {
+      if (!e.target || e.target.id !== 'ded-tags-save') return;
+      setTimeout(wireTagEntrance, 80);
+    });
+  }
+
+  function onDossierReadyV2() {
+    setTimeout(function () {
+      animateInsightsPanelEntrance();
+      initScrollReveal();
+      wireTagEntrance();
+    }, 200);
+  }
+
+  function setupV2Observer() {
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      onDossierReadyV2();
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      onDossierReadyV2();
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+  }
+
+  function initV2() {
+    injectRippleEffect();
+    wireSearchShake();
+    wireNoteSlideIn();
+    watchTagModalSave();
+    setupV2Observer();
+    setTimeout(wireTagEntrance, 650);
+  }
+
+  document.addEventListener('DOMContentLoaded', initV2);
+})();
+
+// ═══ POLIMENTO V3 ═══
+// Acessibilidade avançada: focus traps · roving tabindex · aria-controls · reduced-motion — 10 melhorias
+(function () {
+  'use strict';
+
+  // ─── V3.1 Focus trap utility ──────────────────────────────────
+  var _FOCUSABLE = [
+    'a[href]:not([disabled])',
+    'button:not([disabled])',
+    'textarea:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+
+  function createFocusTrap(container) {
+    function getFocusable() {
+      return Array.prototype.slice.call(container.querySelectorAll(_FOCUSABLE))
+        .filter(function (el) { return el.offsetParent !== null; });
+    }
+    function handleTab(e) {
+      if (e.key !== 'Tab') return;
+      var els = getFocusable();
+      if (!els.length) { e.preventDefault(); return; }
+      var first = els[0], last = els[els.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first || !container.contains(document.activeElement)) {
+          e.preventDefault(); last.focus();
+        }
+      } else {
+        if (document.activeElement === last || !container.contains(document.activeElement)) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    }
+    return {
+      activate: function () {
+        container.addEventListener('keydown', handleTab);
+        var els = getFocusable();
+        if (els.length) els[0].focus();
+      },
+      deactivate: function () {
+        container.removeEventListener('keydown', handleTab);
+      }
+    };
+  }
+
+  // ─── V3.2 Focus restoration ───────────────────────────────────
+  var _savedFocus = null;
+  function saveFocus() { _savedFocus = document.activeElement; }
+  function restoreFocus() {
+    if (_savedFocus && typeof _savedFocus.focus === 'function') {
+      try { _savedFocus.focus(); } catch (e) { /* ignore */ }
+      _savedFocus = null;
+    }
+  }
+
+  // ─── V3.3 ToC panel: focus trap + restoration ─────────────────
+  function patchTocFocusTrap() {
+    var panel = document.getElementById('ded-toc-panel');
+    if (!panel || panel.dataset.v3Trap) return;
+    panel.dataset.v3Trap = '1';
+    var trap = createFocusTrap(panel);
+    new MutationObserver(function () {
+      if (panel.classList.contains('ded-toc-open')) {
+        saveFocus();
+        trap.activate();
+      } else {
+        trap.deactivate();
+        restoreFocus();
+      }
+    }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // ─── V3.4 Tags modal: focus trap via body MutationObserver ────
+  function patchTagsModalFocusTrap() {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (mut) {
+        mut.addedNodes.forEach(function (node) {
+          if (!node.classList || !node.classList.contains('ded-tags-modal')) return;
+          if (node.dataset.v3Trap) return;
+          node.dataset.v3Trap = '1';
+          saveFocus();
+          var box = node.querySelector('.ded-tags-modal-box') || node;
+          var trap = createFocusTrap(box);
+          trap.activate();
+          var release = function () { trap.deactivate(); restoreFocus(); };
+          var cancel = node.querySelector('#ded-tags-cancel');
+          var save = node.querySelector('#ded-tags-save');
+          if (cancel) cancel.addEventListener('click', release, { once: true });
+          if (save) save.addEventListener('click', release, { once: true });
+          new MutationObserver(function (_, obs) {
+            if (!document.body.contains(node)) { obs.disconnect(); trap.deactivate(); restoreFocus(); }
+          }).observe(document.body, { childList: true });
+        });
+      });
+    }).observe(document.body, { childList: true });
+  }
+
+  // ─── V3.5 Keyboard help overlay: focus trap ───────────────────
+  function patchKbFocusTrap() {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (mut) {
+        mut.addedNodes.forEach(function (node) {
+          if (!node.id || node.id !== 'ded-kb-overlay') return;
+          saveFocus();
+          var trap = createFocusTrap(node);
+          trap.activate();
+          var release = function () { trap.deactivate(); restoreFocus(); };
+          var closeBtn = node.querySelector('#ded-kb-close');
+          if (closeBtn) closeBtn.addEventListener('click', release, { once: true });
+          new MutationObserver(function (_, obs) {
+            if (!document.body.contains(node)) { obs.disconnect(); trap.deactivate(); restoreFocus(); }
+          }).observe(document.body, { childList: true });
+        });
+      });
+    }).observe(document.body, { childList: true });
+  }
+
+  // ─── V3.6 Arrow key navigation in ToC list ────────────────────
+  function wireRovingToc() {
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      var panel = document.getElementById('ded-toc-panel');
+      if (!panel || !panel.classList.contains('ded-toc-open')) return;
+      if (!panel.contains(document.activeElement)) return;
+      var items = Array.prototype.slice.call(panel.querySelectorAll('.ded-toc-item'));
+      if (!items.length) return;
+      var idx = items.indexOf(document.activeElement);
+      e.preventDefault();
+      var next = e.key === 'ArrowDown'
+        ? items[idx === -1 ? 0 : (idx + 1) % items.length]
+        : items[idx === -1 ? items.length - 1 : (idx - 1 + items.length) % items.length];
+      next.focus();
+    });
+  }
+
+  // ─── V3.7 aria-controls: section headers → section bodies ─────
+  function wireAriaControls() {
+    var counter = 0;
+    document.querySelectorAll('.dos-secao:not([data-v3-ctrl])').forEach(function (sec) {
+      sec.dataset.v3Ctrl = '1';
+      var header = sec.querySelector('.dos-sec-header');
+      var body = sec.querySelector('.ded-section-body');
+      if (!header || !body) return;
+      if (!body.id) body.id = 'ded-body-' + (counter++);
+      header.setAttribute('aria-controls', body.id);
+    });
+  }
+
+  // ─── V3.8 Toolbar roving tabindex (Left/Right arrows) ─────────
+  function wireToolbarRovingTabindex() {
+    var toolbar = document.getElementById('ded-toolbar');
+    if (!toolbar || toolbar.dataset.v3Tab) return;
+    toolbar.dataset.v3Tab = '1';
+    var btns = Array.prototype.slice.call(toolbar.querySelectorAll('.ded-toolbar-btn'));
+    btns.forEach(function (btn, i) { btn.tabIndex = i === 0 ? 0 : -1; });
+    toolbar.addEventListener('focusin', function (e) {
+      if (!e.target.classList || !e.target.classList.contains('ded-toolbar-btn')) return;
+      btns.forEach(function (b) { b.tabIndex = -1; });
+      e.target.tabIndex = 0;
+    });
+    toolbar.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      var live = Array.prototype.slice.call(toolbar.querySelectorAll('.ded-toolbar-btn'));
+      var idx = live.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      var next = e.key === 'ArrowRight'
+        ? live[(idx + 1) % live.length]
+        : live[(idx - 1 + live.length) % live.length];
+      live.forEach(function (b) { b.tabIndex = -1; });
+      next.tabIndex = 0;
+      next.focus();
+    });
+  }
+
+  // ─── V3.9 Verbose ARIA for section collapse/expand ────────────
+  function wireVerboseCollapseAria() {
+    document.addEventListener('click', function (e) {
+      var header = e.target.closest && e.target.closest('.ded-section-toggle');
+      if (!header) return;
+      setTimeout(function () {
+        var sec = header.closest('.dos-secao');
+        if (!sec) return;
+        var titulo = (sec.querySelector('.dos-sec-titulo') || {}).textContent || 'Seção';
+        var collapsed = sec.classList.contains('ded-section-collapsed');
+        var live = document.getElementById('ded-aria-live');
+        if (!live) return;
+        live.textContent = '';
+        requestAnimationFrame(function () {
+          live.textContent = titulo.trim() + (collapsed ? ' — recolhida' : ' — expandida');
+        });
+      }, 60);
+    });
+  }
+
+  // ─── V3.10 Reduced motion detection ──────────────────────────
+  function initReducedMotion() {
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    function apply(on) { document.body.classList.toggle('ded-reduced-motion', !!on); }
+    apply(mq.matches);
+    if (mq.addEventListener) mq.addEventListener('change', function (ev) { apply(ev.matches); });
+    else if (mq.addListener) mq.addListener(function (ev) { apply(ev.matches); });
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────
+  function onDossierReadyV3() {
+    setTimeout(function () {
+      wireAriaControls();
+      wireToolbarRovingTabindex();
+    }, 250);
+  }
+
+  function initV3() {
+    initReducedMotion();
+    patchTocFocusTrap();
+    patchTagsModalFocusTrap();
+    patchKbFocusTrap();
+    wireRovingToc();
+    wireVerboseCollapseAria();
+
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      onDossierReadyV3();
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      onDossierReadyV3();
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', initV3);
+})();

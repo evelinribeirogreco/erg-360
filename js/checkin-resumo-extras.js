@@ -534,6 +534,164 @@ function initTelPanel() {
   });
 }
 
+// ═══ POLIMENTO V8 ═══
+// Modos especiais: foco profundo, leitura, alto contraste, sleep mode
+
+const CR_MODE_KEY = 'cr_mode_v1';
+const CR_MODES = ['focus', 'reading', 'contrast', 'sleep'];
+
+function crModeLoad() {
+  try { return localStorage.getItem(CR_MODE_KEY) || null; } catch { return null; }
+}
+function crModeSave(mode) {
+  try { if (mode) localStorage.setItem(CR_MODE_KEY, mode); else localStorage.removeItem(CR_MODE_KEY); } catch {}
+}
+
+// ── 30. Aplicador de modo (DOM + persist + announce) ─────────────────────
+function applyMode(mode, announce = true) {
+  CR_MODES.forEach(m => document.body.classList.remove(`cr-mode-${m}`));
+  if (mode) { document.body.classList.add(`cr-mode-${mode}`); crModeSave(mode); }
+  else crModeSave(null);
+  if (announce) crModeAnnounce(mode);
+  updateModePanelState(mode);
+}
+
+// ── 31. Aria live para anúncio de troca de modo ───────────────────────────
+function crModeAnnounce(mode) {
+  const live = document.getElementById('cr-mode-live');
+  if (!live) return;
+  const labels = { focus: 'Modo Foco ativado', reading: 'Modo Leitura ativado', contrast: 'Modo Alto Contraste ativado', sleep: 'Modo Noturno ativado' };
+  live.textContent = labels[mode] || 'Modo padrão restaurado';
+  setTimeout(() => { live.textContent = ''; }, 2500);
+}
+
+// ── 32. Atalhos de teclado (Shift+Alt+F/R/C/N) + live region ─────────────
+function initModeShortcuts() {
+  const live = document.createElement('div');
+  live.id = 'cr-mode-live';
+  live.setAttribute('aria-live', 'assertive');
+  live.setAttribute('aria-atomic', 'true');
+  live.className = 'cr-sr-only';
+  document.body.appendChild(live);
+
+  const keyMap = { F: 'focus', R: 'reading', C: 'contrast', N: 'sleep' };
+  document.addEventListener('keydown', e => {
+    if (e.shiftKey && e.altKey) {
+      const target = keyMap[e.key];
+      if (!target) return;
+      e.preventDefault();
+      const active = CR_MODES.find(m => document.body.classList.contains(`cr-mode-${m}`));
+      applyMode(active === target ? null : target);
+    } else if (e.key === 'Escape' && CR_MODES.some(m => document.body.classList.contains(`cr-mode-${m}`))) {
+      applyMode(null);
+    }
+  });
+}
+
+// ── 33. Restaurar modo salvo ao carregar ─────────────────────────────────
+function restoreSavedMode() {
+  const saved = crModeLoad();
+  if (saved && CR_MODES.includes(saved)) applyMode(saved, false);
+}
+
+// ── 34. Sleep mode automático por horário (22h–6h BRT) ───────────────────
+function initAutoSleepMode() {
+  if (crModeLoad()) return;
+  const h = new Date().getHours();
+  if (h >= 22 || h < 6) document.body.classList.add('cr-auto-sleep');
+}
+
+// ── 35. Focus trap genérico (reutilizado no painel de modos e telemetria) ─
+function trapFocusIn(el) {
+  if (el._focusTrap) return;
+  el._focusTrap = true;
+  el.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const nodes = Array.from(el.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'));
+    const first = nodes[0]; const last = nodes[nodes.length - 1];
+    if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    }
+  });
+}
+
+// ── 36. FAB + painel de modos especiais ──────────────────────────────────
+function initModePanel() {
+  const fab = document.createElement('button');
+  fab.id = 'cr-mode-fab';
+  fab.className = 'cr-mode-fab';
+  fab.setAttribute('aria-label', 'Modos especiais de visualização');
+  fab.setAttribute('aria-haspopup', 'dialog');
+  fab.setAttribute('aria-expanded', 'false');
+  fab.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>';
+  document.body.appendChild(fab);
+
+  const panel = document.createElement('div');
+  panel.id = 'cr-mode-panel';
+  panel.className = 'cr-mode-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', 'Modos especiais');
+  panel.hidden = true;
+
+  const defs = [
+    { mode: 'focus',    icon: '⊙', label: 'Foco',      kbd: 'Shift+Alt+F' },
+    { mode: 'reading',  icon: '≡',  label: 'Leitura',   kbd: 'Shift+Alt+R' },
+    { mode: 'contrast', icon: '◑',  label: 'Contraste', kbd: 'Shift+Alt+C' },
+    { mode: 'sleep',    icon: '◗',  label: 'Noturno',   kbd: 'Shift+Alt+N' },
+  ];
+  panel.innerHTML =
+    '<div class="cr-mp-header"><span>Modos Especiais</span><button class="cr-mp-close" aria-label="Fechar">✕</button></div>' +
+    '<div class="cr-mp-grid">' +
+    defs.map(d => `<button class="cr-mp-btn" data-mode="${d.mode}" aria-pressed="false"><span class="cr-mp-icon" aria-hidden="true">${d.icon}</span><span class="cr-mp-label">${d.label}</span><kbd class="cr-mp-kbd">${d.kbd}</kbd></button>`).join('') +
+    '</div>' +
+    '<button class="cr-mp-reset">Restaurar padrão</button>';
+  document.body.appendChild(panel);
+
+  const toggle = open => {
+    panel.hidden = !open;
+    fab.setAttribute('aria-expanded', String(open));
+    if (open) { trapFocusIn(panel); panel.querySelector('.cr-mp-close').focus(); }
+    else fab.focus();
+  };
+
+  fab.addEventListener('click', () => toggle(panel.hidden));
+  panel.querySelector('.cr-mp-close').addEventListener('click', () => toggle(false));
+  panel.querySelector('.cr-mp-reset').addEventListener('click', () => { applyMode(null); toggle(false); });
+  panel.querySelectorAll('.cr-mp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyMode(btn.getAttribute('aria-pressed') === 'true' ? null : btn.dataset.mode);
+      toggle(false);
+    });
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) toggle(false); });
+  document.addEventListener('click', e => { if (!panel.hidden && !panel.contains(e.target) && e.target !== fab) toggle(false); });
+}
+
+// ── 37. Sincronizar estado dos botões do painel com modo ativo ───────────
+function updateModePanelState(activeMode) {
+  document.querySelectorAll('#cr-mode-panel .cr-mp-btn').forEach(btn => {
+    const on = btn.dataset.mode === activeMode;
+    btn.setAttribute('aria-pressed', String(on));
+    btn.classList.toggle('cr-mp-btn--active', on);
+  });
+}
+
+// ── 38. Print mode: body class para @media print ──────────────────────────
+function initPrintMode() {
+  window.addEventListener('beforeprint', () => document.body.classList.add('cr-printing'));
+  window.addEventListener('afterprint',  () => document.body.classList.remove('cr-printing'));
+}
+
+// ── 39. Focus trap no painel de telemetria (V7 retroativo) ───────────────
+function enhanceTelPanelFocusTrap() {
+  new MutationObserver(() => {
+    const panel = document.getElementById('cr-tel-panel');
+    if (panel) trapFocusIn(panel);
+  }).observe(document.body, { childList: true });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // V1
@@ -570,10 +728,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initMetricViewTracking();
   initStreakTracking();
   initTelPanel();
+  // V8
+  initModeShortcuts();
+  restoreSavedMode();
+  initAutoSleepMode();
+  initModePanel();
+  initPrintMode();
+  enhanceTelPanelFocusTrap();
 });
 
 window._checkinResumoExtras = {
-  version: 'V7',
+  version: 'V8',
 };
 
 export {};

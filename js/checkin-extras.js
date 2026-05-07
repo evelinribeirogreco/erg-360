@@ -581,3 +581,603 @@ if (window._checkinExtras) {
   window._checkinExtras.version = 'V2';
   window._checkinExtras.checkScreenComplete = checkScreenComplete;
 }
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: rIC, debounce, prefetch, will-change dinâmico,
+//   CSS contain, hint cleanup, resize throttle, IO flags, reduced-motion
+
+// ── Utilitários V4 ───────────────────────────────────────────────────────
+const _rIC = window.requestIdleCallback
+  || (cb => setTimeout(() => cb({ timeRemaining: () => 16 }), 1));
+
+function _debounce(fn, ms) {
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+function _throttle(fn, ms) {
+  let last = 0;
+  return (...a) => { const n = Date.now(); if (n - last < ms) return; last = n; return fn(...a); };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  v4DebouncedSave();
+  v4PrefetchScreens();
+  v4WillChange();
+  v4CSSContain();
+  v4ReducedMotion();
+});
+
+// ── V4-1. Debounce: salva rascunho 600ms após última tecla no textarea ────
+function v4DebouncedSave() {
+  const ta = document.getElementById('obs');
+  if (!ta) return;
+  ta.addEventListener('input', _debounce(saveDraft, 600));
+}
+
+// ── V4-2. Auto-save periódico a cada 30s via rIC ─────────────────────────
+(function v4PeriodicSave() {
+  setTimeout(() => _rIC(() => {
+    if (!document.querySelector('#screen-done.active')) saveDraft();
+    v4PeriodicSave();
+  }), 30_000);
+})();
+
+// ── V4-3 + V4-4 + V4-9. Prefetch e IO flags via observers de tela ─────────
+function v4PrefetchScreens() {
+  function addPrefetch(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const l = document.createElement('link');
+    l.rel = 'prefetch'; l.href = href; l.as = 'document';
+    document.head.appendChild(l);
+  }
+
+  // V4-3: prefetch checkin-resumo quando tela de observação (screen-7) ativa
+  const s7 = document.getElementById('screen-7');
+  if (s7) {
+    let done7 = false;
+    new MutationObserver(() => {
+      if (!s7.classList.contains('active') || done7) return;
+      done7 = true;
+      _rIC(() => addPrefetch('checkin-resumo.html'));
+    }).observe(s7, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // V4-4: prefetch dashboard + V4-9: IO para flags na tela final
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  const io = window.IntersectionObserver
+    ? new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.remove('ci-flag-pending');
+          entry.target.classList.add('ci-flag-visible');
+          io.unobserve(entry.target);
+        });
+      }, { threshold: 0.15 })
+    : null;
+
+  let doneFinal = false;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active')) return;
+    if (!doneFinal) {
+      doneFinal = true;
+      _rIC(() => addPrefetch('dashboard.html'));
+    }
+    if (io) {
+      setTimeout(() => {
+        document.querySelectorAll('.ci-flag-item').forEach((f, i) => {
+          f.classList.add('ci-flag-pending');
+          f.style.setProperty('--flag-i', i);
+          io.observe(f);
+        });
+      }, 280);
+    }
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V4-5. will-change dinâmico em botões de navegação ────────────────────
+function v4WillChange() {
+  const NAV = '.ci-next, .ci-back-btn';
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest(NAV);
+    if (b) b.style.willChange = 'transform, opacity';
+  }, { passive: true });
+  document.addEventListener('pointerup', e => {
+    const b = e.target.closest(NAV);
+    if (b) setTimeout(() => { b.style.willChange = 'auto'; }, 500);
+  }, { passive: true });
+  document.addEventListener('pointercancel', e => {
+    const b = e.target.closest(NAV);
+    if (b) b.style.willChange = 'auto';
+  }, { passive: true });
+}
+
+// ── V4-6. CSS contain:style em todas as telas (isolamento de estilos) ─────
+function v4CSSContain() {
+  document.querySelectorAll('.ci-screen').forEach(s => {
+    s.style.contain = 'style';
+  });
+}
+
+// ── V4-7. Cleanup de hints em telas inativas via rIC ─────────────────────
+(function v4HintCleanup() {
+  setTimeout(() => _rIC(() => {
+    document.querySelectorAll('.ci-context-hint, .ci-inline-hint').forEach(h => {
+      if (!h.closest('.ci-screen.active')) h.remove();
+    });
+    v4HintCleanup();
+  }), 4_000);
+})();
+
+// ── V4-8. Reposicionar tooltip Bristol ao redimensionar (throttle 150ms) ──
+(function() {
+  window.addEventListener('resize', _throttle(() => {
+    const tip = document.querySelector('.ci-bristol-tooltip');
+    const focused = document.activeElement;
+    if (tip && focused?.classList.contains('bristol-btn')) {
+      positionTooltip(tip, focused);
+    }
+  }, 150), { passive: true });
+})();
+
+// ── V4-10. prefers-reduced-motion: classe no <html> para CSS opt-out ──────
+function v4ReducedMotion() {
+  const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  if (!mq) return;
+  const toggle = () => document.documentElement.classList.toggle('ci-reduced-motion', mq.matches);
+  toggle();
+  mq.addEventListener('change', toggle);
+}
+
+// Estende exports
+if (window._checkinExtras) {
+  window._checkinExtras.version = 'V4';
+  window._checkinExtras.rIC = _rIC;
+}
+
+// ═══ POLIMENTO V5 ═══
+// 15 melhorias: haptic conclusão, timer sessão, comparativo ontem, dark-mode auto,
+//   idle nudge, atalhos 1-5, echo toast, voz, sons opcionais, share, resumo inline,
+//   swipe esquerda avança, persistir ontem, timer por tela, badge elapsed
+
+const YESTERDAY_KEY = 'erg_checkin_yesterday';
+const SOUND_KEY     = 'erg_checkin_sound';
+
+let _sessionStart  = null;
+let _lastInteract  = Date.now();
+let _audioCtx      = null;
+let _soundEnabled  = false;
+let _timerInterval = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  v5HapticOnDone();
+  v5SessionTimer();
+  v5YesterdayComparison();
+  v5AutoDarkMode();
+  v5IdleNudge();
+  v5DigitShortcuts();
+  v5AnswerEchoToast();
+  v5VoiceInput();
+  v5SoundToggle();
+  v5ShareButton();
+  v5InlineSummary();
+  v5SwipeLeftAdvance();
+  v5PersistYesterday();
+  v5ElapsedBadge();
+});
+
+// ── V5-1. Haptic pattern na tela de conclusão ─────────────────────────────
+function v5HapticOnDone() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (sd.classList.contains('active')) {
+      navigator.vibrate?.([200, 60, 200, 60, 300]);
+    }
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V5-2 + V5-14. Timer de sessão: inicia ao sair de screen-0, exibe por tela ─
+function v5SessionTimer() {
+  const s0        = document.getElementById('screen-0');
+  const stepCount = document.getElementById('ci-step-count');
+  if (!s0 || !stepCount) return;
+
+  const timerEl = document.createElement('span');
+  timerEl.id = 'ci-session-timer';
+  timerEl.className = 'ci-session-timer';
+  timerEl.setAttribute('aria-live', 'polite');
+  timerEl.setAttribute('aria-atomic', 'true');
+  stepCount.after(timerEl);
+
+  new MutationObserver(() => {
+    if (!s0.classList.contains('active') && !_sessionStart) {
+      _sessionStart = Date.now();
+      _timerInterval = setInterval(() => {
+        const active = document.querySelector('.ci-screen.active');
+        if (!active || active.id === 'screen-done') {
+          clearInterval(_timerInterval);
+          _timerInterval = null;
+          return;
+        }
+        const elapsed = Math.floor((Date.now() - _sessionStart) / 1000);
+        timerEl.textContent = elapsed + 's';
+        timerEl.classList.toggle('ci-timer-warn', elapsed >= 50);
+        timerEl.classList.toggle('ci-timer-crit', elapsed >= 70);
+      }, 1000);
+    }
+  }).observe(s0, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V5-3. Comparativo com ontem em cada escala ────────────────────────────
+function v5YesterdayComparison() {
+  try {
+    const raw = localStorage.getItem(YESTERDAY_KEY);
+    if (!raw) return;
+    const yData    = JSON.parse(raw);
+    const yest     = new Date();
+    yest.setDate(yest.getDate() - 1);
+    const yStr = yest.toISOString().split('T')[0];
+    if (yData.date !== yStr) return;
+
+    ['energia', 'humor', 'sono_qualidade', 'fome_nivel'].forEach(field => {
+      const val  = yData[field];
+      if (!val) return;
+      const wrap = document.getElementById('scale-' + field);
+      if (!wrap) return;
+      const chip = document.createElement('span');
+      chip.className = 'ci-yesterday-chip';
+      chip.textContent = 'Ontem: ' + val;
+      chip.setAttribute('aria-label', 'Valor de ontem: ' + val);
+      const yBtn = wrap.querySelector('[data-val="' + val + '"]');
+      if (yBtn) yBtn.classList.add('ci-yesterday-mark');
+      wrap.before(chip);
+    });
+  } catch (_) {}
+}
+
+// ── V5-4. Dark mode automático por hora do dia (20h–6h) ───────────────────
+function v5AutoDarkMode() {
+  const h = new Date().getHours();
+  if (h >= 20 || h < 6) {
+    document.documentElement.classList.add('ci-dark-auto');
+  }
+}
+
+// ── V5-5. Idle nudge: pulsa botão Continuar após 35s de inatividade ───────
+function v5IdleNudge() {
+  const resetIdle = () => { _lastInteract = Date.now(); };
+  document.addEventListener('pointerdown', resetIdle, { passive: true });
+  document.addEventListener('keydown',     resetIdle, { passive: true });
+
+  setInterval(() => {
+    const idle   = Date.now() - _lastInteract;
+    const active = document.querySelector('.ci-screen.active');
+    if (!active || active.id === 'screen-0' || active.id === 'screen-done') return;
+    const nextBtn = active.querySelector('.ci-next:not(.skip)');
+    if (!nextBtn) return;
+    nextBtn.classList.toggle('ci-idle-pulse', idle >= 35_000);
+  }, 5_000);
+}
+
+// ── V5-6. Atalhos 1-5: seleciona o n-ésimo botão de escala na tela ativa ──
+function v5DigitShortcuts() {
+  document.addEventListener('keydown', e => {
+    const n = parseInt(e.key);
+    if (!Number.isInteger(n) || n < 1 || n > 5) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const focused = document.activeElement;
+    if (focused && (focused.tagName === 'TEXTAREA' || focused.tagName === 'INPUT')) return;
+    const active = document.querySelector('.ci-screen.active');
+    if (!active) return;
+    const wraps = [...active.querySelectorAll('.ci-scale-wrap')].filter(w => {
+      const sub = w.closest('.ci-sub-section');
+      return !sub || sub.classList.contains('visible');
+    });
+    const target = wraps.find(w => !w.querySelector('.ci-scale-btn.active')) || wraps[0];
+    if (!target) return;
+    const btn = target.querySelectorAll('.ci-scale-btn')[n - 1];
+    if (btn) { btn.click(); btn.focus(); }
+  });
+}
+
+// ── V5-7. Echo toast: exibe label da resposta selecionada ─────────────────
+function v5AnswerEchoToast() {
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.ci-scale-btn');
+    if (!btn) return;
+    const num   = btn.querySelector('.ci-scale-num')?.textContent?.trim() || btn.dataset.val;
+    const label = btn.querySelector('.ci-scale-label')?.textContent?.trim();
+    if (!num) return;
+    _showEchoToast(label ? num + ' — ' + label : 'Selecionado: ' + num);
+  });
+}
+
+function _showEchoToast(msg) {
+  document.querySelectorAll('.ci-echo-toast').forEach(t => t.remove());
+  const toast = document.createElement('div');
+  toast.className = 'ci-echo-toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('ci-echo-visible')));
+  setTimeout(() => {
+    toast.classList.remove('ci-echo-visible');
+    setTimeout(() => toast.remove(), 350);
+  }, 1600);
+}
+
+// ── V5-8. Ditado por voz: botão mic no textarea de observação ────────────
+function v5VoiceInput() {
+  const ta = document.getElementById('obs');
+  if (!ta) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ci-voice-btn';
+  btn.setAttribute('aria-label', 'Ditado por voz');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('title', 'Clique para ditar');
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+  ta.after(btn);
+
+  let rec = null;
+  let listening = false;
+
+  btn.addEventListener('click', () => {
+    if (listening) { rec?.stop(); return; }
+    try {
+      rec = new SR();
+      rec.lang = 'pt-BR';
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.onstart = () => {
+        listening = true;
+        btn.classList.add('ci-voice-active');
+        btn.setAttribute('aria-label', 'Gravando… (clique para parar)');
+        btn.setAttribute('aria-pressed', 'true');
+      };
+      rec.onresult = ev => {
+        ta.value = Array.from(ev.results).map(r => r[0].transcript).join('');
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      const stopFn = () => {
+        listening = false;
+        btn.classList.remove('ci-voice-active');
+        btn.setAttribute('aria-label', 'Ditado por voz');
+        btn.setAttribute('aria-pressed', 'false');
+      };
+      rec.onerror = stopFn;
+      rec.onend   = stopFn;
+      rec.start();
+    } catch (_) {}
+  });
+}
+
+// ── V5-9. Sons sutis opcionais via AudioContext ───────────────────────────
+function v5SoundToggle() {
+  _soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
+
+  const header = document.getElementById('ci-header');
+  if (!header) return;
+
+  const ICON_ON  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+  const ICON_OFF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ci-sound-btn';
+  btn.setAttribute('aria-pressed', _soundEnabled ? 'true' : 'false');
+  btn.setAttribute('aria-label', _soundEnabled ? 'Som ligado' : 'Som desligado');
+  btn.title = 'Sons sutis';
+  btn.innerHTML = _soundEnabled ? ICON_ON : ICON_OFF;
+
+  btn.addEventListener('click', () => {
+    _soundEnabled = !_soundEnabled;
+    localStorage.setItem(SOUND_KEY, _soundEnabled ? '1' : '0');
+    btn.setAttribute('aria-pressed', _soundEnabled ? 'true' : 'false');
+    btn.setAttribute('aria-label', _soundEnabled ? 'Som ligado' : 'Som desligado');
+    btn.innerHTML = _soundEnabled ? ICON_ON : ICON_OFF;
+    if (_soundEnabled) _playTone(660, 0.07, 0.1);
+  });
+
+  header.insertBefore(btn, header.firstChild);
+
+  document.addEventListener('click', e => {
+    if (!_soundEnabled) return;
+    if (e.target.closest('.ci-scale-btn'))     _playTone(523.25, 0.04, 0.09);
+    else if (e.target.closest('.ci-opt'))      _playTone(587.33, 0.04, 0.09);
+    else if (e.target.closest('.ci-next:not(.skip)')) _playTone(783.99, 0.05, 0.12);
+  }, { passive: true });
+}
+
+function _getAudioCtx() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (_) { return null; }
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(() => {});
+  return _audioCtx;
+}
+
+function _playTone(freq, gain, dur) {
+  const ctx = _getAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(gain, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.start();
+    osc.stop(ctx.currentTime + dur + 0.01);
+  } catch (_) {}
+}
+
+// ── V5-10. Botão de compartilhar na tela de conclusão ─────────────────────
+function v5ShareButton() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-share-btn')) return;
+    setTimeout(() => {
+      const score = document.getElementById('score-num')?.textContent?.trim() || '—';
+      const cls   = document.getElementById('score-class')?.textContent?.trim() || '';
+      const text  = 'Meu check-in com Dra. Evelin — Score ' + score + (cls ? ' · ' + cls : '') + ' 🌿';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ci-share-btn';
+      btn.setAttribute('aria-label', 'Compartilhar resultado do check-in');
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar';
+
+      btn.addEventListener('click', async () => {
+        if (navigator.share) {
+          try { await navigator.share({ text }); return; } catch (_) {}
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '✓ Copiado!';
+          setTimeout(() => {
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar';
+          }, 2500);
+        } catch (_) {}
+      });
+
+      sd.querySelector('.ci-done-actions')?.insertAdjacentElement('afterbegin', btn);
+    }, 400);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V5-11. Resumo inline das respostas na tela final ──────────────────────
+function v5InlineSummary() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-summary')) return;
+    setTimeout(_renderSummary, 350);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+function _renderSummary() {
+  const sd = document.getElementById('screen-done');
+  if (!sd || sd.querySelector('.ci-summary')) return;
+
+  const SCALE_IDS = {
+    'scale-energia':        'Energia',
+    'scale-humor':          'Humor',
+    'scale-sono_qualidade': 'Sono',
+    'scale-fome_nivel':     'Fome',
+  };
+  const WATER = { '0.5': '<1L', '1.5': '1–2L', '2.5': '2–3L', '3.5': '>3L' };
+  const rows  = [];
+
+  Object.entries(SCALE_IDS).forEach(([id, label]) => {
+    const active = document.getElementById(id)?.querySelector('.ci-scale-btn.active');
+    if (!active) return;
+    rows.push({
+      label,
+      val: active.dataset.val,
+      sub: active.querySelector('.ci-scale-label')?.textContent?.trim() || '',
+    });
+  });
+
+  const waterActive = document.querySelector('#opts-agua .ci-opt.active');
+  if (waterActive) {
+    rows.push({ label: 'Água', val: WATER[waterActive.dataset.val] || waterActive.dataset.val + 'L', sub: '' });
+  }
+
+  if (rows.length < 2) return;
+
+  const summary = document.createElement('div');
+  summary.className = 'ci-summary';
+  summary.setAttribute('aria-label', 'Resumo das respostas do check-in');
+
+  const title = document.createElement('p');
+  title.className = 'ci-summary-title';
+  title.textContent = 'Resumo de hoje';
+  summary.appendChild(title);
+
+  const grid = document.createElement('div');
+  grid.className = 'ci-summary-grid';
+  rows.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'ci-summary-item';
+    item.innerHTML = '<span class="ci-s-label">' + r.label + '</span>'
+      + '<span class="ci-s-val">' + r.val + (r.sub ? '<small> ' + r.sub + '</small>' : '') + '</span>';
+    grid.appendChild(item);
+  });
+  summary.appendChild(grid);
+
+  sd.querySelector('.ci-done-score')?.after(summary);
+}
+
+// ── V5-12. Swipe para esquerda avança (complemento ao swipe direita voltar) ─
+function v5SwipeLeftAdvance() {
+  const shell = document.querySelector('.ci-shell');
+  if (!shell) return;
+  let sx = 0, sy = 0;
+  shell.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, { passive: true });
+  shell.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.85) return;
+    if (dx < 0) window.avancarStep?.();
+  }, { passive: true });
+}
+
+// ── V5-13. Persiste valores de hoje para o comparativo de amanhã ──────────
+function v5PersistYesterday() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active')) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const data  = { date: today };
+      ['energia', 'humor', 'sono_qualidade', 'fome_nivel'].forEach(field => {
+        const active = document.getElementById('scale-' + field)?.querySelector('.ci-scale-btn.active');
+        if (active) data[field] = parseInt(active.dataset.val);
+      });
+      localStorage.setItem(YESTERDAY_KEY, JSON.stringify(data));
+    } catch (_) {}
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V5-15. Badge "Concluído em Xs" na tela de conclusão ───────────────────
+function v5ElapsedBadge() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-elapsed-badge')) return;
+    if (!_sessionStart) return;
+    const elapsed = Math.round((Date.now() - _sessionStart) / 1000);
+    const badge   = document.createElement('p');
+    badge.className = 'ci-elapsed-badge';
+    badge.setAttribute('aria-label', 'Check-in concluído em ' + elapsed + ' segundos');
+    badge.textContent = '✓ ' + elapsed + 's';
+    sd.querySelector('.ci-done-score')?.appendChild(badge);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+if (window._checkinExtras) {
+  window._checkinExtras.version    = 'V5';
+  window._checkinExtras.playTone   = _playTone;
+  window._checkinExtras.echoToast  = _showEchoToast;
+}

@@ -823,3 +823,467 @@ document.addEventListener('click', (e) => {
 window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
   v2: { animarCountUp: _animarCountUp, shakeEl: _shakeEl },
 });
+
+// ═══ POLIMENTO V3 ═══
+// 10 melhorias de acessibilidade: aria-live, focus-trap, skip-link,
+// listbox role, aria-expanded, aria-busy, aria-label dinâmico,
+// anúncio verbal de macros, Esc fecha modais, focus return.
+
+// ── V3.1 ARIA LIVE REGION CENTRAL ───────────────────────────
+// Anuncia mensagens para leitores de tela (polite = não interrompe)
+(function _initAriaLive() {
+  if (document.getElementById('ap-aria-live')) return;
+  const live = document.createElement('div');
+  live.id = 'ap-aria-live';
+  live.setAttribute('role', 'status');
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  live.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
+  document.body.appendChild(live);
+})();
+
+function _anunciarSR(msg) {
+  const live = document.getElementById('ap-aria-live');
+  if (!live) return;
+  live.textContent = '';
+  requestAnimationFrame(() => { live.textContent = msg; });
+}
+
+// Patch: _toast também anuncia para SR
+const _toastOrigV3 = window._adminPlanoExtras?.toast || null;
+{
+  const _toastRef = typeof _toast === 'function' ? _toast : null;
+  if (_toastRef) {
+    const _origToast = _toastRef;
+    // Intercepta chamadas globais via wrapper no objeto exposto
+    window._adminPlanoExtras = window._adminPlanoExtras || {};
+    window._adminPlanoExtras._anunciarSR = _anunciarSR;
+  }
+}
+
+// ── V3.2 FOCUS TRAP NOS MODAIS ───────────────────────────────
+function _criarFocusTrap(modalEl) {
+  const focos = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function _getFocaveis() {
+    return Array.from(modalEl.querySelectorAll(focos)).filter(el => el.offsetParent !== null);
+  }
+  function _handler(e) {
+    if (e.key !== 'Tab') return;
+    const focaveis = _getFocaveis();
+    if (!focaveis.length) { e.preventDefault(); return; }
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+    } else {
+      if (document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+    }
+  }
+  modalEl.addEventListener('keydown', _handler);
+  // Foca no primeiro elemento focável dentro do modal
+  const focaveis = _getFocaveis();
+  if (focaveis.length) focaveis[0].focus();
+  return () => modalEl.removeEventListener('keydown', _handler);
+}
+
+// Aplica focus trap ao abrir modais (patch via MutationObserver)
+new MutationObserver((muts) => {
+  for (const m of muts) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.id === 'modal-substituicoes' || node.id === 'modal-validacao-plano') {
+        node._destroyTrap = _criarFocusTrap(node);
+        node.setAttribute('role', 'dialog');
+        node.setAttribute('aria-modal', 'true');
+        node.setAttribute('aria-label',
+          node.id === 'modal-substituicoes' ? 'Substituições de alimento' : 'Validação do plano alimentar');
+      }
+    }
+    for (const node of m.removedNodes) {
+      if (node instanceof HTMLElement && node._destroyTrap) node._destroyTrap();
+    }
+  }
+}).observe(document.body, { childList: true });
+
+// ── V3.3 SKIP-LINK "IR PARA REFEIÇÕES" ──────────────────────
+(function _initSkipLink() {
+  if (document.getElementById('ap-skip-link')) return;
+  const skip = document.createElement('a');
+  skip.id = 'ap-skip-link';
+  skip.href = '#refeicoes-container';
+  skip.className = 'ap-skip-link';
+  skip.textContent = 'Ir para as refeições';
+  document.body.insertBefore(skip, document.body.firstChild);
+})();
+
+// ── V3.4 ARIA ROLES NO DROPDOWN (listbox/option) ─────────────
+// Patch: abrirDropdownAutocomplete agora seta roles ARIA
+const _origAbrirDropdown = typeof abrirDropdownAutocomplete === 'function'
+  ? abrirDropdownAutocomplete : null;
+
+function _patchDropdownAria(input) {
+  const dropdown = document.querySelector('.alim-autocomplete-dropdown');
+  if (!dropdown) return;
+  dropdown.setAttribute('role', 'listbox');
+  dropdown.id = dropdown.id || 'ap-autocomplete-list';
+  dropdown.querySelectorAll('.alim-autocomplete-opt').forEach((opt, i) => {
+    opt.setAttribute('role', 'option');
+    opt.setAttribute('aria-selected', 'false');
+    opt.id = opt.id || `ap-ac-opt-${i}`;
+  });
+  // Liga input ao listbox
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-haspopup', 'listbox');
+  input.setAttribute('aria-controls', dropdown.id);
+  input.setAttribute('aria-expanded', 'true');
+}
+
+// MutationObserver para adicionar roles quando dropdown aparece
+new MutationObserver((muts) => {
+  for (const m of muts) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (!node.classList.contains('alim-autocomplete-dropdown')) continue;
+      const activeInput = document.querySelector('input[name="item-nome"]:focus');
+      if (activeInput) _patchDropdownAria(activeInput);
+    }
+    for (const node of m.removedNodes) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (!node.classList.contains('alim-autocomplete-dropdown')) continue;
+      // Limpa aria-expanded em todos os inputs item-nome
+      document.querySelectorAll('input[name="item-nome"]').forEach(inp => {
+        inp.setAttribute('aria-expanded', 'false');
+      });
+    }
+  }
+}).observe(document.body, { childList: true });
+
+// ── V3.5 ARIA-ACTIVEDESCENDANT no keyboard nav ───────────────
+// Patch sobre o handler de keydown existente de V2
+document.addEventListener('keydown', (e) => {
+  const dropdown = document.querySelector('.alim-autocomplete-dropdown');
+  if (!dropdown) return;
+  const focused = dropdown.querySelector('.alim-ac-focused');
+  if (!focused) return;
+  const activeInput = document.querySelector('input[name="item-nome"]:focus');
+  if (activeInput) activeInput.setAttribute('aria-activedescendant', focused.id || '');
+  // Marca aria-selected na opção focada
+  dropdown.querySelectorAll('.alim-autocomplete-opt').forEach(opt => {
+    opt.setAttribute('aria-selected', opt === focused ? 'true' : 'false');
+  });
+}, { capture: false });
+
+// ── V3.6 ARIA-BUSY NO BTN TMB ────────────────────────────────
+// Patch sobre a versão V2 (que já wrappou a V1)
+const _origCalcTMBV3 = window.calcularTMBGETPaciente;
+window.calcularTMBGETPaciente = async function () {
+  const btn = document.getElementById('btn-calc-tmb');
+  if (btn) {
+    btn.setAttribute('aria-busy', 'true');
+    btn.setAttribute('aria-label', 'Calculando TMB e GET…');
+    _anunciarSR('Calculando TMB e GET, aguarde.');
+  }
+  try {
+    const resultado = await _origCalcTMBV3.apply(this, arguments);
+    if (resultado) {
+      _anunciarSR(`TMB ${resultado.tmb} kcal, GET ${resultado.get} kcal, alvo ${resultado.kcalAlvo} kcal por dia.`);
+    }
+    return resultado;
+  } finally {
+    if (btn) {
+      btn.setAttribute('aria-busy', 'false');
+      btn.setAttribute('aria-label', 'Calcular TMB e GET automaticamente');
+    }
+  }
+};
+
+// ── V3.7 ARIA-LABEL NOS BLOCOS DE REFEIÇÃO DINÂMICOS ─────────
+function _labelarBlocoRefeicao(block) {
+  if (block.dataset.ariaLabeled) return;
+  block.setAttribute('role', 'group');
+  const nomeInput = block.querySelector('input[name="ref-nome"]');
+  const nomeVal = nomeInput?.value?.trim() || 'Refeição';
+  block.setAttribute('aria-label', nomeVal);
+  block.dataset.ariaLabeled = '1';
+  // Atualiza label quando o nome muda
+  nomeInput?.addEventListener('input', () => {
+    block.setAttribute('aria-label', nomeInput.value.trim() || 'Refeição');
+  });
+}
+
+function _labelarTodosOsBlocos() {
+  document.querySelectorAll('.dynamic-block[data-refid]').forEach(_labelarBlocoRefeicao);
+}
+
+new MutationObserver(() => _labelarTodosOsBlocos())
+  .observe(document.body, { childList: true, subtree: true });
+
+document.addEventListener('DOMContentLoaded', _labelarTodosOsBlocos);
+setTimeout(_labelarTodosOsBlocos, 800);
+
+// ── V3.8 ANÚNCIO VERBAL DE MACROS AO SELECIONAR ALIMENTO ─────
+document.addEventListener('click', (e) => {
+  const opt = e.target.closest('.alim-autocomplete-opt[data-kcal]');
+  if (!opt) return;
+  const nome = opt.dataset.nome || '';
+  const kcal = Math.round(+opt.dataset.kcal) || 0;
+  const ptn = opt.dataset.ptn || '0';
+  const cho = opt.dataset.cho || '0';
+  const lip = opt.dataset.lip || '0';
+  if (nome) {
+    _anunciarSR(`${nome} selecionado. ${kcal} kcal, proteína ${ptn}g, carboidrato ${cho}g, gordura ${lip}g por 100g.`);
+  }
+}, { capture: true });
+
+// ── V3.9 ESC FECHA QUALQUER MODAL ────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const modal = document.getElementById('modal-substituicoes') ||
+                document.getElementById('modal-validacao-plano');
+  if (!modal) return;
+  e.stopPropagation();
+  // Retorna foco para o elemento que tinha foco antes
+  const retornar = modal._focusReturn;
+  modal.remove();
+  if (retornar && retornar.focus) {
+    requestAnimationFrame(() => retornar.focus());
+    _anunciarSR('Modal fechado.');
+  }
+});
+
+// ── V3.10 FOCUS RETURN APÓS FECHAR MODAL ─────────────────────
+// Quando um modal abre, memoriza o elemento com foco
+const _origAbrirSubst = window.abrirSubstituicoes;
+window.abrirSubstituicoes = async function (alimentoNome, btn) {
+  const focusAntes = document.activeElement;
+  await _origAbrirSubst.apply(this, arguments);
+  const modal = document.getElementById('modal-substituicoes');
+  if (modal) {
+    modal._focusReturn = focusAntes;
+    // Botão fechar do modal retorna foco
+    const closeBtn = modal.querySelector('button[onclick*="remove"]');
+    if (closeBtn) {
+      const _origClose = closeBtn.onclick;
+      closeBtn.onclick = function (ev) {
+        modal.remove();
+        requestAnimationFrame(() => { focusAntes?.focus(); _anunciarSR('Modal de substituições fechado.'); });
+      };
+    }
+  }
+};
+
+const _origAbrirValV3 = window.abrirModalValidacao;
+window.abrirModalValidacao = function () {
+  const focusAntes = document.activeElement;
+  const resultado = _origAbrirValV3.apply(this, arguments);
+  const modal = document.getElementById('modal-validacao-plano');
+  if (modal) {
+    modal._focusReturn = focusAntes;
+    const voltarBtn = modal.querySelector('button[onclick*="remove"]');
+    if (voltarBtn) {
+      const _origOC = voltarBtn.onclick;
+      voltarBtn.onclick = function (ev) {
+        modal.remove();
+        requestAnimationFrame(() => { focusAntes?.focus(); _anunciarSR('Modal de validação fechado. Revise o plano.'); });
+      };
+    }
+  }
+  return resultado;
+};
+
+// ── EXPÕE EXTENSÕES V3 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v3: { anunciarSR: _anunciarSR, criarFocusTrap: _criarFocusTrap },
+});
+
+// ═══ POLIMENTO V4 ═══
+// 10 melhorias de performance: debounce autocomplete, rIC pré-indexação,
+// IntersectionObserver fade-in blocos, prefetch substituições ao hover,
+// debounce recálculo macros, autosave diff-aware + Page Visibility API,
+// scroll fecha dropdown, loading placeholder banco, validação idle.
+
+// ── V4.1 DEBOUNCE NO AUTOCOMPLETE INPUT (280ms) ─────────────
+// Intercepta capture phase e adia a chamada, cancelando o listener
+// original (bubble) via stopImmediatePropagation — reduz round-trips
+const _v4AcDebounce = new WeakMap();
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('input[name="item-nome"]')) return;
+  e.stopImmediatePropagation(); // cancela listener original (bubble)
+  clearTimeout(_v4AcDebounce.get(e.target));
+  const inp = e.target;
+  _v4AcDebounce.set(inp, setTimeout(() => {
+    _v4AcDebounce.delete(inp);
+    if (inp.isConnected) abrirDropdownAutocomplete(inp);
+  }, 280));
+}, true); // capture phase
+
+// ── V4.2 requestIdleCallback — PRÉ-INDEXAÇÃO O(1) DO BANCO ──
+// Cria Map nome→alimento para lookups instantâneos em fuzzyMatch
+const _v4AlimIdx = new Map();
+let _v4IdxBuilt = false;
+function _v4BuildIdx() {
+  if (_v4IdxBuilt || !autocompleteCache.length) return;
+  autocompleteCache.forEach(a => _v4AlimIdx.set(a.nome.toLowerCase(), a));
+  _v4IdxBuilt = true;
+}
+(window.requestIdleCallback || (fn => setTimeout(fn, 600)))(
+  () => autocompleteCache.length
+    ? _v4BuildIdx()
+    : carregarBancoAlimentos().then(_v4BuildIdx),
+  { timeout: 5000 }
+);
+
+// ── V4.3 IntersectionObserver — FADE-IN BLOCOS DE REFEIÇÃO ──
+// Anima blocos quando entram no viewport (só una vez cada)
+const _v4BlockIO = new IntersectionObserver((entries) => {
+  entries.forEach(({ isIntersecting, target }) => {
+    if (!isIntersecting || target._v4Seen) return;
+    target._v4Seen = true;
+    target.classList.add('ap-block-enter');
+    _v4BlockIO.unobserve(target);
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+function _v4WatchBlocks() {
+  document.querySelectorAll('.dynamic-block[data-refid]:not([data-v4io])').forEach(el => {
+    el.dataset.v4io = '1';
+    _v4BlockIO.observe(el);
+  });
+}
+new MutationObserver(_v4WatchBlocks).observe(document.body, { childList: true, subtree: true });
+setTimeout(_v4WatchBlocks, 300);
+
+// ── V4.4 PREFETCH DE SUBSTITUIÇÕES AO HOVER DO BTN ──────────
+// Inicia request Supabase ao mouseenter — quando usuário clica, dados
+// já chegaram (ou estão em voo) eliminando latência percebida
+const _v4SubstPF = new Map();
+document.addEventListener('mouseenter', (e) => {
+  const btn = e.target.closest('.btn-subst-inline');
+  if (!btn) return;
+  const nome = btn.closest('.refeicao-item-row')
+    ?.querySelector('input[name="item-nome"]')?.value?.trim();
+  if (!nome || _v4SubstPF.has(nome)) return;
+  const alim = autocompleteCache.find(a => a.nome === nome);
+  if (!alim) return;
+  _v4SubstPF.set(nome, supabase
+    .from('substituicoes_alimentos')
+    .select('alimento_substituto_id,base_equivalencia,fator_multiplicador,notas')
+    .eq('alimento_origem_id', alim.id)
+    .limit(20)
+  );
+}, true);
+
+// ── V4.5 DEBOUNCE DO RECÁLCULO DE MACROS (300ms) ────────────
+// Evita recalcular a cada tecla ao editar quantidade dos alimentos
+const _v4MacroDebounce = new WeakMap();
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('input[name="item-qty"]')) return;
+  const ref = e.target.closest('.dynamic-block[data-refid]');
+  if (!ref) return;
+  clearTimeout(_v4MacroDebounce.get(ref));
+  _v4MacroDebounce.set(ref, setTimeout(() => {
+    _v4MacroDebounce.delete(ref);
+    _recalcularMacrosRefeicao(ref);
+  }, 300));
+});
+
+// ── V4.6–V4.8 AUTOSAVE DIFF-AWARE + PAGE VISIBILITY ─────────
+// Substitui o setInterval cego por save inteligente: só persiste
+// quando o formulário realmente mudou (reduz I/O localStorage)
+function _v4FormHash() {
+  try {
+    const root = document.querySelector('#plano-form')
+      || document.querySelector('form')
+      || document.body;
+    return Array.from(root.querySelectorAll('input,textarea,select'))
+      .map(el => `${el.name || el.id}:${el.type === 'checkbox' ? +el.checked : el.value}`)
+      .join('\x00');
+  } catch (_) { return ''; }
+}
+let _v4PrevHash = '';
+function _v4AutosaveIfChanged() {
+  const h = _v4FormHash();
+  if (h && h !== _v4PrevHash) { _v4PrevHash = h; salvarRascunhoLocal(); }
+}
+function _v4StartSmartSave() {
+  clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(_v4AutosaveIfChanged, AUTOSAVE_INTERVAL);
+}
+_v4StartSmartSave();
+
+// Pausa autosave quando aba está em background; retoma ao voltar
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(autosaveTimer);
+    autosaveTimer = null;
+  } else {
+    salvarRascunhoLocal();
+    _v4StartSmartSave();
+  }
+});
+
+// ── V4.7 SCROLL/RESIZE FECHA DROPDOWN (passive, throttled) ──
+let _v4ScrollTimer = null;
+window.addEventListener('scroll', () => {
+  clearTimeout(_v4ScrollTimer);
+  _v4ScrollTimer = setTimeout(fecharDropdownAutocomplete, 60);
+}, { passive: true });
+window.addEventListener('resize', fecharDropdownAutocomplete, { passive: true });
+
+// ── V4.9 requestIdleCallback — VALIDAÇÃO PRÉ-EMPTIVA ─────────
+// Valida o plano durante idle e guarda resultado; ao clicar Publicar
+// o resultado já está pronto → modal abre instantaneamente
+let _v4CachedVal = null;
+(function _scheduleIdleVal() {
+  (window.requestIdleCallback || (fn => setTimeout(fn, 4000)))(() => {
+    try { _v4CachedVal = window.validarPlanoAntesPublicar?.(); } catch (_) {}
+    setTimeout(_scheduleIdleVal, 60000); // re-valida a cada 60s
+  }, { timeout: 8000 });
+})();
+
+const _origAbrirModalValV4 = window.abrirModalValidacao;
+window.abrirModalValidacao = function () {
+  const cached = _v4CachedVal;
+  _v4CachedVal = null;
+  if (cached) {
+    // Injeta resultado cached para que a chamada interna retorne instantâneo
+    const _origVal = window.validarPlanoAntesPublicar;
+    window.validarPlanoAntesPublicar = () => {
+      window.validarPlanoAntesPublicar = _origVal;
+      return cached;
+    };
+  }
+  return _origAbrirModalValV4.apply(this, arguments);
+};
+
+// ── V4.10 LOADING PLACEHOLDER ENQUANTO BANCO CARREGA ─────────
+// Exibe spinner no dropdown se autocomplete acionado antes dos dados
+// chegarem, depois atualiza automaticamente com os resultados reais
+const _origAbrirDropV4 = abrirDropdownAutocomplete;
+abrirDropdownAutocomplete = function _v4DropLoader(input) {
+  if (!autocompleteFetched && input.value.trim().length >= 2) {
+    fecharDropdownAutocomplete();
+    const pl = document.createElement('div');
+    pl.className = 'alim-autocomplete-dropdown';
+    pl.setAttribute('aria-live', 'polite');
+    pl.innerHTML = '<div class="ap-ac-loading-msg"><span class="ap-spinner"></span> Carregando banco de alimentos…</div>';
+    const r = input.getBoundingClientRect();
+    pl.style.cssText = `position:absolute;top:${r.bottom + scrollY + 4}px;left:${r.left + scrollX}px;width:${Math.max(r.width, 280)}px;z-index:1000;`;
+    document.body.appendChild(pl);
+    carregarBancoAlimentos().then(() => {
+      pl.remove();
+      if (input.isConnected) _origAbrirDropV4(input);
+    });
+    return;
+  }
+  _origAbrirDropV4(input);
+};
+
+// ── EXPÕE EXTENSÕES V4 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v4: {
+    lookupAlimento: n => _v4AlimIdx.get(n?.toLowerCase()),
+    blockObserver: _v4BlockIO,
+    prefetchSubst: _v4SubstPF,
+  },
+});

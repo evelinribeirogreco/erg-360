@@ -494,3 +494,380 @@
     transition: none !important;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+
+/* V5-1. Wake Lock indicator — ponto pulsante discreto ───────────────────── */
+@keyframes wakeLockPulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1; }
+}
+body[data-wake-lock="active"]::after {
+  content: '';
+  position: fixed;
+  top: 8px;
+  right: 10px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--detail);
+  animation: wakeLockPulse 2.8s ease-in-out infinite;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* V5-2. Botão compartilhar plano ─────────────────────────────────────────── */
+#v5-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  transition: border-color 0.15s, color 0.15s;
+  margin-bottom: 14px;
+}
+#v5-share-btn:hover {
+  border-color: var(--detail);
+  color: var(--detail);
+}
+#v5-share-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* V5-3. Botão copiar fase inline ─────────────────────────────────────────── */
+.v5-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--subtitle);
+  border-radius: 2px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.v5-copy-btn:hover {
+  color: var(--detail);
+  border-color: var(--border);
+  background: var(--bg-primary);
+}
+.v5-copy-btn.v5-copy-ok {
+  color: var(--detail);
+  border-color: var(--detail);
+}
+.v5-copy-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 1px;
+}
+
+/* V5-4. Banner offline ───────────────────────────────────────────────────── */
+#v5-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--error, #c0392b);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  z-index: 9000;
+  animation: adminFasesViewIn 0.2s ease-out both;
+}
+
+/* V5-5. Aviso bateria baixa ─────────────────────────────────────────────── */
+#v5-battery-warn {
+  position: fixed;
+  bottom: 120px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px 9px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.63rem;
+  color: var(--text);
+  z-index: 600;
+  max-width: 250px;
+  animation: adminFasesViewIn 0.2s ease-out both;
+}
+#v5-battery-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0 0 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+#v5-battery-dismiss:hover { color: var(--text); }
+
+/* V5-6. Banner conexão lenta ─────────────────────────────────────────────── */
+#v5-slow-banner {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: var(--subtitle);
+  z-index: 600;
+  white-space: nowrap;
+  animation: adminFasesViewIn 0.2s ease-out both;
+}
+
+/* V5-7. Conexão lenta — reduz animações pesadas ─────────────────────────── */
+.v5-slow-connection .v4-card-hidden {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+.v5-slow-connection .view-extras-fade {
+  animation: none !important;
+}
+.v5-slow-connection #plano-progress-bar > div {
+  transition: none !important;
+}
+
+/* V5-8. prefers-reduced-motion — sem animações no wake-lock indicator ──────── */
+@media (prefers-reduced-motion: reduce) {
+  body[data-wake-lock="active"]::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ═══ POLIMENTO V6 ═══ */
+
+/* V6-1. Streak badge ────────────────────────────────────────────────────── */
+#v6-streak-badge {
+  position: fixed;
+  top: 56px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: var(--gold);
+  z-index: 700;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+#v6-streak-badge.v6-streak-in {
+  opacity: 1;
+  transform: translateX(0);
+}
+#v6-streak-badge svg {
+  flex-shrink: 0;
+}
+#v6-streak-badge span {
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+/* V6-2. Canvas confetti ─────────────────────────────────────────────────── */
+.v6-confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* V6-3. XP display ──────────────────────────────────────────────────────── */
+#v6-xp-display {
+  position: fixed;
+  bottom: 50px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 600;
+}
+.v6-xp-total {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  transition: color 0.35s;
+}
+#v6-xp-display.v6-xp-pop .v6-xp-total {
+  color: var(--detail);
+}
+.v6-xp-gain {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  color: var(--detail);
+  font-weight: 600;
+  animation: v6XpFloat 0.85s ease-out forwards;
+}
+@keyframes v6XpFloat {
+  0%   { opacity: 1;   transform: translateY(0); }
+  70%  { opacity: 0.9; transform: translateY(-13px); }
+  100% { opacity: 0;   transform: translateY(-18px); }
+}
+
+/* V6-4. Level badge ─────────────────────────────────────────────────────── */
+#v6-level-badge {
+  position: fixed;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--v6-lc, var(--border));
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.53rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--v6-lc, var(--subtitle));
+  z-index: 600;
+  pointer-events: none;
+  transition: border-color 0.5s ease, color 0.5s ease;
+}
+
+/* V6-5. Achievement toast ───────────────────────────────────────────────── */
+.v6-achievement {
+  position: fixed;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  border-left: 3px solid var(--gold);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  max-width: 310px;
+  width: 90vw;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 950;
+  pointer-events: none;
+}
+.v6-achievement.v6-ach-in {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.v6-ach-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.v6-ach-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+.v6-ach-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.64rem;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* V6-6. Fase concluída — visual sutil no card ───────────────────────────── */
+[data-v6-done] {
+  border-left: 3px solid var(--detail) !important;
+  position: relative;
+}
+[data-v6-done]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(76, 184, 160, 0.03);
+  pointer-events: none;
+}
+
+/* V6-7. Plano 100% concluído badge ─────────────────────────────────────── */
+#v6-plan-done {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 16px;
+  background: rgba(201, 168, 76, 0.07);
+  border: 1px solid var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  margin-bottom: 16px;
+  animation: adminFasesViewIn 0.4s ease-out both;
+}
+
+/* V6-8. Mobile adjustments ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #v6-streak-badge {
+    top: 46px;
+    right: 8px;
+  }
+  #v6-level-badge {
+    bottom: 42px;
+    font-size: 0.5rem;
+    padding: 3px 10px;
+  }
+  #v6-xp-display {
+    bottom: 42px;
+    right: 10px;
+  }
+  .v6-achievement {
+    bottom: 70px;
+  }
+}
+
+/* V6-9. prefers-reduced-motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .v6-achievement {
+    transition: opacity 0.01ms !important;
+    transform: translateX(-50%) !important;
+  }
+  .v6-xp-gain {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  #v6-streak-badge {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+  .v6-confetti-canvas {
+    display: none !important;
+  }
+}
