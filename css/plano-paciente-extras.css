@@ -396,3 +396,66 @@ body.pp-no-motion .refeicao-block {
 .ref-title:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ═══ POLIMENTO V4 ═══ */
+
+/* ── 28. will-change para elementos animados pelo JS ── */
+.pp-macro-bar-fill {
+  will-change: width;
+}
+.page-header {
+  will-change: padding;
+}
+
+/* ── 29. Remove will-change quando animação terminar ── */
+.pp-macro-bar-fill.pp-anim-done,
+.pp-header-compact {
+  will-change: auto;
+}
+
+/* ── 30. Sticky bar: transição suave via IO ── */
+@media (max-width: 600px) {
+  #pp-sticky-macro {
+    transition: transform 0.24s ease, opacity 0.24s ease;
+  }
+  #pp-sticky-macro.pp-sticky-hidden-io {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── 31. CSS contain nas refeição-blocks inativas (suporte) ── */
+/* contain: layout style é aplicado via JS; garante base segura */
+.refeicao-block {
+  position: relative;
+}
+
+/* ── 32. Reduz repaint de listas longas de alimentos ── */
+.refeicao-alimentos {
+  isolation: isolate;
+}
+
+/* ── 33. will-change: auto em reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .pp-macro-bar-fill,
+  .page-header,
+  #pp-sticky-macro {
+    will-change: auto !important;
+    transition: none !important;
+  }
+}
+
+/* ── 34. Dica de composição para o toast (GPU layer) ── */
+#pp-toast {
+  will-change: opacity, transform;
+}
+#pp-toast:not(.pp-toast-show) {
+  will-change: auto;
+}
+
+/* ── 35. Prevent layout shift nas tabs durante carregamento ── */
+.tabs-wrap {
+  min-height: 44px;
+  contain: layout;
+}

@@ -570,3 +570,177 @@ Object.assign(window._planoPacienteExtras || (window._planoPacienteExtras = {}),
   patchDocumentTitle,
   setupTabCounter,
 });
+
+// ═══ POLIMENTO V4 ═══
+// V4 — 10 melhorias de performance:
+//      rAF throttle, debounce, DOM cache, IntersectionObserver
+//      (macros + sticky bar), requestIdleCallback, CSS contain,
+//      PDF prefetch, debounced MutationObserver
+
+// ── 28. Utilitário: rAF-throttle para handlers de scroll ─────
+function makeRAFThrottle(fn) {
+  let ticking = false;
+  return function (...args) {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { fn.apply(this, args); ticking = false; });
+  };
+}
+
+// ── 29. Utilitário: debounce simples ─────────────────────────
+function ppDebounce(fn, ms) {
+  let t;
+  return function (...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+// ── 30. Cache de elementos DOM frequentes ────────────────────
+const ppCache = (() => {
+  const m = new Map();
+  return {
+    id:    id  => { if (!m.has(id))  m.set(id,  document.getElementById(id));  return m.get(id); },
+    qs:    sel => { if (!m.has(sel)) m.set(sel, document.querySelector(sel));   return m.get(sel); },
+    clear: ()  => m.clear(),
+  };
+})();
+
+// ── 31. Upgrade scroll → rAF-throttled (header compact) ──────
+function upgradeScrollToRAF() {
+  const header = ppCache.qs('.page-header');
+  if (!header || header._ppRAF) return;
+  header._ppRAF = true;
+  let compact = header.classList.contains('pp-header-compact');
+
+  window.addEventListener('scroll', makeRAFThrottle(() => {
+    const now = window.scrollY > 60;
+    if (now !== compact) {
+      compact = now;
+      header.classList.toggle('pp-header-compact', compact);
+    }
+  }), { passive: true });
+}
+
+// ── 32. IntersectionObserver: dispara macro bars quando visível ──
+function setupMacroBarIO() {
+  const grid = ppCache.id('macro-grid');
+  if (!grid || grid._ppMacroIO || !('IntersectionObserver' in window)) return;
+  grid._ppMacroIO = true;
+
+  new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      // Garante que fills não-animadas recebam seus valores ao entrar na tela
+      e.target.querySelectorAll('.pp-macro-bar-fill').forEach(fill => {
+        if (!fill.style.width || fill.style.width === '0' || fill.style.width === '0%') {
+          window._planoPacienteExtras?.injetarMacroBars?.();
+        }
+      });
+    });
+  }, { threshold: 0.2, rootMargin: '0px 0px -40px 0px' }).observe(grid);
+}
+
+// ── 33. IntersectionObserver: sticky bar inteligente ─────────
+function setupStickyBarIO() {
+  const bar  = ppCache.id('pp-sticky-macro');
+  const grid = ppCache.id('macro-grid');
+  if (!bar || !grid || !('IntersectionObserver' in window)) return;
+  if (grid._ppStickyIO) return;
+  grid._ppStickyIO = true;
+
+  // Esconde a barra quando o macro-grid está visível, mostra quando sai da tela
+  new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      bar.classList.toggle('pp-sticky-hidden-io', e.isIntersecting);
+    });
+  }, { threshold: 0 }).observe(grid);
+}
+
+// ── 34. requestIdleCallback para tarefas de baixa prioridade ──
+function scheduleIdleTasks() {
+  const idle = window.requestIdleCallback
+    ? fn => requestIdleCallback(fn, { timeout: 2000 })
+    : fn => setTimeout(fn, 100);
+
+  idle(() => window._planoPacienteExtras?.setupTabCounter?.());
+  idle(() => window._planoPacienteExtras?.patchDocumentTitle?.());
+}
+
+// ── 35. CSS contain nas refeição-blocks inativas ─────────────
+function applyContainToInactivePanels() {
+  const cnt = ppCache.qs('.page-content') || document.body;
+
+  const apply = () => {
+    document.querySelectorAll('.refeicao-block').forEach(b => {
+      b.style.contain = b.classList.contains('active') ? '' : 'layout style';
+    });
+  };
+
+  apply();
+
+  new MutationObserver(ppDebounce(muts => {
+    if (muts.some(m => m.target.classList?.contains('refeicao-block'))) apply();
+  }, 60)).observe(cnt, { attributes: true, attributeFilter: ['class'], subtree: true });
+}
+
+// ── 36. Prefetch de scripts PDF ao passar o mouse ─────────────
+function setupPDFPrefetch() {
+  let done = false;
+  ['pp-btn-ver-pdf', 'pp-btn-baixar-pdf'].forEach(id => {
+    const btn = ppCache.id(id);
+    if (!btn) return;
+    btn.addEventListener('pointerenter', () => {
+      if (done) return;
+      done = true;
+      [...document.querySelectorAll('script[src]')]
+        .map(s => s.src)
+        .filter(s => /pdf|print/i.test(s))
+        .forEach(href => {
+          if (document.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+          const lnk = document.createElement('link');
+          lnk.rel = 'prefetch';
+          lnk.href = href;
+          document.head.appendChild(lnk);
+        });
+    }, { once: true, passive: true });
+  });
+}
+
+// ── 37. Debounce no MutationObserver de macro bars ────────────
+function upgradeWatchMacroBarsDebounce() {
+  const grid = ppCache.id('macro-grid');
+  if (!grid || grid._ppDebounceObs) return;
+  grid._ppDebounceObs = true;
+
+  const debouncedInject = ppDebounce(
+    () => window._planoPacienteExtras?.injetarMacroBars?.(),
+    150
+  );
+  new MutationObserver(debouncedInject).observe(grid, {
+    childList: true, subtree: true, characterData: true,
+  });
+}
+
+// ── V4 Boot ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  upgradeScrollToRAF();
+  setupPDFPrefetch();
+
+  setTimeout(() => {
+    setupMacroBarIO();
+    setupStickyBarIO();
+    applyContainToInactivePanels();
+  }, 900);
+
+  setTimeout(() => {
+    scheduleIdleTasks();
+    upgradeWatchMacroBarsDebounce();
+  }, 2600);
+});
+
+Object.assign(window._planoPacienteExtras || (window._planoPacienteExtras = {}), {
+  makeRAFThrottle,
+  ppDebounce,
+  ppCache,
+});
