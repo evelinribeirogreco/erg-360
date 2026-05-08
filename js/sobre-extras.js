@@ -656,3 +656,306 @@
   var _prev = window._sobreExtras || {};
   window._sobreExtras = Object.assign({}, _prev, { version: 4, v4: true });
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 Web APIs modernas: Web Share + Clipboard fallback, Wake Lock, Battery API,
+// Vibration API, Navigator.onLine toast, Network Information, acumulador de
+// tempo de leitura (Page Visibility estendida), storage.persist,
+// dark-mode matchMedia, Web Notifications lembrete opt-in.
+
+(function () {
+  'use strict';
+
+  // ── Toast helper (reutilizado por vários módulos) ──
+  function _showToast(msg, type) {
+    var t = document.createElement('div');
+    t.className = 'sobre-toast sobre-toast--' + (type || 'info');
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('sobre-toast--visible'); }, 10);
+    setTimeout(function () {
+      t.classList.remove('sobre-toast--visible');
+      setTimeout(function () { t.remove(); }, 350);
+    }, 2800);
+  }
+
+  // 1. Web Share / Clipboard fallback — botão "Compartilhar" na seção CTA
+  function initWebShare() {
+    var cta = document.querySelector('.sobre-cta-inner');
+    if (!cta || document.getElementById('sobre-share-btn')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'sobre-share-btn';
+    btn.className = 'sobre-share-btn';
+    btn.setAttribute('aria-label', 'Compartilhar esta página');
+    btn.innerHTML =
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">' +
+        '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
+        '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>' +
+        '<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' +
+      '</svg><span>Compartilhar</span>';
+
+    var ctaLink = cta.querySelector('.sobre-cta-link');
+    if (ctaLink) cta.insertBefore(btn, ctaLink);
+    else cta.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var shareData = {
+        title: 'ERG 360 — Nutrição, Performance & Estilo de Vida',
+        text: 'Conheça o ERG 360, plataforma de acompanhamento nutricional de alto padrão.',
+        url: location.href
+      };
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        navigator.share(shareData).catch(function () {});
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(location.href)
+          .then(function () { _showToast('Link copiado!', 'success'); })
+          .catch(function () { _showToast('Copie o link da barra do navegador', 'info'); });
+      } else {
+        _showToast('Copie o link da barra do navegador', 'info');
+      }
+    });
+  }
+
+  // 2. Wake Lock API — mantém tela ativa após 45 s de leitura contínua
+  function initWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    var lock = null;
+    var timer = null;
+
+    function acquire() {
+      if (lock || document.hidden) return;
+      navigator.wakeLock.request('screen').then(function (l) {
+        lock = l;
+        lock.addEventListener('release', function () { lock = null; });
+      }).catch(function () {});
+    }
+
+    function release() {
+      clearTimeout(timer);
+      if (lock) { lock.release().catch(function () {}); lock = null; }
+    }
+
+    timer = setTimeout(acquire, 45000);
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        release();
+      } else {
+        timer = setTimeout(acquire, 5000);
+      }
+    });
+
+    window.addEventListener('pagehide', release);
+  }
+
+  // 3. Battery API — modo eco se nível < 20% e não carregando
+  function initBattery() {
+    if (!navigator.getBattery) return;
+    navigator.getBattery().then(function (battery) {
+      function check() {
+        var low = !battery.charging && battery.level < 0.20;
+        document.body.classList.toggle('sobre-eco-mode', low);
+      }
+      check();
+      battery.addEventListener('levelchange', check);
+      battery.addEventListener('chargingchange', check);
+    }).catch(function () {});
+  }
+
+  // 4. Vibration API — feedback háptico de 12 ms no botão CTA principal
+  function initHapticCTA() {
+    if (!navigator.vibrate) return;
+    var btn = document.querySelector('.sobre-cta-btn');
+    if (!btn) return;
+    btn.addEventListener('pointerdown', function () { navigator.vibrate(12); });
+  }
+
+  // 5. Navigator.onLine — barra de aviso ao perder conexão
+  function initOnlineStatus() {
+    var bar = null;
+
+    function showOffline() {
+      if (bar) return;
+      bar = document.createElement('div');
+      bar.id = 'sobre-offline-bar';
+      bar.className = 'sobre-offline-bar';
+      bar.setAttribute('role', 'alert');
+      bar.setAttribute('aria-live', 'assertive');
+      bar.textContent = 'Sem conexão — algumas funcionalidades podem ser limitadas';
+      document.body.appendChild(bar);
+      setTimeout(function () { bar.classList.add('sobre-offline-bar--visible'); }, 10);
+    }
+
+    function hideOffline() {
+      if (bar) {
+        bar.classList.remove('sobre-offline-bar--visible');
+        setTimeout(function () { if (bar) { bar.remove(); bar = null; } }, 350);
+      }
+      _showToast('Conexão restaurada', 'success');
+    }
+
+    if (!navigator.onLine) showOffline();
+    window.addEventListener('offline', showOffline);
+    window.addEventListener('online', hideOffline);
+  }
+
+  // 6. Network Information API — simplifica UI em rede lenta ou save-data
+  function initNetworkInfo() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    function check() {
+      var slow = conn.effectiveType === 'slow-2g' ||
+                 conn.effectiveType === '2g'      ||
+                 !!conn.saveData;
+      document.body.classList.toggle('sobre-slow-net', slow);
+    }
+    check();
+    if (conn.addEventListener) conn.addEventListener('change', check);
+  }
+
+  // 7. Acumulador de tempo de leitura (Page Visibility estendida)
+  //    Pausa quando tab está oculta; exibe badge após 2 min acumulados
+  function initReadingTimer() {
+    var KEY = 'erg360_sobre_read_total_ms';
+    var startTime = Date.now();
+    var accumulated = 0;
+    var active = !document.hidden;
+
+    try { accumulated = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        accumulated += Date.now() - startTime;
+        active = false;
+      } else {
+        startTime = Date.now();
+        active = true;
+      }
+    });
+
+    function save() {
+      var total = accumulated + (active ? Date.now() - startTime : 0);
+      try { localStorage.setItem(KEY, String(total)); } catch (e) {}
+      return total;
+    }
+
+    window.addEventListener('pagehide', function () {
+      _updateReadBadge(save());
+    });
+
+    // Verifica a cada 15 s se já atingiu 2 min
+    setInterval(function () {
+      if (active) _updateReadBadge(save());
+    }, 15000);
+
+    // Badge imediato se sessão anterior já tinha >2 min
+    if (accumulated >= 120000) _updateReadBadge(accumulated);
+  }
+
+  function _updateReadBadge(ms) {
+    var mins = Math.floor(ms / 60000);
+    if (mins < 2) return;
+    var badge = document.getElementById('sobre-read-badge');
+    if (!badge) {
+      badge = document.createElement('p');
+      badge.id = 'sobre-read-badge';
+      badge.className = 'sobre-read-badge';
+      badge.setAttribute('aria-label', 'Tempo total de leitura desta página: ' + mins + ' minutos');
+      var rt = document.querySelector('.sobre-reading-time');
+      if (rt) rt.insertAdjacentElement('afterend', badge);
+      else {
+        var hero = document.querySelector('.sobre-hero-inner');
+        if (hero) hero.appendChild(badge);
+      }
+    }
+    badge.textContent = mins + ' min lidos no total';
+    badge.setAttribute('aria-label', 'Tempo total de leitura desta página: ' + mins + ' minutos');
+  }
+
+  // 8. Storage persistence — solicita persistência silenciosa
+  function initStoragePersist() {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    navigator.storage.persisted().then(function (persisted) {
+      if (!persisted) {
+        navigator.storage.persist().then(function (granted) {
+          if (granted) {
+            try { localStorage.setItem('erg360_storage_persisted', '1'); } catch (e) {}
+          }
+        }).catch(function () {});
+      }
+    }).catch(function () {});
+  }
+
+  // 9. matchMedia prefers-color-scheme dark
+  function initDarkMode() {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    function apply(e) { document.body.classList.toggle('sobre-dark-mode', e.matches); }
+    apply(mq);
+    if (mq.addEventListener) mq.addEventListener('change', apply);
+    else if (mq.addListener) mq.addListener(apply);
+  }
+
+  // 10. Web Notifications — botão de lembrete diário (opt-in, pede permissão ao clicar)
+  function initNotificationReminder() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'denied') return;
+    var cta = document.querySelector('.sobre-cta-inner');
+    if (!cta || document.getElementById('sobre-notif-btn')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'sobre-notif-btn';
+    btn.className = 'sobre-notif-btn';
+    var isGranted = Notification.permission === 'granted';
+    btn.setAttribute('aria-label', isGranted ? 'Lembrete de check-in já ativado' : 'Ativar lembrete diário de check-in');
+    btn.textContent = isGranted ? '🔔 Lembrete ativo' : '🔔 Ativar lembrete';
+    btn.disabled = isGranted;
+
+    var ctaLink = cta.querySelector('.sobre-cta-link');
+    if (ctaLink) cta.insertBefore(btn, ctaLink);
+    else cta.appendChild(btn);
+
+    if (isGranted) return;
+
+    btn.addEventListener('click', function () {
+      Notification.requestPermission().then(function (perm) {
+        if (perm === 'granted') {
+          btn.textContent = '🔔 Lembrete ativo';
+          btn.setAttribute('aria-label', 'Lembrete de check-in já ativado');
+          btn.disabled = true;
+          new Notification('ERG 360 — Lembrete ativado!', {
+            body: 'Você receberá lembretes para fazer seu check-in diário.',
+            icon: 'icons/icon-152x152.png'
+          });
+        } else {
+          btn.textContent = '🕕 Não permitido';
+          btn.disabled = true;
+        }
+      }).catch(function () {});
+    });
+  }
+
+  function initV5() {
+    initDarkMode();
+    initBattery();
+    initNetworkInfo();
+    initOnlineStatus();
+    initWakeLock();
+    initHapticCTA();
+    initWebShare();
+    initNotificationReminder();
+    initReadingTimer();
+    initStoragePersist();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+
+  var _prev = window._sobreExtras || {};
+  window._sobreExtras = Object.assign({}, _prev, { version: 5, v5: true });
+})();

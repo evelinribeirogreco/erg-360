@@ -389,3 +389,169 @@ img[data-decoded] {
   from { opacity: 0.7; }
   to   { opacity: 1; }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+
+/* 1. Web Share button — aparece dentro da CTA section */
+.sobre-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 7px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.sobre-share-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.sobre-share-btn:active { transform: translateY(0); }
+.sobre-share-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 3px;
+}
+
+/* 2. Toast (feedback genérico) */
+.sobre-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  background: var(--bg-card, #fff);
+  color: var(--text, #1a1a1a);
+  border-radius: 24px;
+  padding: 10px 22px;
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+}
+.sobre-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.sobre-toast--success { border-left: 3px solid var(--detail, #4CB8A0); }
+.sobre-toast--info    { border-left: 3px solid var(--gold, #C9A84C); }
+
+/* 3. Offline bar */
+.sobre-offline-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #3a3028;
+  color: #f0ede7;
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 9997;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+.sobre-offline-bar--visible { transform: translateY(0); }
+
+/* 4. Battery eco mode — suprime animações pesadas */
+.sobre-eco-mode .sobre-hero-enter,
+.sobre-eco-mode .sobre-hero-line--animate,
+.sobre-eco-mode .pilar-card--hidden,
+.sobre-eco-mode .sobre-razao--hidden,
+.sobre-eco-mode .sobre-step--hidden,
+.sobre-eco-mode .sobre-reveal {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.sobre-eco-mode #sobre-scroll-progress { display: none; }
+
+/* 5. Slow network mode — simplifica transições */
+.sobre-slow-net .pilar-card--hidden,
+.sobre-slow-net .sobre-razao--hidden,
+.sobre-slow-net .sobre-step--hidden,
+.sobre-slow-net .sobre-reveal {
+  transition-duration: 0.15s !important;
+}
+.sobre-slow-net .sobre-cta-logo[loading="lazy"]:not([data-decoded]) {
+  animation: none !important;
+}
+
+/* 6. Dark mode overrides (prefers-color-scheme: dark via body class) */
+.sobre-dark-mode {
+  --bg-primary: #111310;
+  --bg-card:    #1c1f1c;
+  --text:       #e8e4da;
+  --text-light: #9fa89d;
+  --border:     rgba(255, 255, 255, 0.08);
+}
+.sobre-dark-mode .sobre-toast {
+  background: #2a2d2a;
+  color: #e8e4da;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+.sobre-dark-mode .sobre-offline-bar { background: #0f0f0e; }
+.sobre-dark-mode .sobre-share-btn {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* 7. Accumulated reading time badge */
+.sobre-read-badge {
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.57rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--detail, #4CB8A0);
+  margin-top: 4px;
+  opacity: 0;
+  animation: sobre-badge-in 0.5s 0.1s ease forwards;
+}
+@keyframes sobre-badge-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 0.65; transform: translateY(0); }
+}
+
+/* 8. Web Notifications opt-in button */
+.sobre-notif-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-top: 10px;
+  border-radius: 4px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.sobre-notif-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.07);
+}
+.sobre-notif-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.sobre-notif-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
