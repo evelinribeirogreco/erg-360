@@ -1181,3 +1181,344 @@ if (window._checkinExtras) {
   window._checkinExtras.playTone   = _playTone;
   window._checkinExtras.echoToast  = _showEchoToast;
 }
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamificação: score histórico + sparkline, rank system, milestone badges,
+//   golden confetti perfeito, Bristol ideal flash, progresso de respostas por tela,
+//   frase motivacional, badge de velocidade, tendência de score, rank ring
+
+const SCORE_HIST_KEY    = 'erg_checkin_score_hist';
+const MILESTONE_ANN_KEY = 'erg_checkin_milestones';
+const MAX_HIST          = 14;
+const MILESTONES_V6     = [3, 7, 14, 30, 60, 100];
+const RANKS_V6          = [
+  { min: 100, label: 'Lendário',   color: '#9B59B6' },
+  { min: 60,  label: 'Mestre',     color: '#C9A84C' },
+  { min: 30,  label: 'Expert',     color: '#2D6A56' },
+  { min: 14,  label: 'Dedicado',   color: '#4CB8A0' },
+  { min: 7,   label: 'Praticante', color: '#7BC4B0' },
+  { min: 0,   label: 'Iniciante',  color: '#A8A49A' },
+];
+const DONE_PHRASES_V6 = [
+  { min: 95, text: 'Score perfeito! Você está radiante hoje.' },
+  { min: 80, text: 'Dia excelente! Continue nesse ritmo.' },
+  { min: 65, text: 'Ótimo equilíbrio hoje.' },
+  { min: 50, text: 'Bom progresso. Atenção ao sono e hidratação.' },
+  { min: 35, text: 'Cuide bem de você hoje.' },
+  { min: 0,  text: 'Amanhã será melhor. Um passo de cada vez.' },
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  v6ScoreHistory();
+  v6RankDisplay();
+  v6MilestoneBadge();
+  v6GoldenConfetti();
+  v6BristolIdealFlash();
+  v6ScreenAnswerProgress();
+  v6MotivationalPhrase();
+  v6SpeedBadge();
+  v6ScoreTrend();
+  v6RankRing();
+});
+
+// ── V6-1. Persiste score histórico + renderiza sparkline ──────────────────
+function v6ScoreHistory() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  let saved = false;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || saved) return;
+    _rIC(() => {
+      try {
+        const score = parseInt(document.getElementById('score-num')?.textContent) || 0;
+        if (score <= 0) return;
+        const today = new Date().toISOString().split('T')[0];
+        const hist  = JSON.parse(localStorage.getItem(SCORE_HIST_KEY) || '[]');
+        if (hist[hist.length - 1]?.date === today) {
+          setTimeout(() => _renderSparkline(hist), 900);
+          return;
+        }
+        saved = true;
+        hist.push({ date: today, score });
+        if (hist.length > MAX_HIST) hist.splice(0, hist.length - MAX_HIST);
+        localStorage.setItem(SCORE_HIST_KEY, JSON.stringify(hist));
+        setTimeout(() => _renderSparkline(hist), 900);
+      } catch (_) {}
+    });
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+function _renderSparkline(hist) {
+  const sd = document.getElementById('screen-done');
+  if (!sd || sd.querySelector('.ci-sparkline-wrap') || hist.length < 2) return;
+
+  const W = 88, H = 24, PAD = 3;
+  const scores = hist.map(h => h.score);
+  const min    = Math.min(...scores);
+  const max    = Math.max(...scores);
+  const range  = (max - min) || 1;
+
+  const pts = scores.map((s, i) => {
+    const x = PAD + (i / (scores.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((s - min) / range) * (H - PAD * 2);
+    return [x.toFixed(1), y.toFixed(1)];
+  });
+
+  const lastPt = pts[pts.length - 1];
+  const ptsStr = pts.map(p => p.join(',')).join(' ');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ci-sparkline-wrap';
+  wrap.setAttribute('aria-label', `Histórico de scores: ${scores.join(', ')}`);
+  wrap.innerHTML = `
+    <span class="ci-sparkline-label">últ. ${scores.length} dias</span>
+    <svg class="ci-sparkline-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true" focusable="false">
+      <polyline points="${ptsStr}" fill="none" stroke="var(--detail,#4CB8A0)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="2.5" fill="var(--detail,#4CB8A0)"/>
+    </svg>`;
+
+  const anchor = sd.querySelector('.ci-elapsed-badge') || sd.querySelector('.ci-done-score');
+  anchor?.after(wrap);
+}
+
+// ── V6-2. Rank display na tela de conclusão ───────────────────────────────
+function v6RankDisplay() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-rank-badge')) return;
+    try {
+      const streak = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"count":0}');
+      const count  = streak.count || 0;
+      const rank   = RANKS_V6.find(r => count >= r.min) || RANKS_V6[RANKS_V6.length - 1];
+      const badge  = document.createElement('div');
+      badge.className = 'ci-rank-badge';
+      badge.style.setProperty('--rank-color', rank.color);
+      badge.setAttribute('aria-label', `Nível atual: ${rank.label} (${count} dias consecutivos)`);
+      badge.innerHTML = `<span class="ci-rank-label">Nível</span><span class="ci-rank-name">${rank.label}</span>`;
+      sd.querySelector('.ci-done-score')?.before(badge);
+      requestAnimationFrame(() => requestAnimationFrame(() => badge.classList.add('ci-rank-visible')));
+    } catch (_) {}
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V6-3. Toast de marco de sequência ─────────────────────────────────────
+function v6MilestoneBadge() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active')) return;
+    _rIC(() => {
+      try {
+        const streak    = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"count":0}');
+        const count     = streak.count || 0;
+        const announced = JSON.parse(localStorage.getItem(MILESTONE_ANN_KEY) || '[]');
+        const hit       = MILESTONES_V6.find(m => count === m && !announced.includes(m));
+        if (!hit) return;
+        announced.push(hit);
+        localStorage.setItem(MILESTONE_ANN_KEY, JSON.stringify(announced));
+        setTimeout(() => _showMilestoneToast(hit), 1400);
+      } catch (_) {}
+    });
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+function _showMilestoneToast(days) {
+  if (document.querySelector('.ci-milestone-toast')) return;
+  const toast = document.createElement('div');
+  toast.className = 'ci-milestone-toast';
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.innerHTML = `
+    <div class="ci-milestone-inner">
+      <span class="ci-milestone-icon" aria-hidden="true">🏅</span>
+      <div>
+        <strong>${days} dias consecutivos!</strong>
+        <p>Marco desbloqueado. Continue assim.</p>
+      </div>
+    </div>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('ci-milestone-show')));
+  if (_soundEnabled) {
+    setTimeout(() => _playTone(523.25, 0.05, 0.15), 200);
+    setTimeout(() => _playTone(659.25, 0.05, 0.15), 400);
+    setTimeout(() => _playTone(783.99, 0.06, 0.25), 620);
+  }
+  setTimeout(() => {
+    toast.classList.remove('ci-milestone-show');
+    setTimeout(() => toast.remove(), 500);
+  }, 5500);
+}
+
+// ── V6-4. Golden confetti para score >= 95 ────────────────────────────────
+function v6GoldenConfetti() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  let fired = false;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || fired) return;
+    setTimeout(() => {
+      const score = parseInt(document.getElementById('score-num')?.textContent) || 0;
+      if (score < 95) return;
+      fired = true;
+      _launchGoldenConfetti();
+    }, 1300);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+function _launchGoldenConfetti() {
+  const GOLD = ['#C9A84C', '#E8D5A0', '#F5E8A0', '#D4A855', '#FFD966'];
+  const wrap = document.createElement('div');
+  wrap.className = 'ci-confetti-wrap ci-confetti-gold';
+  wrap.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(wrap);
+  for (let i = 0; i < 65; i++) {
+    const p = document.createElement('div');
+    p.className = 'ci-confetti-piece ci-confetti-gold-piece';
+    const s = 5 + Math.random() * 9;
+    p.style.cssText = `
+      left:${Math.random() * 100}%;
+      background:${GOLD[Math.floor(Math.random() * GOLD.length)]};
+      animation-delay:${(Math.random() * 1.6).toFixed(2)}s;
+      animation-duration:${(1.2 + Math.random() * 1.1).toFixed(2)}s;
+      width:${s.toFixed(1)}px;height:${s.toFixed(1)}px;
+      border-radius:${Math.random() > 0.45 ? '50%' : '2px'};`;
+    wrap.appendChild(p);
+  }
+  setTimeout(() => wrap.remove(), 5500);
+}
+
+// ── V6-5. Bristol tipo 4 "ideal" flash ────────────────────────────────────
+function v6BristolIdealFlash() {
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.bristol-btn');
+    if (!btn) return;
+    if (parseInt(btn.textContent.trim()) !== 4) return;
+    btn.classList.remove('ci-bristol-ideal');
+    void btn.offsetWidth;
+    btn.classList.add('ci-bristol-ideal');
+    btn.addEventListener('animationend', () => btn.classList.remove('ci-bristol-ideal'), { once: true });
+    if (_soundEnabled) {
+      _playTone(880, 0.035, 0.1);
+      setTimeout(() => _playTone(1046.5, 0.025, 0.08), 110);
+    }
+  });
+}
+
+// ── V6-6. Progresso de respostas por tela ─────────────────────────────────
+function v6ScreenAnswerProgress() {
+  const updateProgress = () => {
+    const active = document.querySelector('.ci-screen.active');
+    if (!active || active.id === 'screen-0' || active.id === 'screen-done') return;
+    const wraps    = [...active.querySelectorAll('.ci-scale-wrap')];
+    if (!wraps.length) return;
+    const total    = wraps.length;
+    const answered = wraps.filter(w => w.querySelector('.ci-scale-btn.active')).length;
+    let counter    = active.querySelector('.ci-answer-progress');
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.className = 'ci-answer-progress';
+      counter.setAttribute('aria-live', 'polite');
+      counter.setAttribute('aria-atomic', 'true');
+      const anchor = active.querySelector('.ci-question, h3, .ci-label');
+      if (anchor) anchor.before(counter); else active.prepend(counter);
+    }
+    counter.textContent = `${answered}/${total}`;
+    counter.dataset.done = answered >= total ? '1' : '0';
+  };
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('.ci-scale-btn')) requestAnimationFrame(updateProgress);
+  });
+
+  document.querySelectorAll('.ci-screen').forEach(s => {
+    new MutationObserver(() => {
+      if (s.classList.contains('active')) setTimeout(updateProgress, 60);
+    }).observe(s, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
+// ── V6-7. Frase motivacional baseada no score ─────────────────────────────
+function v6MotivationalPhrase() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-motive-phrase')) return;
+    setTimeout(() => {
+      const score  = parseInt(document.getElementById('score-num')?.textContent) || 0;
+      const phrase = DONE_PHRASES_V6.find(p => score >= p.min);
+      if (!phrase) return;
+      const el = document.createElement('p');
+      el.className = 'ci-motive-phrase';
+      el.setAttribute('aria-live', 'polite');
+      el.textContent = phrase.text;
+      const anchor = sd.querySelector('.ci-summary') || sd.querySelector('.ci-done-score');
+      anchor?.after(el);
+    }, 650);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V6-8. Badge de check-in relâmpago (< 45s) ────────────────────────────
+function v6SpeedBadge() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-speed-badge')) return;
+    if (!_sessionStart) return;
+    const elapsed = (Date.now() - _sessionStart) / 1000;
+    if (elapsed > 45) return;
+    const badge = document.createElement('div');
+    badge.className = 'ci-speed-badge';
+    badge.setAttribute('aria-label', `Check-in relâmpago: concluído em ${Math.round(elapsed)} segundos`);
+    badge.innerHTML = `<span aria-hidden="true">⚡</span> Relâmpago <small>${Math.round(elapsed)}s</small>`;
+    const anchor = sd.querySelector('.ci-elapsed-badge') || sd.querySelector('.ci-done-score');
+    anchor?.after(badge);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V6-9. Badge de tendência de score vs. ontem ───────────────────────────
+function v6ScoreTrend() {
+  const sd = document.getElementById('screen-done');
+  if (!sd) return;
+  new MutationObserver(() => {
+    if (!sd.classList.contains('active') || sd.querySelector('.ci-trend-badge')) return;
+    setTimeout(() => {
+      try {
+        const hist  = JSON.parse(localStorage.getItem(SCORE_HIST_KEY) || '[]');
+        if (hist.length < 2) return;
+        const today = hist[hist.length - 1]?.score;
+        const prev  = hist[hist.length - 2]?.score;
+        if (today == null || prev == null) return;
+        const diff  = today - prev;
+        if (diff === 0) return;
+        const badge = document.createElement('span');
+        badge.className = `ci-trend-badge ${diff > 0 ? 'ci-trend-up' : 'ci-trend-down'}`;
+        badge.setAttribute('aria-label', `${diff > 0 ? 'Alta' : 'Queda'} de ${Math.abs(diff)} pontos em relação a ontem`);
+        badge.textContent = (diff > 0 ? '↑' : '↓') + Math.abs(diff);
+        document.getElementById('score-num')?.after(badge);
+      } catch (_) {}
+    }, 800);
+  }).observe(sd, { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── V6-10. Anel de progresso para próximo nível no streak badge ───────────
+function v6RankRing() {
+  try {
+    const streak   = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"count":0}');
+    const count    = streak.count || 0;
+    const next     = MILESTONES_V6.find(m => count < m);
+    if (!next) return;
+    const prevIdx  = MILESTONES_V6.indexOf(next) - 1;
+    const prevMile = prevIdx >= 0 ? MILESTONES_V6[prevIdx] : 0;
+    const pct      = Math.min(((count - prevMile) / (next - prevMile)) * 100, 100);
+    const badge    = document.querySelector('.ci-streak-badge');
+    if (!badge) return;
+    badge.style.setProperty('--rank-pct', `${pct.toFixed(1)}%`);
+    badge.classList.add('ci-rank-ring');
+    badge.title = `${Math.round(pct)}% para o próximo nível (faltam ${next - count} dias)`;
+  } catch (_) {}
+}
+
+if (window._checkinExtras) {
+  window._checkinExtras.version = 'V6';
+}

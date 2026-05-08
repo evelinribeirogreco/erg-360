@@ -824,3 +824,277 @@ html.ci-dark-auto .ci-header {
     transition: opacity 0.1s linear !important;
   }
 }
+
+/* ═══ POLIMENTO V6 ═══ */
+/* 10 melhorias de gamificação: sparkline, rank, milestone toast, golden confetti,
+   Bristol ideal flash, progresso por tela, frase motivacional, badge velocidade,
+   tendência de score, rank ring */
+
+/* ── V6-1. Sparkline ─────────────────────────────────────────────────────── */
+.ci-sparkline-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ci-sparkline-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: var(--text-light, #6B6659);
+  white-space: nowrap;
+}
+
+.ci-sparkline-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── V6-2. Rank badge na tela de conclusão ───────────────────────────────── */
+.ci-rank-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--rank-color, #4CB8A0);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ci-rank-badge.ci-rank-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ci-rank-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-light, #6B6659);
+}
+
+.ci-rank-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--rank-color, #4CB8A0);
+  letter-spacing: 0.02em;
+}
+
+/* ── V6-3. Milestone toast ───────────────────────────────────────────────── */
+.ci-milestone-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--gold, #C9A84C);
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 280px;
+  width: 90%;
+}
+
+.ci-milestone-toast.ci-milestone-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ci-milestone-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ci-milestone-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ci-milestone-inner strong {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  display: block;
+}
+
+.ci-milestone-inner p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-light, #6B6659);
+  margin-top: 2px;
+}
+
+/* ── V6-5. Bristol tipo 4 "ideal" flash ──────────────────────────────────── */
+@keyframes ci-bristol-ideal {
+  0%   { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0.85); }
+  45%  { box-shadow: 0 0 0 14px rgba(76, 184, 160, 0); background: rgba(76, 184, 160, 0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 184, 160, 0); }
+}
+
+.bristol-btn.ci-bristol-ideal {
+  animation: ci-bristol-ideal 0.55s ease-out;
+}
+
+/* ── V6-6. Progresso de respostas na tela atual ──────────────────────────── */
+.ci-answer-progress {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--detail, #4CB8A0);
+  background: rgba(76, 184, 160, 0.08);
+  border-radius: 100px;
+  padding: 2px 9px;
+  margin-bottom: 10px;
+  transition: color 0.22s ease, background 0.22s ease;
+}
+
+.ci-answer-progress[data-done="1"] {
+  color: var(--accent, #2D6A56);
+  background: rgba(45, 106, 86, 0.1);
+  font-weight: 500;
+}
+
+/* ── V6-7. Frase motivacional ────────────────────────────────────────────── */
+.ci-motive-phrase {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.98rem;
+  font-style: italic;
+  color: var(--text-light, #6B6659);
+  text-align: center;
+  margin: 14px 0 8px;
+  line-height: 1.55;
+  animation: ci-fade 0.5s ease both;
+}
+
+/* ── V6-8. Badge de velocidade ───────────────────────────────────────────── */
+.ci-speed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 100px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: #7A5A10;
+  font-weight: 500;
+  margin-top: 4px;
+  animation: ci-score-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ci-speed-badge small {
+  font-size: 0.6rem;
+  opacity: 0.75;
+}
+
+/* ── V6-9. Badge de tendência de score ───────────────────────────────────── */
+.ci-trend-badge {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  animation: ci-fade 0.3s ease both;
+}
+
+.ci-trend-up {
+  color: var(--accent, #2D6A56);
+  background: rgba(45, 106, 86, 0.1);
+}
+
+.ci-trend-down {
+  color: #7A2E2E;
+  background: rgba(122, 46, 46, 0.08);
+}
+
+/* ── V6-10. Rank ring no streak badge ────────────────────────────────────── */
+.ci-streak-badge.ci-rank-ring {
+  position: relative;
+  isolation: isolate;
+  border-color: transparent;
+  padding: 8px 14px 8px 12px;
+}
+
+.ci-streak-badge.ci-rank-ring::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 101px;
+  background: conic-gradient(
+    from -90deg,
+    var(--gold, #C9A84C) 0%,
+    var(--gold, #C9A84C) var(--rank-pct, 0%),
+    rgba(201, 168, 76, 0.15) var(--rank-pct, 0%),
+    rgba(201, 168, 76, 0.15) 100%
+  );
+  z-index: -1;
+}
+
+.ci-streak-badge.ci-rank-ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 99px;
+  background: rgba(201, 168, 76, 0.09);
+  z-index: -1;
+}
+
+/* ── V6 reduced-motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ci-rank-badge {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .ci-milestone-toast {
+    transition: none;
+  }
+
+  .ci-bristol-ideal {
+    animation: none !important;
+  }
+
+  .ci-speed-badge,
+  .ci-motive-phrase,
+  .ci-trend-badge {
+    animation: none;
+  }
+}
+
+.ci-reduced-motion .ci-rank-badge {
+  transition: none;
+  opacity: 1;
+  transform: none;
+}
+
+.ci-reduced-motion .ci-milestone-toast {
+  transition: none;
+}
+
+.ci-reduced-motion .ci-bristol-ideal {
+  animation: none !important;
+}
+
+.ci-reduced-motion .ci-speed-badge,
+.ci-reduced-motion .ci-motive-phrase,
+.ci-reduced-motion .ci-trend-badge {
+  animation: none;
+}
