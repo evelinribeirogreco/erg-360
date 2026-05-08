@@ -376,6 +376,190 @@ function initMetricKeyboard() {
   });
 }
 
+// ═══ POLIMENTO V6 ═══
+// Gamification: confetti, AudioContext chime, personal best, achievement toast, rank label
+
+// ── V6-1. Confetti burst via canvas (sem lib externa) ─────────────────────
+function launchConfetti(duration = 2800) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'cr-confetti-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#4CB8A0', '#2D6A56', '#C9A84C', '#FF6B6B', '#4ECDC4', '#45B7D1'];
+  const pieces = Array.from({ length: 120 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 100,
+    w: 8 + Math.random() * 8,
+    h: 4 + Math.random() * 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.3,
+    vx: (Math.random() - 0.5) * 4,
+    vy: 2 + Math.random() * 3,
+  }));
+  let start = null;
+  function draw(ts) {
+    if (!start) start = ts;
+    const elapsed = ts - start;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.angle += p.spin;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - elapsed / duration);
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    if (elapsed < duration) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
+}
+
+// ── V6-2. Som sutil via AudioContext (arpejo C5-E5-G5) ────────────────────
+function crPlayTone(freq = 523, dur = 0.18, vol = 0.07) {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    osc.start();
+    osc.stop(ac.currentTime + dur);
+    osc.addEventListener('ended', () => ac.close());
+  } catch {}
+}
+
+function crPlaySuccessChime() {
+  [523, 659, 784].forEach((f, i) => setTimeout(() => crPlayTone(f, 0.2, 0.06), i * 120));
+}
+
+// ── V6-3. Record pessoal (melhor score já registrado) ─────────────────────
+const CR_GAME_KEY = 'cr_game_v1';
+function crGameLoad() {
+  try { return JSON.parse(localStorage.getItem(CR_GAME_KEY) || '{}'); } catch { return {}; }
+}
+function crGameSave(d) {
+  try { localStorage.setItem(CR_GAME_KEY, JSON.stringify(d)); } catch {}
+}
+function crCheckPersonalBest(score) {
+  const num = parseFloat(score);
+  if (isNaN(num) || num <= 0) return false;
+  const data = crGameLoad();
+  const prev = data.bestScore || 0;
+  if (num > prev) {
+    crGameSave({ ...data, bestScore: num, bestDate: new Date().toISOString().slice(0, 10) });
+    return num >= 5;
+  }
+  return false;
+}
+
+// ── V6-4. Toast de conquista com slide-up ─────────────────────────────────
+function crShowAchievementToast(msg, icon = '🏆') {
+  const t = document.createElement('div');
+  t.className = 'cr-achievement-toast';
+  t.setAttribute('role', 'status');
+  t.setAttribute('aria-live', 'polite');
+  t.innerHTML = `<span class="cr-ach-icon" aria-hidden="true">${icon}</span><span class="cr-ach-msg">${msg}</span>`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('cr-ach-show')); });
+  setTimeout(() => {
+    t.classList.remove('cr-ach-show');
+    t.addEventListener('transitionend', () => t.remove(), { once: true });
+  }, 3500);
+}
+
+// ── V6-5. Rótulo de classificação baseado no score ────────────────────────
+function crInjectRankLabel(score) {
+  const num = parseFloat(score);
+  if (isNaN(num)) return;
+  document.querySelector('.cr-rank-label')?.remove();
+  const ranks = [
+    [9,         'Excelente',          'cr-rank-excellent'],
+    [7.5,       'Muito Bom',          'cr-rank-great'],
+    [6,         'Bom',                'cr-rank-good'],
+    [4,         'Regular',            'cr-rank-fair'],
+    [-Infinity, 'Em desenvolvimento', 'cr-rank-dev'],
+  ];
+  const [, label, cls] = ranks.find(([min]) => num >= min);
+  const el = document.createElement('div');
+  el.className = `cr-rank-label ${cls}`;
+  el.setAttribute('aria-label', `Classificação: ${label}`);
+  el.textContent = label;
+  document.querySelector('.resumo-score-card')?.appendChild(el);
+}
+
+// ── V6-6. Troféu no título da aba quando score ≥ 9 ───────────────────────
+function crUpdateTitle(score) {
+  const num = parseFloat(score);
+  if (!isNaN(num) && num >= 9 && !document.title.startsWith('🏆')) {
+    document.title = '🏆 ' + document.title;
+  }
+}
+
+// ── V6-7. Haptic feedback em conquistas (mobile) ──────────────────────────
+function crHapticAchieve() {
+  try { navigator.vibrate?.([50, 30, 100]); } catch {}
+}
+
+// ── V6-8. Party mode: drop-shadow pulsante quando score ≥ 9.5 ────────────
+function crInitPartyMode(score) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const num = parseFloat(score);
+  if (isNaN(num) || num < 9.5) return;
+  const circle = document.querySelector('.resumo-score-circle');
+  if (!circle) return;
+  circle.classList.add('cr-party-ring');
+  setTimeout(() => circle.classList.remove('cr-party-ring'), 5000);
+}
+
+// ── V6-9. Tom suave para scores moderados (7 ≤ score < 8) ────────────────
+function crPlayModerateSound(score) {
+  const num = parseFloat(score);
+  if (!isNaN(num) && num >= 7 && num < 8) crPlayTone(659, 0.25, 0.05);
+}
+
+// ── V6-10. Orquestrador via MutationObserver no score-num ─────────────────
+function initGamification() {
+  const scoreEl = document.getElementById('score-num');
+  if (!scoreEl) return;
+  let done = false;
+  const run = () => {
+    const raw = scoreEl.textContent?.trim();
+    if (!raw || raw === '—' || done) return;
+    const num = parseFloat(raw);
+    if (isNaN(num)) return;
+    done = true;
+    crInjectRankLabel(raw);
+    crUpdateTitle(raw);
+    crInitPartyMode(raw);
+    const isNewBest = crCheckPersonalBest(raw);
+    if (isNewBest) {
+      crHapticAchieve();
+      crPlaySuccessChime();
+      if (num >= 8) launchConfetti();
+      crShowAchievementToast('Novo recorde pessoal!', '🏆');
+    } else if (num >= 9) {
+      crPlayTone(784, 0.3, 0.06);
+      crShowAchievementToast('Desempenho excelente!', '⭐');
+    } else {
+      crPlayModerateSound(raw);
+    }
+  };
+  new MutationObserver(run).observe(scoreEl, { childList: true, characterData: true, subtree: true });
+  run();
+}
+
 // ═══ POLIMENTO V7 ═══
 // Telemetria local: uso de features, streak, heatmap, histórico no localStorage
 
@@ -719,6 +903,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initResizeDebounce();
   initScoreLiveRegion();
   initMetricKeyboard();
+  // V6
+  initGamification();
   // V7
   initVisitTracking();
   initScrollDepthTracking();
