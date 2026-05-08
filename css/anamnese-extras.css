@@ -1144,3 +1144,126 @@ body.turbo-mode .section-title {
   .v4-dirty-badge { animation: none; }
   #anamnese-risk-score:empty::after { animation: none; }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* Web APIs: Wake Lock, Web Share, Notifications, Battery Status,
+   Vibration (haptics via JS), Clipboard, Network Info, PWA install */
+
+/* V5-1 — Wake Lock button: estado ativo com glow dourado */
+#v5-wakelock-btn.v5-wakelock-on {
+  color: var(--gold, #C9A84C);
+  border-color: rgba(201,168,76,0.4);
+  background: rgba(201,168,76,0.08);
+}
+#v5-wakelock-btn.v5-wakelock-on svg {
+  filter: drop-shadow(0 0 4px rgba(201,168,76,0.55));
+}
+
+/* V5-4 — Notification permission bar */
+.v5-notif-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(76,184,160,0.06);
+  border: 1px solid var(--accent-border, rgba(76,184,160,0.35));
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text);
+  animation: v5-bar-in 0.3s ease-out both;
+}
+.v5-notif-bar svg { color: var(--accent); flex-shrink: 0; }
+.v5-notif-bar span { flex: 1; min-width: 160px; line-height: 1.4; }
+@keyframes v5-bar-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* V5-6 — Battery badge */
+.v5-battery-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--warning, #B8860B);
+  background: rgba(184,134,11,0.08);
+  border: 1px solid rgba(184,134,11,0.28);
+  border-radius: 100px;
+  white-space: nowrap;
+  animation: v4-dirty-in 0.2s ease-out both;
+}
+
+/* V5-6 — Low battery: pausa animações pesadas para economizar energia */
+.v5-low-battery .v2-section-enter,
+.v5-low-battery .v4-row-in {
+  animation: none !important;
+}
+.v5-low-battery .risk-score-bar-fill {
+  transition: none !important;
+}
+.v5-low-battery #anamnese-risk-score:empty::after {
+  animation: none !important;
+}
+
+/* V5-9 — Network badges: offline e conexão lenta */
+.v5-network-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 500;
+  border-radius: 100px;
+  border: 1px solid;
+  white-space: nowrap;
+  animation: v4-dirty-in 0.2s ease-out both;
+}
+.v5-net-offline {
+  color: #C0392B;
+  background: rgba(192,57,43,0.07);
+  border-color: rgba(192,57,43,0.30);
+}
+.v5-net-slow {
+  color: var(--warning, #B8860B);
+  background: rgba(184,134,11,0.07);
+  border-color: rgba(184,134,11,0.28);
+}
+
+/* V5-9 — Offline: autosave badge sinaliza modo local */
+html.v5-offline .autosave-badge {
+  border-color: rgba(192,57,43,0.35);
+}
+html.v5-offline .autosave-dot {
+  background: #C0392B !important;
+}
+
+/* V5-10 — PWA install button */
+.v5-install-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.v5-install-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.v5-install-pulse {
+  animation: v5-install-pulse 2.2s ease-in-out 3;
+}
+@keyframes v5-install-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(76,184,160,0.0); }
+  50%       { box-shadow: 0 0 0 6px rgba(76,184,160,0.22); }
+}
+
+/* V5 — prefers-reduced-motion: respeita preferência do usuário */
+@media (prefers-reduced-motion: reduce) {
+  .v5-notif-bar     { animation: none; }
+  .v5-install-pulse { animation: none; }
+  .v5-battery-badge { animation: none; }
+  .v5-network-badge { animation: none; }
+}

@@ -1590,3 +1590,412 @@ if (document.readyState === 'loading') {
 } else {
   _initV4();
 }
+
+// ═══ POLIMENTO V5 ═══
+// 10 Web APIs modernas: Wake Lock, Web Share, Notifications API,
+// Battery Status, Vibration, Clipboard, Network Information,
+// visibility relay, BeforeInstallPrompt PWA, haptic MutationObserver
+
+// V5-1 — Screen Wake Lock: mantém tela acesa durante preenchimento ativo
+let _v5WakeLock = null;
+let _v5WakeLockEnabled = false;
+
+async function _v5AcquireWakeLock() {
+  if (!('wakeLock' in navigator) || !_v5WakeLockEnabled) return;
+  try {
+    if (_v5WakeLock?.active) return;
+    _v5WakeLock = await navigator.wakeLock.request('screen');
+    _v5WakeLock.addEventListener('release', () => {
+      _v5WakeLock = null;
+      _v5UpdateWakeLockUI(false);
+    }, { once: true });
+    _v5UpdateWakeLockUI(true);
+  } catch (_) {}
+}
+
+async function _v5ReleaseWakeLock() {
+  try { if (_v5WakeLock) await _v5WakeLock.release(); } catch (_) {}
+  _v5WakeLock = null;
+}
+
+function _v5UpdateWakeLockUI(active) {
+  const btn = document.getElementById('v5-wakelock-btn');
+  if (!btn) return;
+  btn.classList.toggle('v5-wakelock-on', active);
+  btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  btn.title = active ? 'Tela sempre ativa — clique para desligar' : 'Manter tela ativa';
+}
+
+function _v5ToggleWakeLock() {
+  _v5WakeLockEnabled = !_v5WakeLockEnabled;
+  try { localStorage.setItem('erg_anamnese_wakelock', _v5WakeLockEnabled ? '1' : '0'); } catch (_) {}
+  if (_v5WakeLockEnabled) _v5AcquireWakeLock();
+  else _v5ReleaseWakeLock();
+  window._anamneseExtras?.showToast(
+    _v5WakeLockEnabled ? 'Tela sempre ativa ativada' : 'Wake Lock desativado'
+  );
+}
+
+function _v5InjectWakeLockBtn() {
+  if (document.getElementById('v5-wakelock-btn')) return;
+  const right = document.querySelector('.anamnese-toolbar-right');
+  if (!right) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'v5-wakelock-btn';
+  btn.className = 'tb-btn';
+  btn.setAttribute('aria-pressed', 'false');
+  btn.title = 'Manter tela ativa';
+  btn.setAttribute('aria-label', 'Manter tela sempre ativa durante o preenchimento');
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  btn.addEventListener('click', _v5ToggleWakeLock);
+  right.appendChild(btn);
+  try {
+    if (localStorage.getItem('erg_anamnese_wakelock') === '1') {
+      _v5WakeLockEnabled = true;
+      _v5AcquireWakeLock();
+    }
+  } catch (_) {}
+}
+
+// V5-2 — Wake Lock visibility relay: libera ao esconder aba, readquire ao voltar
+function _v5WakeLockVisibilityRelay() {
+  document.addEventListener('visibilitychange', async () => {
+    if (!_v5WakeLockEnabled) return;
+    if (document.visibilityState === 'visible') await _v5AcquireWakeLock();
+    else await _v5ReleaseWakeLock();
+  });
+  window.addEventListener('pagehide', _v5ReleaseWakeLock);
+}
+
+// V5-3 — Web Share API: compartilha resumo clínico via OS share sheet
+function _v5BuildShareText() {
+  const scoreEl = document.querySelector('.risk-score-value');
+  const levelEl = document.querySelector('.risk-score-label');
+  const score = scoreEl?.textContent?.trim() || '—';
+  const level = levelEl ? levelEl.textContent.replace(/\s+/g, ' ').trim() : '—';
+  const pats = Array.from(document.querySelectorAll('.patologia-btn.active'))
+    .map(b => b.textContent.trim()).slice(0, 5).join(', ');
+  const alertList = Array.from(document.querySelectorAll('.risk-alert'))
+    .map(a => '• ' + (a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90))
+    .slice(0, 4).join('\n');
+  const date = new Date().toLocaleDateString('pt-BR');
+  return [
+    `=== Anamnese ERG 360 — ${date} ===`,
+    `Score de risco: ${score} (${level})`,
+    pats ? `Condições: ${pats}` : '',
+    alertList ? `\nAlertas clínicos:\n${alertList}` : '',
+    '\n— Gerado via ERG 360',
+  ].filter(Boolean).join('\n');
+}
+
+async function _v5ShareSummary() {
+  const text = _v5BuildShareText();
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Resumo Anamnese — ERG 360', text });
+      window._anamneseExtras?.showToast('Compartilhado!', 'ok');
+    } catch (e) {
+      if (e?.name !== 'AbortError') await _v5CopySummary(text);
+    }
+  } else {
+    await _v5CopySummary(text);
+  }
+}
+
+function _v5InjectShareBtn() {
+  if (document.getElementById('v5-share-btn')) return;
+  const right = document.querySelector('.anamnese-toolbar-right');
+  if (!right) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'v5-share-btn';
+  btn.className = 'tb-btn';
+  btn.title = 'Compartilhar resumo clínico';
+  btn.setAttribute('aria-label', 'Compartilhar resumo clínico via share nativo');
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar`;
+  btn.addEventListener('click', _v5ShareSummary);
+  right.insertBefore(btn, right.firstChild);
+}
+
+// V5-4 — Notifications API: barra de permissão contextual (exibida após step 3)
+let _v5NotifRequested = false;
+
+function _v5InjectNotifBar() {
+  if (document.getElementById('v5-notif-bar')) return;
+  const bar = document.createElement('div');
+  bar.id = 'v5-notif-bar';
+  bar.className = 'v5-notif-bar';
+  bar.style.display = 'none';
+  bar.setAttribute('role', 'complementary');
+  bar.setAttribute('aria-label', 'Solicitar permissão de notificações');
+  bar.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span>Ativar lembretes para ser notificada se sair com rascunho não salvo?</span>
+    <button type="button" id="v5-notif-yes" class="tb-btn tb-primary">Ativar</button>
+    <button type="button" id="v5-notif-no"  class="tb-btn">Agora não</button>`;
+  const form = document.getElementById('anamnese-form');
+  if (form) form.insertBefore(bar, form.firstChild);
+  else document.querySelector('.main-content')?.insertAdjacentElement('afterbegin', bar);
+  document.getElementById('v5-notif-yes')?.addEventListener('click', _v5EnableNotifications);
+  document.getElementById('v5-notif-no')?.addEventListener('click', () => {
+    bar.style.display = 'none';
+    try { localStorage.setItem('erg_anamnese_notif_denied', '1'); } catch (_) {}
+  });
+}
+
+async function _v5EnableNotifications() {
+  const perm = await Notification.requestPermission();
+  const bar = document.getElementById('v5-notif-bar');
+  if (bar) bar.style.display = 'none';
+  if (perm === 'granted') {
+    window._anamneseExtras?.showToast('Lembretes ativados', 'ok');
+    _v5HapticSuccess();
+  }
+}
+
+function _v5MaybeRequestNotifPermission(stepIdx) {
+  if (_v5NotifRequested || stepIdx < 3) return;
+  if (!('Notification' in window) || Notification.permission !== 'default') return;
+  try { if (localStorage.getItem('erg_anamnese_notif_denied')) return; } catch (_) {}
+  _v5NotifRequested = true;
+  const bar = document.getElementById('v5-notif-bar');
+  if (bar) setTimeout(() => { bar.style.display = 'flex'; }, 800);
+}
+
+// V5-5 — Notification API: lembrete de rascunho não salvo ao ficar em background
+let _v5DraftReminderTimer = null;
+const V5_REMINDER_DELAY_MS = 9 * 60 * 1000;
+
+function _v5ScheduleDraftReminder() {
+  clearTimeout(_v5DraftReminderTimer);
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  _v5DraftReminderTimer = setTimeout(() => {
+    const dirty = window._anamneseExtras?.getDirtyFields?.() || [];
+    if (!dirty.length) return;
+    try {
+      new Notification('ERG 360 — Anamnese', {
+        body: `Você tem ${dirty.length} campo${dirty.length > 1 ? 's' : ''} não salvo${dirty.length > 1 ? 's' : ''}. Clique para continuar.`,
+        tag: 'erg-anamnese-draft',
+      });
+    } catch (_) {}
+  }, V5_REMINDER_DELAY_MS);
+}
+
+function _v5AttachDraftReminder() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) _v5ScheduleDraftReminder();
+    else clearTimeout(_v5DraftReminderTimer);
+  });
+}
+
+// V5-6 — Battery Status API: modo economia em bateria baixa (≤20%)
+function _v5EnsureBatteryBadge() {
+  if (document.getElementById('v5-battery-badge')) return document.getElementById('v5-battery-badge');
+  const ref = document.getElementById('autosave-badge');
+  if (!ref) return null;
+  const span = document.createElement('span');
+  span.id = 'v5-battery-badge';
+  span.className = 'v5-battery-badge';
+  span.style.display = 'none';
+  span.setAttribute('aria-live', 'polite');
+  ref.parentElement?.insertBefore(span, ref.nextSibling);
+  return span;
+}
+
+async function _v5MonitorBattery() {
+  if (!('getBattery' in navigator)) return;
+  const badge = _v5EnsureBatteryBadge();
+  try {
+    const battery = await navigator.getBattery();
+    const update = () => {
+      const pct = Math.round(battery.level * 100);
+      const low = pct <= 20 && !battery.charging;
+      document.documentElement.classList.toggle('v5-low-battery', low);
+      if (!badge) return;
+      if (low) { badge.textContent = `Bateria ${pct}% — modo economia`; badge.style.display = ''; }
+      else badge.style.display = 'none';
+    };
+    update();
+    ['levelchange', 'chargingchange'].forEach(ev => battery.addEventListener(ev, update));
+  } catch (_) {}
+}
+
+// V5-7 — Vibration API: padrões hápticos para erro, sucesso e mudança de step
+function _v5HapticError()   { try { navigator.vibrate?.([70, 40, 70]); } catch (_) {} }
+function _v5HapticSuccess() { try { navigator.vibrate?.(60); } catch (_) {} }
+function _v5HapticStep()    { try { navigator.vibrate?.(25); } catch (_) {} }
+
+function _v5AttachHapticsViaObservers() {
+  // Erro: MutationObserver detecta inline-error adicionado ao form
+  new MutationObserver((mutations) => {
+    mutations.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if (n.nodeType === 1 && n.classList?.contains('inline-error')) _v5HapticError();
+      });
+    });
+  }).observe(document.getElementById('anamnese-form') || document.body, { childList: true, subtree: true });
+
+  // Sucesso: MutationObserver detecta classe .saved no autosave-badge
+  const badge = document.getElementById('autosave-badge');
+  if (badge) {
+    new MutationObserver(() => {
+      if (badge.classList.contains('saved')) _v5HapticSuccess();
+    }).observe(badge, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+function _v5PatchHapticsOnStep() {
+  const api = window._anamneseExtras;
+  if (!api?.onStepChange || api.onStepChange._v5h) return;
+  const orig = api.onStepChange;
+  api.onStepChange = function _v5StepHaptic(idx, total, stepId) {
+    _v5HapticStep();
+    _v5MaybeRequestNotifPermission(idx);
+    return orig.apply(this, arguments);
+  };
+  api.onStepChange._v5h = true;
+}
+
+// V5-8 — Clipboard API: copia resumo clínico estruturado para área de transferência
+async function _v5CopySummary(text) {
+  const t = text || _v5BuildShareText();
+  try {
+    await navigator.clipboard.writeText(t);
+    window._anamneseExtras?.showToast('Resumo copiado para a área de transferência', 'ok');
+    _v5HapticSuccess();
+  } catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); window._anamneseExtras?.showToast('Copiado', 'ok'); } catch (_2) {}
+    ta.remove();
+  }
+}
+
+function _v5InjectCopyBtn() {
+  if (document.getElementById('v5-copy-btn')) return;
+  const left = document.querySelector('.anamnese-toolbar-left');
+  if (!left) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'v5-copy-btn';
+  btn.className = 'tb-btn';
+  btn.title = 'Copiar resumo clínico';
+  btn.setAttribute('aria-label', 'Copiar resumo clínico para área de transferência');
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar resumo`;
+  btn.addEventListener('click', () => _v5CopySummary());
+  left.appendChild(btn);
+}
+
+// V5-9 — Network Information API: detecção offline e conexão lenta com badge contextual
+function _v5EnsureNetworkBadge() {
+  if (document.getElementById('v5-network-badge')) return document.getElementById('v5-network-badge');
+  const toolbar = document.querySelector('.anamnese-toolbar');
+  if (!toolbar) return null;
+  const span = document.createElement('span');
+  span.id = 'v5-network-badge';
+  span.className = 'v5-network-badge';
+  span.style.display = 'none';
+  span.setAttribute('aria-live', 'polite');
+  span.setAttribute('role', 'status');
+  toolbar.appendChild(span);
+  return span;
+}
+
+function _v5NetworkMonitor() {
+  const badge = _v5EnsureNetworkBadge();
+  function update() {
+    const offline = !navigator.onLine;
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const slow = !offline && !!conn && (
+      conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g' ||
+      (conn.downlink !== undefined && conn.downlink < 0.5)
+    );
+    document.documentElement.classList.toggle('v5-offline', offline);
+    document.documentElement.classList.toggle('v5-slow-net', slow);
+    if (!badge) return;
+    if (offline) {
+      badge.textContent = 'Offline — salvando localmente';
+      badge.className = 'v5-network-badge v5-net-offline';
+      badge.style.display = '';
+    } else if (slow) {
+      const type = conn?.effectiveType?.toUpperCase() || 'lenta';
+      badge.textContent = `Conexão ${type} — modo local`;
+      badge.className = 'v5-network-badge v5-net-slow';
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  update();
+  window.addEventListener('online', update);
+  window.addEventListener('offline', () => { update(); window._anamneseExtras?.saveDraft?.(); });
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  conn?.addEventListener('change', update);
+}
+
+// V5-10 — BeforeInstallPrompt: botão de instalação PWA capturado antes do prompt
+let _v5DeferredInstallPrompt = null;
+
+function _v5InjectInstallBtn() {
+  if (document.getElementById('v5-install-btn')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'v5-install-btn';
+  btn.className = 'tb-btn v5-install-btn';
+  btn.style.display = 'none';
+  btn.title = 'Instalar ERG 360 como aplicativo';
+  btn.setAttribute('aria-label', 'Instalar ERG 360 como aplicativo no dispositivo');
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar app`;
+  btn.addEventListener('click', async () => {
+    if (!_v5DeferredInstallPrompt) return;
+    _v5DeferredInstallPrompt.prompt();
+    const { outcome } = await _v5DeferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') {
+      window._anamneseExtras?.showToast('App instalado com sucesso!', 'ok');
+      _v5HapticSuccess();
+    }
+    _v5DeferredInstallPrompt = null;
+    btn.style.display = 'none';
+  });
+  document.querySelector('.anamnese-toolbar-right')?.appendChild(btn);
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _v5DeferredInstallPrompt = e;
+  const btn = document.getElementById('v5-install-btn');
+  if (btn) { btn.style.display = ''; btn.classList.add('v5-install-pulse'); }
+});
+window.addEventListener('appinstalled', () => {
+  _v5DeferredInstallPrompt = null;
+  const btn = document.getElementById('v5-install-btn');
+  if (btn) btn.style.display = 'none';
+  window._anamneseExtras?.showToast('ERG 360 instalado!', 'ok');
+});
+
+// ── Init V5 ──
+function _initV5() {
+  _v5InjectWakeLockBtn();
+  _v5WakeLockVisibilityRelay();
+  _v5InjectShareBtn();
+  _v5InjectCopyBtn();
+  _v5InjectNotifBar();
+  _v5InjectInstallBtn();
+  _v5EnsureBatteryBadge();
+  _v5EnsureNetworkBadge();
+  _v5MonitorBattery();
+  _v5NetworkMonitor();
+  _v5AttachDraftReminder();
+  _v5AttachHapticsViaObservers();
+  setTimeout(() => { _v5PatchHapticsOnStep(); }, 300);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV5);
+} else {
+  _initV5();
+}
