@@ -1082,3 +1082,359 @@ Object.assign(window._diarioExtras, {
   scheduleReminders: _scheduleReminders,
   checkAchievement:  _checkAchievement,
 });
+
+// ═══ POLIMENTO V6 ═══
+// 11 features de gamificação: confetti canvas, AudioContext (tick/chime/splash),
+// sistema de badges, streak milestones, ripple, progress shimmer, quote do dia,
+// celebração água, ícone fogo no streak, tick sonoro refeição, badge disciplinado
+
+// ── G1. Confetti canvas ───────────────────────────────────────────────────────
+const _CONFETTI_COLORS_V6 = ['#4CB8A0', '#2D6A56', '#C9A84C', '#F7F6F2', '#8ECAB8', '#E8D5B0'];
+let _confettiRaf;
+
+function _launchConfetti({ count = 70, duration = 2800 } = {}) {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  let canvas = document.getElementById('diario-confetti-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'diario-confetti-canvas';
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;';
+    document.body.appendChild(canvas);
+  }
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+  const particles = Array.from({ length: count }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 40,
+    r: 3 + Math.random() * 5,
+    color: _CONFETTI_COLORS_V6[Math.floor(Math.random() * _CONFETTI_COLORS_V6.length)],
+    vx: (Math.random() - 0.5) * 3,
+    vy: 2 + Math.random() * 3,
+    vr: (Math.random() - 0.5) * 0.2,
+    angle: Math.random() * Math.PI * 2,
+    shape: Math.random() > 0.5 ? 'rect' : 'circle',
+  }));
+  const endTime = Date.now() + duration;
+  function _drawConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const pct = Math.max(0, (endTime - Date.now()) / duration);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.angle += p.vr;
+      ctx.save();
+      ctx.globalAlpha = pct;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'rect') { ctx.fillRect(-p.r, -p.r * 0.5, p.r * 2, p.r); }
+      else { ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    });
+    if (Date.now() < endTime) {
+      _confettiRaf = requestAnimationFrame(_drawConfetti);
+    } else {
+      canvas.style.display = 'none';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  cancelAnimationFrame(_confettiRaf);
+  _confettiRaf = requestAnimationFrame(_drawConfetti);
+}
+
+// ── G2. AudioContext: sons sutis (tick, chime, splash) ────────────────────────
+let _audioCtxV6 = null;
+
+function _getAudioCtxV6() {
+  if (!_audioCtxV6) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) _audioCtxV6 = new AC();
+  }
+  return _audioCtxV6;
+}
+
+function _playTick() {
+  const ac = _getAudioCtxV6(); if (!ac) return;
+  try {
+    const osc = ac.createOscillator(); const g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(880, ac.currentTime);
+    g.gain.setValueAtTime(0.04, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.08);
+    osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.08);
+  } catch (_) {}
+}
+
+function _playChime() {
+  const ac = _getAudioCtxV6(); if (!ac) return;
+  try {
+    [[523.25, 0], [659.25, 0.13], [783.99, 0.26]].forEach(([freq, delay]) => {
+      const osc = ac.createOscillator(); const g = ac.createGain();
+      osc.connect(g); g.connect(ac.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
+      g.gain.setValueAtTime(0.06, ac.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + 0.28);
+      osc.start(ac.currentTime + delay); osc.stop(ac.currentTime + delay + 0.28);
+    });
+  } catch (_) {}
+}
+
+function _playSplash() {
+  const ac = _getAudioCtxV6(); if (!ac) return;
+  try {
+    const osc = ac.createOscillator(); const g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, ac.currentTime + 0.14);
+    g.gain.setValueAtTime(0.05, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.18);
+    osc.start(ac.currentTime); osc.stop(ac.currentTime + 0.18);
+  } catch (_) {}
+}
+
+// ── G3. Sistema de badges ─────────────────────────────────────────────────────
+const _BADGES_V6_KEY = 'erg_badges_v6';
+const _BADGE_DEFS_V6 = [
+  { id: 'first-complete', name: 'Primeiro Passo', icon: '✦', desc: 'Diario 100% preenchido' },
+  { id: 'trio',           name: 'Trio Perfeito',  icon: '◆', desc: 'Streak de 3 dias'       },
+  { id: 'semana-ouro',    name: 'Semana de Ouro', icon: '★', desc: 'Streak de 7 dias'       },
+  { id: 'hidratado',      name: 'Hidratado',       icon: '◉', desc: '8 copos em um dia'      },
+  { id: 'disciplinado',   name: 'Disciplinado',    icon: '▲', desc: 'Adesao 5/5 + 100%'     },
+];
+
+function _getUnlockedBadges() {
+  try { return JSON.parse(localStorage.getItem(_BADGES_V6_KEY) || '[]'); } catch (_) { return []; }
+}
+
+function _unlockBadge(id) {
+  const unlocked = _getUnlockedBadges();
+  if (unlocked.includes(id)) return;
+  unlocked.push(id);
+  try { localStorage.setItem(_BADGES_V6_KEY, JSON.stringify(unlocked)); } catch (_) {}
+  const def = _BADGE_DEFS_V6.find(b => b.id === id);
+  if (def) _showBadgeUnlock(def);
+}
+
+function _showBadgeUnlock(def) {
+  const toast = document.getElementById('diario-toast');
+  if (!toast) return;
+  const prevHTML = toast.innerHTML;
+  const prevClass = toast.className;
+  toast.innerHTML = `<span class="diario-badge-icon" aria-hidden="true">${def.icon}</span><strong>${def.name}</strong> desbloqueado!`;
+  toast.className = 'diario-toast diario-toast--badge diario-toast--show';
+  toast.setAttribute('aria-live', 'assertive');
+  clearTimeout(toast._tmr);
+  toast._tmr = setTimeout(() => {
+    toast.classList.remove('diario-toast--show');
+    setTimeout(() => {
+      toast.innerHTML = prevHTML;
+      toast.className = prevClass;
+      toast.removeAttribute('aria-live');
+    }, 350);
+  }, 4500);
+}
+
+// ── G4. Streak milestones (3, 7, 14, 30 dias) ─────────────────────────────────
+const _STREAK_MILESTONES_V6 = [3, 7, 14, 30];
+const _STREAK_MSGS_V6 = {
+  3:  'Trio Perfeito! 3 dias de disciplina em sequencia!',
+  7:  'Semana de Ouro! Uma semana inteira de registros!',
+  14: 'Duas semanas incriveis! Voce e imparavel!',
+  30: 'Um mes completo! Lenda do diario alimentar!',
+};
+let _lastCelebratedStreak = 0;
+
+function _checkStreakMilestone(streak) {
+  if (!streak || streak <= _lastCelebratedStreak) return;
+  if (_STREAK_MILESTONES_V6.includes(streak)) {
+    _lastCelebratedStreak = streak;
+    const msg = _STREAK_MSGS_V6[streak] || `${streak} dias seguidos!`;
+    setTimeout(() => {
+      _showToast(msg, 'success');
+      _launchConfetti({ count: 55, duration: 2400 });
+      if ('vibrate' in navigator) navigator.vibrate([20, 40, 20, 40, 80]);
+    }, 600);
+    if (streak === 3) _unlockBadge('trio');
+    if (streak >= 7)  _unlockBadge('semana-ouro');
+  }
+}
+
+// ── G5. Ripple effect nos botões de adesão e salvar ───────────────────────────
+function _createRipple(e, btn) {
+  const rect = btn.getBoundingClientRect();
+  const src  = e.touches ? e.touches[0] : e;
+  const ripple = document.createElement('span');
+  ripple.className = 'diario-ripple';
+  ripple.style.left = (src.clientX - rect.left) + 'px';
+  ripple.style.top  = (src.clientY - rect.top) + 'px';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+}
+
+function _initRipple() {
+  document.querySelectorAll('.diario-adesao-btn, #diario-save-btn').forEach(btn => {
+    if (btn.dataset.rippleV6) return;
+    btn.dataset.rippleV6 = '1';
+    btn.style.position = 'relative';
+    btn.style.overflow = 'hidden';
+    btn.addEventListener('click', e => _createRipple(e, btn));
+  });
+}
+
+// ── G6. Shimmer dourado na barra de progresso ao chegar em 100% ───────────────
+let _wasFullProgress = false;
+
+function _checkProgressShimmer() {
+  const bar = document.getElementById('diario-progress-bar');
+  if (!bar) return;
+  const isFull = bar.classList.contains('diario-progress-bar--full');
+  if (isFull && !_wasFullProgress) {
+    bar.classList.add('diario-progress-bar--shimmer');
+    _wasFullProgress = true;
+    _unlockBadge('first-complete');
+    const adesao = parseInt(document.getElementById('d-adesao')?.value || '0');
+    if (adesao >= 4) {
+      setTimeout(() => { _launchConfetti({ count: 80, duration: 3200 }); _playChime(); }, 400);
+    }
+  } else if (!isFull) {
+    bar.classList.remove('diario-progress-bar--shimmer');
+    _wasFullProgress = false;
+  }
+}
+
+// ── G7. Quote motivacional baseada na data do dia ─────────────────────────────
+const _QUOTES_V6 = [
+  'Cada refeicao registrada e um passo em direcao ao seu melhor eu.',
+  'A consciencia alimentar comeca com um simples registro.',
+  'O diario de hoje e o habito de amanha.',
+  'Voce nao precisa ser perfeito, so precisa ser consistente.',
+  'Pequenos registros constroem grandes transformacoes.',
+  'Registrar e o primeiro ato de cuidar de si mesmo.',
+  'Cada copo de agua e um presente que voce da ao seu corpo.',
+  'A disciplina de hoje e a liberdade de amanha.',
+  'Seu futuro eu agradece cada registro que voce faz agora.',
+  'Nutricao com consciencia e o caminho para o equilibrio.',
+  'Faca o que puder, com o que tem, onde esta.',
+  'Consistencia bate perfeicao todos os dias.',
+];
+
+function _insertDailyQuote() {
+  const existing = document.getElementById('diario-quote');
+  if (existing) existing.remove();
+  const dateVal = document.getElementById('diario-date-input')?.value
+               || new Date().toISOString().split('T')[0];
+  const seed = dateVal.replace(/-/g, '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const quote = _QUOTES_V6[seed % _QUOTES_V6.length];
+  const el = document.createElement('p');
+  el.id = 'diario-quote';
+  el.className = 'diario-quote';
+  el.setAttribute('aria-label', 'Frase motivacional do dia: ' + quote);
+  el.textContent = quote;
+  document.getElementById('diario-form')?.after(el);
+}
+
+// ── G8. Celebração ao completar meta de água ──────────────────────────────────
+function _onWaterComplete() {
+  const key = 'erg_wcelebrate_' + (document.getElementById('diario-date-input')?.value || 'x');
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (_) {}
+  _playSplash();
+  _unlockBadge('hidratado');
+  setTimeout(() => _launchConfetti({ count: 32, duration: 2000 }), 200);
+  _showToast('Meta de hidratacao atingida! 💧', 'success');
+}
+
+function _initWaterCompleteListener() {
+  document.getElementById('diario-water-plus')?.addEventListener('click', () => {
+    if (_getWater() >= _AGUA_META) _onWaterComplete();
+  }, { passive: true });
+}
+
+// ── G9. Ícone de fogo no badge de streak ao atingir 7+ dias ──────────────────
+function _updateFireIcon(streak) {
+  const badge = document.getElementById('diario-streak-badge');
+  if (!badge) return;
+  let icon = badge.querySelector('.diario-flame-icon');
+  if (streak >= 7 && !icon) {
+    icon = document.createElement('span');
+    icon.className = 'diario-flame-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '🔥';
+    badge.prepend(icon);
+  } else if (streak < 7 && icon) {
+    icon.remove();
+  }
+}
+
+// ── G10. Tick sonoro ao preencher nova refeição ───────────────────────────────
+function _initMealTickSound() {
+  _MEAL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.tickV6) return;
+    el.dataset.tickV6 = '1';
+    let _wasFilled = el.value.trim().length > 0;
+    el.addEventListener('input', () => {
+      const filled = el.value.trim().length > 0;
+      if (filled && !_wasFilled) _playTick();
+      _wasFilled = filled;
+    }, { passive: true });
+  });
+}
+
+// ── G11. Badge "Disciplinado" + chime ao salvar com adesão 5 + 100% ──────────
+function _checkDisciplinadoBadge() {
+  const adesao = parseInt(document.getElementById('d-adesao')?.value || '0');
+  const allFilled = _MEAL_IDS.every(id => document.getElementById(id)?.value.trim().length > 0);
+  if (adesao === 5 && allFilled) _unlockBadge('disciplinado');
+}
+
+// ── V6 INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _initRipple();
+  _insertDailyQuote();
+  _initMealTickSound();
+  _initWaterCompleteListener();
+
+  document.querySelectorAll('.diario-textarea').forEach(el => {
+    el.addEventListener('input', _checkProgressShimmer, { passive: true });
+  });
+
+  document.querySelectorAll('.diario-adesao-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setTimeout(() => { _checkDisciplinadoBadge(); _checkProgressShimmer(); }, 150);
+    });
+  });
+
+  document.getElementById('diario-form')?.addEventListener('submit', () => {
+    setTimeout(() => { _checkDisciplinadoBadge(); _playChime(); }, 300);
+  });
+
+  const list = document.getElementById('diario-historico-list');
+  if (list) {
+    new MutationObserver(() => {
+      const streak = typeof _computeStreak === 'function' ? _computeStreak() : 0;
+      if (streak) { _checkStreakMilestone(streak); _updateFireIcon(streak); }
+    }).observe(list, { childList: true, subtree: true });
+  }
+
+  const dateFull = document.getElementById('diario-date-full');
+  if (dateFull) {
+    new MutationObserver(() => {
+      _insertDailyQuote();
+      _wasFullProgress = false;
+      setTimeout(_checkProgressShimmer, 200);
+    }).observe(dateFull, { childList: true, subtree: true, characterData: true });
+  }
+});
+
+Object.assign(window._diarioExtras, {
+  launchConfetti:       _launchConfetti,
+  playTick:             _playTick,
+  playChime:            _playChime,
+  playSplash:           _playSplash,
+  unlockBadge:          _unlockBadge,
+  getUnlockedBadges:    _getUnlockedBadges,
+  checkStreakMilestone: _checkStreakMilestone,
+  insertDailyQuote:     _insertDailyQuote,
+  checkProgressShimmer: _checkProgressShimmer,
+});

@@ -605,3 +605,95 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* ═══ POLIMENTO V6 ═══ */
+
+/* ── G3. Toast de badge desbloqueado ── */
+.diario-toast--badge {
+  background: linear-gradient(135deg, var(--detail, #4CB8A0), var(--accent, #2D6A56));
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.diario-badge-icon {
+  font-style: normal;
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+/* ── G5. Ripple effect ── */
+.diario-ripple {
+  position: absolute;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  margin-top: -25px;
+  margin-left: -25px;
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(0);
+  animation: _diarioRipple 0.52s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes _diarioRipple {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ── G6. Shimmer dourado na barra de progresso ao atingir 100% ── */
+@keyframes _diarioShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.diario-progress-bar--shimmer {
+  background: linear-gradient(90deg, var(--accent, #2D6A56) 25%, var(--gold, #C9A84C) 50%, var(--accent, #2D6A56) 75%);
+  background-size: 200% auto;
+  animation: _diarioShimmer 1.6s linear infinite;
+}
+
+/* ── G7. Quote motivacional do dia ── */
+.diario-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.91rem;
+  font-style: italic;
+  color: var(--text-light);
+  text-align: center;
+  padding: 14px 28px 6px;
+  margin: 0;
+  border-top: 1px solid rgba(201, 168, 130, 0.14);
+  line-height: 1.68;
+}
+
+/* ── G9. Ícone de fogo no streak badge ── */
+.diario-flame-icon {
+  display: inline-block;
+  margin-right: 3px;
+  font-style: normal;
+  animation: _diarioFlame 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes _diarioFlame {
+  from { transform: scale(1) rotate(-3deg); }
+  to   { transform: scale(1.18) rotate(3deg); }
+}
+
+/* ── Reduced motion: desativa todas as animações novas ── */
+@media (prefers-reduced-motion: reduce) {
+  .diario-flame-icon {
+    animation: none;
+  }
+  .diario-progress-bar--shimmer {
+    animation: none;
+    background: var(--accent, #2D6A56);
+  }
+  .diario-ripple {
+    animation: none;
+    opacity: 0;
+  }
+}
