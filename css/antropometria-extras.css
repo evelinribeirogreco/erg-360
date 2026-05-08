@@ -604,3 +604,129 @@
 @media (prefers-reduced-data: reduce) {
   .erg-tooltip-box::after { display: none; }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* Web APIs modernas: Wake Lock, Web Share, Notification, Vibration, Battery,
+   Network Information, Clipboard, StorageEstimate, History hash, Screen Orientation */
+
+/* V5.1 — Offline network badge */
+#erg-network-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.32);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: #6b4c00;
+  margin-bottom: 12px;
+  animation: ergSlideDown 0.25s ease;
+}
+
+/* V5.2 — Low battery warning */
+#erg-battery-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(224,82,82,0.07);
+  border: 1px solid rgba(224,82,82,0.22);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: #8a2020;
+  margin-bottom: 12px;
+  animation: ergSlideDown 0.25s ease;
+}
+
+/* V5.3 — Storage quota warning */
+.erg-storage-warn {
+  padding: 8px 16px;
+  background: rgba(201,168,76,0.07);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: #5a4400;
+  margin-bottom: 12px;
+}
+
+/* V5.4 — Landscape mode hint on mobile */
+#erg-landscape-hint {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  background: rgba(26,26,22,0.88);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  padding: 8px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 500;
+  pointer-events: none;
+}
+#erg-landscape-hint.erg-landscape-hint--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* V5.5 — Web Share button */
+#erg-share-result {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+#erg-share-result:hover {
+  background: rgba(76,184,160,0.2);
+  border-color: var(--detail);
+}
+
+/* V5.6 — Wake lock active: pulsing dot on page title */
+#antro-form[data-wakelock="active"] .page-title::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--detail);
+  margin-left: 8px;
+  opacity: 0.6;
+  animation: ergWakePulse 2.5s ease infinite;
+  vertical-align: middle;
+}
+@keyframes ergWakePulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.75; }
+}
+
+/* V5.7 — Clipboard paste: flash on sanitized field */
+@keyframes ergPasteFlash {
+  0%   { background: rgba(76,184,160,0.22); }
+  100% { background: transparent; }
+}
+.form-input.erg-paste-flash {
+  animation: ergPasteFlash 0.5s ease forwards;
+}
+
+/* V5.8 — Offline: subtle desaturation of form */
+body.erg-offline .form-input:not(:focus) {
+  opacity: 0.95;
+}
+
+/* V5.9 — Reduced motion: no orientation hint transition, no wake pulse */
+.erg-reduced-motion #erg-landscape-hint {
+  transition: none;
+}
+.erg-reduced-motion #antro-form[data-wakelock="active"] .page-title::after {
+  animation: none;
+  opacity: 0.45;
+}

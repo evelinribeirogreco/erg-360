@@ -1023,3 +1023,308 @@ if (document.readyState === 'loading') {
 } else {
   _initV4();
 }
+
+// ═══ POLIMENTO V5 ═══
+// Web APIs modernas: Wake Lock, Web Share, Notification, Vibration, Battery,
+// Network Information, Clipboard, StorageEstimate, History hash, Screen Orientation
+
+// ── V5.1 — WAKE LOCK: tela ativa durante preenchimento ───────
+let _wakeLock = null;
+let _wakeLockTimer = null;
+
+async function _requestWakeLock() {
+  if (!('wakeLock' in navigator) || _wakeLock) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', () => {
+      _wakeLock = null;
+      document.getElementById('antro-form')?.removeAttribute('data-wakelock');
+    });
+    document.getElementById('antro-form')?.setAttribute('data-wakelock', 'active');
+  } catch (_) {}
+}
+
+function _releaseWakeLock() {
+  document.getElementById('antro-form')?.removeAttribute('data-wakelock');
+  if (!_wakeLock) return;
+  _wakeLock.release().catch(() => {});
+  _wakeLock = null;
+}
+
+function _initWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  document.getElementById('antro-form')?.addEventListener('focusin', () => {
+    clearTimeout(_wakeLockTimer);
+    _requestWakeLock();
+  }, { passive: true });
+  document.getElementById('antro-form')?.addEventListener('focusout', () => {
+    clearTimeout(_wakeLockTimer);
+    _wakeLockTimer = setTimeout(_releaseWakeLock, 120000);
+  }, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) _releaseWakeLock();
+  }, { passive: true });
+}
+
+// ── V5.2 — WEB SHARE API: compartilha resultado nativo ───────
+function _initWebShare() {
+  if (!navigator.share) return;
+  const actionsEl = document.querySelector('.erg-result-actions');
+  if (!actionsEl) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'erg-action-btn';
+  btn.id = 'erg-share-result';
+  btn.setAttribute('aria-label', 'Compartilhar resultado via aplicativo');
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar';
+  actionsEl.appendChild(btn);
+  btn.addEventListener('click', async () => {
+    const rows = document.querySelectorAll('#resultado-tabela tbody tr');
+    const nome = document.getElementById('patient-name-sidebar')?.textContent?.trim() || 'Paciente';
+    const data = document.getElementById('data_avaliacao')?.value || new Date().toISOString().slice(0, 10);
+    const lines = [`Avaliação Antropométrica — ${nome} — ${data}`, '─'.repeat(44)];
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 2) lines.push(`${cells[0].textContent.trim()}: ${cells[1].textContent.trim()}`);
+    });
+    try {
+      await navigator.share({ title: `ERG 360 — ${nome}`, text: lines.join('\n') });
+    } catch (err) {
+      if (err.name !== 'AbortError') navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
+    }
+  });
+}
+
+// ── V5.3 — NOTIFICATION API: avisa quando salvo em 2º plano ──
+function _showBgSaveNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!document.hidden) return;
+  const nome = document.getElementById('patient-name-sidebar')?.textContent?.trim() || 'formulário';
+  try {
+    new Notification('ERG 360', {
+      body: `Rascunho de ${nome} salvo.`,
+      icon: 'favicon.ico',
+      tag: 'erg-autosave',
+      silent: true,
+    });
+  } catch (_) {}
+}
+
+function _initNotifications() {
+  if (!('Notification' in window) || Notification.permission === 'denied') return;
+  if (Notification.permission === 'default') {
+    document.getElementById('antro-form')?.addEventListener('input', () => {
+      setTimeout(() => {
+        if (Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+      }, 20000);
+    }, { once: true });
+  }
+}
+
+// ── V5.4 — VIBRATION API: feedback háptico sutil ─────────────
+function _vibrate(pattern) {
+  if (!navigator.vibrate || document.documentElement.classList.contains('erg-reduced-motion')) return;
+  try { navigator.vibrate(pattern); } catch (_) {}
+}
+
+function _initVibration() {
+  if (!navigator.vibrate) return;
+  document.querySelectorAll('.form-step').forEach(step => {
+    new MutationObserver(mutations => {
+      mutations.forEach(m => {
+        if (m.attributeName === 'class' && step.classList.contains('active')) _vibrate([12]);
+      });
+    }).observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+  document.querySelectorAll('.form-input').forEach(el => {
+    el.addEventListener('change', () => {
+      if (el.classList.contains('erg-error')) _vibrate([8, 50, 8]);
+    }, { passive: true });
+  });
+  function _watchSaveIndicator() {
+    const ind = document.getElementById('erg-save-indicator');
+    if (!ind) return;
+    new MutationObserver(mutations => {
+      mutations.forEach(m => {
+        if (m.attributeName === 'class' && ind.classList.contains('visible')) {
+          _vibrate([15]);
+          _showBgSaveNotification();
+        }
+      });
+    }).observe(ind, { attributes: true, attributeFilter: ['class'] });
+  }
+  if (document.getElementById('erg-save-indicator')) {
+    _watchSaveIndicator();
+  } else {
+    new MutationObserver((_, obs) => {
+      if (document.getElementById('erg-save-indicator')) { _watchSaveIndicator(); obs.disconnect(); }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+}
+
+// ── V5.5 — BATTERY STATUS API: salva agressivamente ──────────
+function _initBatteryAPI() {
+  if (!('getBattery' in navigator)) return;
+  navigator.getBattery().then(battery => {
+    function check() {
+      if (battery.level <= 0.15 && !battery.charging) {
+        clearTimeout(_autosaveTimer);
+        _saveDraft();
+        if (!document.getElementById('erg-battery-warn')) {
+          const warn = document.createElement('div');
+          warn.id = 'erg-battery-warn';
+          warn.setAttribute('role', 'alert');
+          warn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><rect x="2" y="7" width="18" height="11" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> Bateria baixa — rascunho salvo automaticamente';
+          document.querySelector('.main-content')?.prepend(warn);
+          setTimeout(() => warn.remove(), 7000);
+        }
+      }
+    }
+    battery.addEventListener('levelchange', check);
+    battery.addEventListener('chargingchange', check);
+    check();
+  }).catch(() => {});
+}
+
+// ── V5.6 — NETWORK INFORMATION: modo offline ─────────────────
+function _initNetworkInfo() {
+  let _isOffline = !navigator.onLine;
+  function _updateOfflineBadge() {
+    let badge = document.getElementById('erg-network-badge');
+    if (_isOffline) {
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'erg-network-badge';
+        badge.setAttribute('role', 'status');
+        badge.setAttribute('aria-live', 'polite');
+        badge.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg> Sem conexão — dados salvos localmente';
+        document.querySelector('.main-content')?.prepend(badge);
+      }
+      document.body.classList.add('erg-offline');
+    } else {
+      badge?.remove();
+      document.body.classList.remove('erg-offline');
+    }
+  }
+  window.addEventListener('online',  () => { _isOffline = false; _updateOfflineBadge(); }, { passive: true });
+  window.addEventListener('offline', () => { _isOffline = true;  _updateOfflineBadge(); _saveDraft(); }, { passive: true });
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn) {
+    conn.addEventListener('change', () => {
+      if (new Set(['slow-2g', '2g']).has(conn.effectiveType)) _saveDraft();
+    }, { passive: true });
+  }
+  _updateOfflineBadge();
+}
+
+// ── V5.7 — CLIPBOARD READ: sanitiza paste em campos numéricos ─
+function _initClipboardPaste() {
+  document.querySelectorAll('#antro-form input[type="number"]').forEach(el => {
+    el.addEventListener('paste', e => {
+      const raw = (e.clipboardData || window.clipboardData)?.getData('text');
+      if (!raw) return;
+      const sanitized = raw.replace(/[^\d.,-]/g, '').replace(',', '.');
+      const num = parseFloat(sanitized);
+      if (isNaN(num)) return;
+      e.preventDefault();
+      const prev = el.value;
+      el.value = num;
+      if (String(num) !== prev) {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.classList.add('erg-paste-flash');
+        el.addEventListener('animationend', () => el.classList.remove('erg-paste-flash'), { once: true });
+      }
+    });
+  });
+}
+
+// ── V5.8 — STORAGE ESTIMATE: avisa se localStorage quase cheio ─
+function _checkStorageQuota() {
+  if (!navigator.storage || !navigator.storage.estimate) return;
+  navigator.storage.estimate().then(({ usage, quota }) => {
+    if (!quota || !usage || usage / quota < 0.8) return;
+    const pct = Math.round(usage / quota * 100);
+    const warn = document.createElement('div');
+    warn.className = 'erg-storage-warn';
+    warn.setAttribute('role', 'alert');
+    warn.textContent = `Armazenamento local ${pct}% utilizado. Considere exportar os dados antes de continuar.`;
+    document.querySelector('.main-content')?.prepend(warn);
+  }).catch(() => {});
+}
+
+// ── V5.9 — HISTORY API: hash sincroniza com step ativo ────────
+function _initHashNavigation() {
+  document.querySelectorAll('.form-step').forEach((step, i) => {
+    new MutationObserver(mutations => {
+      mutations.forEach(m => {
+        if (m.attributeName === 'class' && step.classList.contains('active')) {
+          try {
+            const url = new URL(location.href);
+            url.hash = `step-${i}`;
+            history.replaceState(null, '', url.toString());
+          } catch (_) {}
+        }
+      });
+    }).observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+  const hashIdx = parseInt(location.hash.replace('#step-', ''), 10);
+  if (!isNaN(hashIdx) && hashIdx > 0) {
+    const target = document.getElementById(`step-${hashIdx}`);
+    if (target && !target.classList.contains('active')) {
+      if (typeof window.goToStep === 'function') {
+        try { window.goToStep(hashIdx); } catch (_) {}
+      } else if (typeof window.nextStep === 'function') {
+        for (let n = 0; n < hashIdx; n++) { try { window.nextStep(); } catch (_) { break; } }
+      }
+    }
+  }
+}
+
+// ── V5.10 — SCREEN ORIENTATION: hint em modo paisagem mobile ──
+function _initScreenOrientationHint() {
+  const mq = window.matchMedia?.('(max-width: 768px) and (orientation: landscape)');
+  if (!mq) return;
+  function _showHint(show) {
+    let hint = document.getElementById('erg-landscape-hint');
+    if (show && !hint) {
+      hint = document.createElement('div');
+      hint.id = 'erg-landscape-hint';
+      hint.setAttribute('aria-live', 'polite');
+      hint.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="5" width="22" height="14" rx="2"/></svg> Use modo retrato para melhor experiência';
+      document.body.appendChild(hint);
+      requestAnimationFrame(() => hint?.classList.add('erg-landscape-hint--visible'));
+      setTimeout(() => {
+        hint?.classList.remove('erg-landscape-hint--visible');
+        setTimeout(() => hint?.remove(), 400);
+      }, 5000);
+    }
+  }
+  _showHint(mq.matches);
+  mq.addEventListener('change', e => _showHint(e.matches));
+}
+
+// ── V5 — INIT ────────────────────────────────────────────────
+function _initV5() {
+  _initWakeLock();
+  _initWebShare();
+  _initNotifications();
+  _initVibration();
+  _initBatteryAPI();
+  _initNetworkInfo();
+  _initClipboardPaste();
+  _initHashNavigation();
+  _initScreenOrientationHint();
+  _scheduleIdle(_checkStorageQuota);
+}
+
+Object.assign(window._antropometriaExtras, {
+  vibrate:         _vibrate,
+  requestWakeLock: _requestWakeLock,
+  releaseWakeLock: _releaseWakeLock,
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV5);
+} else {
+  _initV5();
+}
