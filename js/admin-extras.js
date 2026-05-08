@@ -2642,3 +2642,311 @@ if (window._adminExtras) {
     _v7GetFeatureUsage,
   });
 }
+
+// ═══ POLIMENTO V8 ═══
+// 10 modos especiais: foco profundo, leitura, alto contraste,
+// sleep mode, painel de modos (Ctrl+Shift+M), persistência entre
+// sessões, sugestão noturna automática, impressão otimizada,
+// modo conferência (oculta dados sensíveis), modo compacto +
+// atalhos de teclado globais para cada modo.
+
+const _V8_MODES_KEY = 'erg_v8_active_modes';
+
+// ── V8 modo registry ─────────────────────────────────────────────
+const _V8_MODES = {
+  focus:     { cls: 'v8-mode-focus',     label: 'Foco Profundo',  icon: '🎯', kbd: '⌃⇧F' },
+  leitura:   { cls: 'v8-mode-leitura',   label: 'Leitura',        icon: '📖', kbd: '⌃⇧R' },
+  contraste: { cls: 'v8-mode-contraste', label: 'Alto Contraste', icon: '◑',  kbd: '⌃⇧H' },
+  compacto:  { cls: 'v8-mode-compacto',  label: 'Compacto',       icon: '⊟',  kbd: '⌃⇧C' },
+  conf:      { cls: 'v8-mode-conf',      label: 'Conferência',    icon: '🔒', kbd: '⌃⇧P' },
+};
+
+function _v8GetActive() { return getJSON(_V8_MODES_KEY, []); }
+function _v8SetActive(arr) { setJSON(_V8_MODES_KEY, arr); }
+function _v8IsActive(id) {
+  const m = _V8_MODES[id];
+  return m ? document.documentElement.classList.contains(m.cls) : false;
+}
+function _v8ApplyMode(id)  { const m = _V8_MODES[id]; if (m) document.documentElement.classList.add(m.cls); }
+function _v8RemoveMode(id) { const m = _V8_MODES[id]; if (m) document.documentElement.classList.remove(m.cls); }
+
+function _v8ToggleMode(id) {
+  if (!_V8_MODES[id]) return;
+  const wasOn = _v8IsActive(id);
+  wasOn ? _v8RemoveMode(id) : _v8ApplyMode(id);
+  const active = Object.keys(_V8_MODES).filter(k => _v8IsActive(k));
+  _v8SetActive(active);
+  _v8UpdateModePanel();
+  const m = _V8_MODES[id];
+  window._adminExtras?.showToast?.(`${m.icon} ${m.label} ${wasOn ? 'desativado' : 'ativado'}`, 'info');
+  if (id === 'conf') _v8ApplyConfMask(!wasOn);
+}
+
+// ── V8.1 Foco Profundo ── oculta distrações via CSS classe no <html>
+// (estilos em admin-extras.css .v8-mode-focus)
+
+// ── V8.2 Modo Leitura ── espaçamento generoso na tabela
+// (estilos em admin-extras.css .v8-mode-leitura)
+
+// ── V8.3 Alto Contraste ── override de cores WCAG AA
+// (estilos em admin-extras.css .v8-mode-contraste)
+
+// ── V8.4 Sleep Mode — overlay após 15 min de inatividade ─────────
+const _V8_SLEEP_MS = 15 * 60 * 1000;
+let   _v8SleepTimer = null;
+let   _v8SleepActive = false;
+
+function _v8SleepShow() {
+  if (_v8SleepActive || document.getElementById('v8-sleep-overlay')) return;
+  _v8SleepActive = true;
+  const overlay = document.createElement('div');
+  overlay.id = 'v8-sleep-overlay';
+  overlay.className = 'v8-sleep-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Sessão pausada — clique ou pressione qualquer tecla para continuar');
+  overlay.innerHTML =
+    '<div class="v8-sleep-inner">' +
+    '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>' +
+    '<p class="v8-sleep-msg">Sessão em pausa</p>' +
+    '<p class="v8-sleep-sub">Clique ou pressione qualquer tecla para continuar</p>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('v8-sleep-in'));
+  function _wake() {
+    _v8SleepHide();
+    ['click', 'keydown', 'touchstart'].forEach(ev =>
+      document.removeEventListener(ev, _wake, true)
+    );
+  }
+  ['click', 'keydown', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, _wake, { once: true, capture: true })
+  );
+}
+
+function _v8SleepHide() {
+  _v8SleepActive = false;
+  const el = document.getElementById('v8-sleep-overlay');
+  if (!el) return;
+  el.classList.remove('v8-sleep-in');
+  el.classList.add('v8-sleep-out');
+  setTimeout(() => el.remove(), 420);
+  _v8ResetSleepTimer();
+}
+
+function _v8ResetSleepTimer() {
+  clearTimeout(_v8SleepTimer);
+  _v8SleepTimer = setTimeout(_v8SleepShow, _V8_SLEEP_MS);
+}
+
+function _v8InitSleepMode() {
+  if (window._v8SleepBound) return;
+  window._v8SleepBound = true;
+  ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev =>
+    document.addEventListener(ev, _v8ResetSleepTimer, { passive: true, capture: true })
+  );
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearTimeout(_v8SleepTimer);
+    else _v8ResetSleepTimer();
+  });
+  _v8ResetSleepTimer();
+}
+
+// ── V8.5 Painel de Modos (Ctrl+Shift+M) ──────────────────────────
+function _v8BuildModePanel() {
+  if (document.getElementById('v8-mode-panel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'v8-mode-panel';
+  panel.className = 'v8-mode-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Modos especiais');
+  panel.setAttribute('hidden', '');
+  panel.setAttribute('tabindex', '-1');
+
+  const items = Object.entries(_V8_MODES).map(([id, m]) =>
+    '<button type="button" class="v8-mode-btn" data-v8mode="' + id + '" ' +
+    'aria-pressed="false" title="' + escapeHTML(m.kbd) + '">' +
+    '<span class="v8-mode-icon" aria-hidden="true">' + m.icon + '</span>' +
+    '<span class="v8-mode-label">' + escapeHTML(m.label) + '</span>' +
+    '<kbd class="v8-mode-kbd">' + escapeHTML(m.kbd) + '</kbd>' +
+    '</button>'
+  ).join('');
+
+  panel.innerHTML =
+    '<div class="v8-panel-header">' +
+    '<span class="v8-panel-title">Modos Especiais</span>' +
+    '<button type="button" class="v8-panel-close" aria-label="Fechar painel de modos">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+    '</button></div>' +
+    '<div class="v8-panel-body">' + items + '</div>';
+
+  panel.querySelector('.v8-panel-close').addEventListener('click', _v8CloseModePanel);
+  panel.querySelectorAll('.v8-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => _v8ToggleMode(btn.dataset.v8mode));
+  });
+  panel.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.stopPropagation(); _v8CloseModePanel(); }
+  });
+  document.body.appendChild(panel);
+  _v8UpdateModePanel();
+}
+
+function _v8OpenModePanel() {
+  _v8BuildModePanel();
+  const panel = document.getElementById('v8-mode-panel');
+  if (!panel) return;
+  panel.removeAttribute('hidden');
+  requestAnimationFrame(() => panel.classList.add('v8-panel-in'));
+  panel.focus();
+}
+
+function _v8CloseModePanel() {
+  const panel = document.getElementById('v8-mode-panel');
+  if (!panel) return;
+  panel.classList.remove('v8-panel-in');
+  setTimeout(() => panel.setAttribute('hidden', ''), 250);
+}
+
+function _v8UpdateModePanel() {
+  const panel = document.getElementById('v8-mode-panel');
+  if (!panel) return;
+  panel.querySelectorAll('.v8-mode-btn[data-v8mode]').forEach(btn => {
+    const on = _v8IsActive(btn.dataset.v8mode);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.classList.toggle('v8-mode-active', on);
+  });
+}
+
+// ── V8.6 Persistência de modos entre sessões ──────────────────────
+function _v8RestoreModes() {
+  _v8GetActive().forEach(id => { if (_V8_MODES[id]) _v8ApplyMode(id); });
+}
+
+// ── V8.7 Sugestão noturna automática (uma vez por dia) ───────────
+function _v8NightSuggestion() {
+  const KEY  = 'erg_v8_night_hint';
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 22) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  if (localStorage.getItem(KEY) === hoje) return;
+  localStorage.setItem(KEY, hoje);
+  if (document.documentElement.dataset.theme === 'dark') return;
+  setTimeout(() => {
+    window._adminExtras?.showToast?.(
+      '🌙 Sessão noturna — ative Foco ou Alto Contraste via Ctrl+Shift+M', 'info'
+    );
+  }, 6000);
+}
+
+// ── V8.8 Impressão otimizada — item no command palette ───────────
+function _v8InjectPrintCmd() {
+  if (window._v8PrintCmdDone) return;
+  window._v8PrintCmdDone = true;
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.admin-cmd-trigger,[data-cmd-trigger]')) return;
+    requestAnimationFrame(() => {
+      const list = document.querySelector('#cmd-list,.cmd-list');
+      if (!list || list.querySelector('[data-v8print]')) return;
+      const item = document.createElement('div');
+      item.className = 'cmd-item';
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('role', 'option');
+      item.dataset.v8print = '1';
+      item.innerHTML =
+        '<div class="cmd-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>' +
+        '<div class="cmd-item-text"><span class="cmd-item-title">Imprimir lista de pacientes</span></div>';
+      item.addEventListener('click', () => {
+        document.getElementById('cmd-overlay')?.dispatchEvent(new MouseEvent('click'));
+        setTimeout(() => window.print(), 320);
+      });
+      item.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+      });
+      list.appendChild(item);
+    });
+  }, { passive: true });
+}
+
+// ── V8.9 Modo Conferência — mascara dados sensíveis no DOM ────────
+function _v8ApplyConfMask(on) {
+  const SEL = '[data-field="cpf"],[data-field="telefone"],[data-field="email"],' +
+              '.col-cpf,.col-tel,.col-email';
+  document.querySelectorAll(SEL).forEach(el => {
+    if (on) {
+      if (!el.dataset.v8orig && el.textContent.trim()) {
+        el.dataset.v8orig = el.textContent;
+        el.textContent = '••••••';
+      }
+    } else {
+      if (el.dataset.v8orig) { el.textContent = el.dataset.v8orig; delete el.dataset.v8orig; }
+    }
+  });
+}
+
+// Re-aplica máscara quando tabela é re-renderizada
+window.addEventListener('erg:patients-rendered', () => {
+  if (_v8IsActive('conf')) _v8ApplyConfMask(true);
+}, { passive: true });
+
+// ── V8.10 Atalhos globais + item "Modos Especiais" no cmd palette ─
+function _v8InitKeyBindings() {
+  if (window._v8KeysBound) return;
+  window._v8KeysBound = true;
+  const MAP = { F: 'focus', R: 'leitura', H: 'contraste', C: 'compacto', P: 'conf' };
+  document.addEventListener('keydown', e => {
+    if (!e.ctrlKey || !e.shiftKey) return;
+    const k = e.key.toUpperCase();
+    if (k === 'M') {
+      e.preventDefault();
+      const panel = document.getElementById('v8-mode-panel');
+      if (panel && !panel.hasAttribute('hidden')) _v8CloseModePanel();
+      else _v8OpenModePanel();
+      return;
+    }
+    if (MAP[k]) { e.preventDefault(); _v8ToggleMode(MAP[k]); }
+  });
+  // Item "Modos especiais" no command palette
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.admin-cmd-trigger,[data-cmd-trigger]')) return;
+    requestAnimationFrame(() => {
+      const list = document.querySelector('#cmd-list,.cmd-list');
+      if (!list || list.querySelector('[data-v8modes]')) return;
+      const item = document.createElement('div');
+      item.className = 'cmd-item';
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('role', 'option');
+      item.dataset.v8modes = '1';
+      item.innerHTML =
+        '<div class="cmd-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>' +
+        '<div class="cmd-item-text"><span class="cmd-item-title">Modos especiais — Foco, Leitura, Contraste…</span></div>';
+      item.addEventListener('click', () => {
+        document.getElementById('cmd-overlay')?.dispatchEvent(new MouseEvent('click'));
+        setTimeout(_v8OpenModePanel, 200);
+      });
+      item.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+      });
+      list.appendChild(item);
+    });
+  }, { passive: true });
+}
+
+// ── V8 DOMContentLoaded ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v8RestoreModes();
+  _v8InitKeyBindings();
+  _v8InitSleepMode();
+  _v8NightSuggestion();
+  _v8BuildModePanel();
+  _v8InjectPrintCmd();
+});
+
+// Expõe para hooks externos
+if (window._adminExtras) {
+  Object.assign(window._adminExtras, {
+    _v8ToggleMode,
+    _v8OpenModePanel,
+    _v8IsActive,
+    _v8ApplyConfMask,
+  });
+}

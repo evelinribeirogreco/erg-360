@@ -1791,3 +1791,331 @@ html[data-theme="dark"] .v7-tele-reset:hover {
     margin: 8px 0;
   }
 }
+
+/* ═══ POLIMENTO V8 ═══ */
+/* 10 modos especiais: foco profundo, leitura, alto contraste,
+   sleep mode, painel de modos, compacto, conferência,
+   impressão, dark-compat, reduced-motion + mobile */
+
+/* ── V8.1 Modo Foco Profundo ──────────────────────────────────── */
+.v8-mode-focus .admin-kpi-grid,
+.v8-mode-focus .admin-feed-section,
+.v8-mode-focus .admin-activity-section,
+.v8-mode-focus .v7-telemetry-card,
+.v8-mode-focus .v6-progress-ring-wrapper,
+.v8-mode-focus .v6-streak-badge {
+  display: none !important;
+}
+html.v8-mode-focus::after {
+  content: "Foco";
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 99px;
+  z-index: 900;
+  pointer-events: none;
+}
+
+/* ── V8.2 Modo Leitura ────────────────────────────────────────── */
+.v8-mode-leitura #patients-table td,
+.v8-mode-leitura .patient-row td {
+  font-size: 0.96rem !important;
+  line-height: 1.85 !important;
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+}
+.v8-mode-leitura #patients-table th {
+  font-size: 0.70rem !important;
+  letter-spacing: 0.08em;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+/* ── V8.3 Alto Contraste ─────────────────────────────────────── */
+html.v8-mode-contraste {
+  --bg-primary: #f8f8f8;
+  --bg-card:    #ffffff;
+  --text:       #080808;
+  --text-light: #222222;
+  --border:     #555555;
+  --detail:     #005f4f;
+  --accent:     #003d31;
+  --gold:       #7a5c00;
+}
+html.v8-mode-contraste #patients-table td,
+html.v8-mode-contraste #patients-table th {
+  border-color: #555 !important;
+}
+html.v8-mode-contraste a,
+html.v8-mode-contraste .btn-secondary {
+  text-decoration: underline;
+}
+html.v8-mode-contraste .status-ativo  { background: #003d31 !important; color: #fff !important; }
+html.v8-mode-contraste .status-inativo { background: #555 !important; color: #fff !important; }
+
+/* ── V8.4 Sleep Mode overlay ─────────────────────────────────── */
+.v8-sleep-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 18, 12, 0.93);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  cursor: pointer;
+}
+.v8-sleep-overlay.v8-sleep-in  { opacity: 1; }
+.v8-sleep-overlay.v8-sleep-out { opacity: 0; pointer-events: none; }
+.v8-sleep-inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+.v8-sleep-inner svg {
+  stroke: var(--detail, #4CB8A0);
+  opacity: 0.85;
+  animation: v8SleepPulse 3s ease-in-out infinite;
+}
+@keyframes v8SleepPulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.93); }
+}
+.v8-sleep-msg {
+  font-family: var(--font-serif, 'Cormorant Garamond', serif);
+  font-size: 1.55rem;
+  font-weight: 500;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+}
+.v8-sleep-sub {
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.72rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.04em;
+}
+
+/* ── V8.5 Painel de Modos ─────────────────────────────────────── */
+.v8-mode-panel {
+  position: fixed;
+  bottom: 76px;
+  right: 24px;
+  width: 244px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #E5E2DA);
+  border-radius: 14px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.16);
+  z-index: 1200;
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  overflow: hidden;
+  outline: none;
+}
+.v8-mode-panel[hidden] { display: none; }
+.v8-mode-panel.v8-panel-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.v8-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 9px;
+  border-bottom: 1px solid var(--border, #E5E2DA);
+}
+.v8-panel-title {
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-light, #666);
+}
+.v8-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  color: var(--text-light, #666);
+  border-radius: 4px;
+  line-height: 0;
+  transition: background 0.14s;
+}
+.v8-panel-close:hover { background: var(--bg-primary, #F7F6F2); }
+.v8-panel-close:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.v8-panel-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.v8-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+}
+.v8-mode-btn:hover {
+  background: var(--bg-primary, #F7F6F2);
+  border-color: var(--border, #E5E2DA);
+}
+.v8-mode-btn.v8-mode-active {
+  background: rgba(76, 184, 160, 0.11);
+  border-color: rgba(76, 184, 160, 0.32);
+}
+.v8-mode-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+.v8-mode-icon {
+  font-size: 0.90rem;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+.v8-mode-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text, #1a1a1a);
+  flex: 1;
+}
+.v8-mode-kbd {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.58rem;
+  background: var(--bg-primary, #F7F6F2);
+  border: 1px solid var(--border, #E5E2DA);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-light, #666);
+  flex-shrink: 0;
+}
+
+/* ── V8.6 Modo Compacto ──────────────────────────────────────── */
+.v8-mode-compacto #patients-table td,
+.v8-mode-compacto .patient-row td {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-size: 0.74rem !important;
+  line-height: 1.35 !important;
+}
+.v8-mode-compacto #patients-table th {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-size: 0.60rem !important;
+}
+.v8-mode-compacto .avatar,
+.v8-mode-compacto .patient-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 0.62rem !important;
+}
+
+/* ── V8.7 Modo Conferência — dados sensíveis invisíveis ────────── */
+html.v8-mode-conf [data-field="cpf"],
+html.v8-mode-conf [data-field="telefone"],
+html.v8-mode-conf [data-field="email"],
+html.v8-mode-conf .col-cpf,
+html.v8-mode-conf .col-tel,
+html.v8-mode-conf .col-email {
+  color: transparent !important;
+  background: var(--border, #E5E2DA);
+  border-radius: 3px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ── V8.8 Impressão otimizada ──────────────────────────────────── */
+@media print {
+  .v8-sleep-overlay,
+  .v8-mode-panel,
+  .admin-cmd-trigger,
+  .admin-hero-actions,
+  .v6-progress-ring-wrapper,
+  .v7-telemetry-card,
+  .fab,
+  .v6-streak-badge,
+  [data-copy] {
+    display: none !important;
+  }
+  #patients-table {
+    font-size: 9pt !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  #patients-table th,
+  #patients-table td {
+    border: 0.5pt solid #ccc !important;
+    padding: 4pt 6pt !important;
+  }
+  #patients-table thead {
+    display: table-header-group;
+  }
+  body { background: white !important; }
+  .admin-card { box-shadow: none !important; border: 0.5pt solid #ddd !important; }
+}
+
+/* ── V8.9 Dark mode compatibilidade ───────────────────────────── */
+html[data-theme="dark"] .v8-mode-panel {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .v8-mode-btn:hover { background: var(--bg-primary); }
+html[data-theme="dark"] .v8-mode-btn.v8-mode-active {
+  background: rgba(76, 184, 160, 0.16);
+  border-color: rgba(76, 184, 160, 0.38);
+}
+html[data-theme="dark"] .v8-mode-kbd {
+  background: var(--bg-primary);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .v8-sleep-overlay {
+  background: rgba(2, 8, 6, 0.96);
+}
+html[data-theme="dark"] html.v8-mode-contraste {
+  --bg-primary: #0a0a0a;
+  --bg-card:    #111111;
+  --text:       #f5f5f5;
+  --border:     #888888;
+}
+
+/* ── V8.10 Reduced motion + mobile ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .v8-mode-panel,
+  .v8-sleep-overlay { transition: none !important; }
+  .v8-sleep-inner svg { animation: none !important; }
+}
+@media (max-width: 600px) {
+  .v8-mode-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: 84px;
+  }
+}
