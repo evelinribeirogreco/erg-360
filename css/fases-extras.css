@@ -431,3 +431,158 @@ kbd {
 .fase-dot {
   will-change: box-shadow;
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* 10 Web APIs modernas: Page Visibility, Vibration, Wake Lock, Network Info,
+   Clipboard, Web Share progress, sessionStorage, Online/Offline, Battery, scrollY */
+
+/* ── V5.3: Botão Wake Lock ─────────────────────────────────────────────────── */
+.fases-wakelock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 8px;
+  margin-right: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.fases-wakelock-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--detail);
+  color: var(--detail);
+}
+.fases-wakelock-btn[aria-pressed="true"] {
+  background: rgba(76, 184, 160, 0.1);
+  border-color: var(--detail);
+  color: var(--detail);
+}
+.fases-wakelock-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* ── V5.5: Botão copiar progresso ─────────────────────────────────────────── */
+.fases-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 8px;
+  margin-right: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.fases-copy-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.fases-copy-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── V5.6: Botão compartilhar progresso geral ─────────────────────────────── */
+.fases-share-progress-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 8px;
+  margin-right: 6px;
+  background: transparent;
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.fases-share-progress-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.fases-share-progress-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── V5.4 + V5.8: Estados de rede e offline ──────────────────────────────── */
+.fases-offline .fases-hero::after {
+  content: 'Offline';
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #c0392b;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.fases-slow-network .fases-help-panel {
+  animation: none !important;
+}
+.fases-slow-network .fases-toast {
+  transition: opacity 0.1s !important;
+}
+
+/* ── V5.9: Bateria baixa — reduz animações custosas ──────────────────────── */
+.fases-low-battery .fase-item.ativa .fase-dot {
+  animation: none !important;
+}
+.fases-low-battery .fases-extras-loaded .fase-item {
+  transition: opacity 0.1s, transform 0.1s !important;
+}
+.fases-low-battery .fases-progress-fill {
+  transition: none !important;
+}
+.fases-low-battery .fases-toast {
+  transition: opacity 0.15s !important;
+}
+
+/* ── V5: Mobile — botões de ação compactos ────────────────────────────────── */
+@media (max-width: 480px) {
+  .fases-wakelock-btn,
+  .fases-copy-btn,
+  .fases-share-progress-btn {
+    font-size: 0.62rem;
+    padding: 5px 10px;
+  }
+}
+
+/* ── V5: Reduced motion — sem transição nos botões V5 ────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fases-wakelock-btn,
+  .fases-copy-btn,
+  .fases-share-progress-btn {
+    transition: none !important;
+  }
+}

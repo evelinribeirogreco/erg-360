@@ -726,3 +726,319 @@
     waitForContentV4();
   }
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 Web APIs modernas:
+// V5.1  Page Visibility — pausa pulse ring ao esconder aba
+// V5.2  Vibration API — feedback háptico ao expandir/recolher fase
+// V5.3  Wake Lock API — mantém tela acesa durante consulta do plano
+// V5.4  Network Information — detecta conexão lenta e simplifica UI
+// V5.5  Clipboard API — botão copiar resumo de progresso
+// V5.6  Web Share do progresso geral (hero) — compartilha %, diferente do share por fase (V1)
+// V5.7  sessionStorage open state — persiste quais fases estão abertas entre recargas
+// V5.8  Online/Offline events — toast e classe CSS ao mudar conectividade
+// V5.9  Battery Status API — desativa animações custosas em bateria baixa
+// V5.10 scrollY persistence via sessionStorage — restaura posição de scroll ao voltar
+
+(function initFasesExtrasV5() {
+  'use strict';
+
+  var E = window._fasesExtras = window._fasesExtras || {};
+
+  // ── V5.1: Page Visibility — pausa animação de pulse ring ─────────────────
+  function setupPageVisibility() {
+    var onVisibilityChange = function () {
+      var state = document.hidden ? 'paused' : 'running';
+      document.querySelectorAll('.fase-item.ativa .fase-dot').forEach(function (dot) {
+        dot.style.animationPlayState = state;
+      });
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (document.hidden) onVisibilityChange();
+  }
+
+  // ── V5.2: Vibration API — háptico ao abrir/fechar ────────────────────────
+  function setupVibration() {
+    if (!navigator.vibrate) return;
+    var origToggle = window.toggleFase;
+    if (!origToggle || origToggle._v5vibration) return;
+    var wrapped = function (id) {
+      var detalhe = document.getElementById(id);
+      var wasOpen = detalhe && detalhe.classList.contains('open');
+      origToggle(id);
+      var isNowOpen = detalhe && detalhe.classList.contains('open');
+      if (!wasOpen && isNowOpen) {
+        navigator.vibrate(15);
+      } else if (wasOpen && !isNowOpen) {
+        navigator.vibrate([8, 8, 8]);
+      }
+    };
+    wrapped._v5vibration = true;
+    window.toggleFase = wrapped;
+  }
+
+  // ── V5.3: Wake Lock API — tela acesa ─────────────────────────────────────
+  function setupWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    var wakeLockRef = null;
+    var wakeLockBtn = null;
+
+    function updateBtnState(active) {
+      if (!wakeLockBtn) return;
+      wakeLockBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      wakeLockBtn.title = active ? 'Desativar tela sempre acesa' : 'Manter tela acesa';
+    }
+
+    function requestWakeLock() {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLockRef = lock;
+        updateBtnState(true);
+        lock.addEventListener('release', function () {
+          wakeLockRef = null;
+          updateBtnState(false);
+        });
+        if (E.toast) E.toast('Tela permanecerá acesa durante a consulta');
+      }).catch(function () { /* permissão negada */ });
+    }
+
+    function releaseWakeLock() {
+      if (wakeLockRef) {
+        wakeLockRef.release();
+        wakeLockRef = null;
+      }
+      updateBtnState(false);
+      if (E.toast) E.toast('Modo tela acesa desativado');
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' &&
+          wakeLockBtn && wakeLockBtn.getAttribute('aria-pressed') === 'true' &&
+          !wakeLockRef) {
+        requestWakeLock();
+      }
+    });
+
+    E._initWakeLockBtn = function () {
+      var hero = document.querySelector('.fases-hero');
+      if (!hero || hero.querySelector('.fases-wakelock-btn')) return;
+      var btn = document.createElement('button');
+      btn.className = 'fases-wakelock-btn';
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.title = 'Manter tela acesa';
+      btn.setAttribute('aria-label', 'Manter tela acesa durante a consulta');
+      btn.innerHTML =
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+          '<circle cx="12" cy="12" r="4"/>' +
+          '<path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>' +
+        '</svg>' +
+        '<span>Tela acesa</span>';
+      wakeLockBtn = btn;
+      btn.addEventListener('click', function () {
+        if (wakeLockRef) { releaseWakeLock(); } else { requestWakeLock(); }
+      });
+      hero.appendChild(btn);
+    };
+  }
+
+  // ── V5.4: Network Information — conexão lenta ─────────────────────────────
+  function setupNetworkInfo() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    var slowTypes = ['slow-2g', '2g'];
+    var check = function () {
+      var isSlow = slowTypes.indexOf(conn.effectiveType) !== -1;
+      document.body.classList.toggle('fases-slow-network', isSlow);
+      if (isSlow && E.toast) E.toast('Conexão lenta — visuais simplificados');
+    };
+    conn.addEventListener('change', check);
+    check();
+  }
+
+  // ── V5.5: Clipboard API — copiar resumo de progresso ─────────────────────
+  function injectCopyProgressBtn() {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+    var hero = document.querySelector('.fases-hero');
+    if (!hero || hero.querySelector('.fases-copy-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'fases-copy-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Copiar resumo de progresso para a área de transferência');
+    btn.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<rect x="9" y="9" width="13" height="13" rx="2"/>' +
+        '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+      '</svg>' +
+      'Copiar progresso';
+    btn.addEventListener('click', function () {
+      var items = Array.from(document.querySelectorAll('.fase-item'));
+      var total = items.length;
+      var concluidas = items.filter(function (i) { return i.classList.contains('concluida'); }).length;
+      var pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+      var nomes = items.map(function (item) {
+        var nome = item.querySelector('.fase-nome');
+        var icon = item.classList.contains('concluida') ? '✅' : item.classList.contains('ativa') ? '▶️' : '⏳';
+        return icon + ' ' + (nome ? nome.textContent.trim() : 'Fase');
+      }).join('\n');
+      var texto =
+        'Meu progresso no plano ERG 360:\n' +
+        concluidas + ' de ' + total + ' fases concluídas (' + pct + '%)\n\n' + nomes;
+      navigator.clipboard.writeText(texto).then(function () {
+        if (E.toast) E.toast('Resumo copiado!');
+        if (E.announce) E.announce('Resumo de progresso copiado para a área de transferência');
+      }).catch(function () {
+        if (E.toast) E.toast('Não foi possível copiar');
+      });
+    });
+    hero.appendChild(btn);
+  }
+
+  // ── V5.6: Web Share do progresso geral (hero) — distinto do share por fase ─
+  function injectShareProgressBtn() {
+    if (!navigator.share) return;
+    var hero = document.querySelector('.fases-hero');
+    if (!hero || hero.querySelector('.fases-share-progress-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'fases-share-progress-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Compartilhar meu progresso geral no plano');
+    btn.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
+        '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>' +
+        '<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' +
+      '</svg>' +
+      'Compartilhar progresso';
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var items = Array.from(document.querySelectorAll('.fase-item'));
+      var total = items.length;
+      var concluidas = items.filter(function (i) { return i.classList.contains('concluida'); }).length;
+      var pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+      navigator.share({
+        title: 'Meu progresso — ERG 360',
+        text: 'Estou com ' + pct + '% do plano nutricional concluído! ' +
+              concluidas + ' de ' + total + ' fases feitas. #ERG360',
+      }).catch(function () { /* usuário cancelou */ });
+    });
+    hero.appendChild(btn);
+  }
+
+  // ── V5.7: sessionStorage — persiste quais fases estão abertas ────────────
+  var SESSION_KEY = 'fases_open_ids';
+
+  function persistOpenFases() {
+    var origToggle = window.toggleFase;
+    if (!origToggle || origToggle._v5persist) return;
+    var wrapped = function (id) {
+      origToggle(id);
+      var detalhe = document.getElementById(id);
+      var isOpen = detalhe && detalhe.classList.contains('open');
+      try {
+        var stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]');
+        if (isOpen) {
+          if (stored.indexOf(id) === -1) stored.push(id);
+        } else {
+          stored = stored.filter(function (x) { return x !== id; });
+        }
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(stored));
+      } catch (_) { /* sessionStorage indisponível */ }
+    };
+    wrapped._v5persist = true;
+    window.toggleFase = wrapped;
+  }
+
+  function restoreOpenFases() {
+    try {
+      var stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]');
+      stored.forEach(function (id) {
+        var detalhe = document.getElementById(id);
+        if (detalhe && !detalhe.classList.contains('open') && typeof window.toggleFase === 'function') {
+          window.toggleFase(id);
+        }
+      });
+    } catch (_) { /* noop */ }
+  }
+
+  // ── V5.8: Online/Offline events ──────────────────────────────────────────
+  function setupOnlineOffline() {
+    window.addEventListener('online', function () {
+      document.body.classList.remove('fases-offline');
+      if (E.toast) E.toast('Conexão restaurada');
+      if (E.announce) E.announce('Conectado à internet');
+    });
+    window.addEventListener('offline', function () {
+      document.body.classList.add('fases-offline');
+      if (E.toast) E.toast('Você está offline — dados salvos localmente');
+      if (E.announce) E.announce('Sem conexão com a internet');
+    });
+    if (!navigator.onLine) document.body.classList.add('fases-offline');
+  }
+
+  // ── V5.9: Battery Status API — reduz animações em bateria baixa ──────────
+  function setupBatteryStatus() {
+    if (!navigator.getBattery) return;
+    navigator.getBattery().then(function (battery) {
+      var applyBatteryMode = function () {
+        var low = battery.level <= 0.2 && !battery.charging;
+        document.body.classList.toggle('fases-low-battery', low);
+        if (low && E.toast) E.toast('Bateria baixa — animações reduzidas');
+      };
+      battery.addEventListener('levelchange', applyBatteryMode);
+      battery.addEventListener('chargingchange', applyBatteryMode);
+      applyBatteryMode();
+    }).catch(function () { /* API não disponível */ });
+  }
+
+  // ── V5.10: scrollY persistence — restaura posição ao voltar ──────────────
+  var SCROLL_KEY = 'fases_scroll_y';
+
+  function setupScrollPersistence() {
+    if (document.referrer && document.referrer.indexOf(window.location.hostname) !== -1) {
+      var savedY = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10);
+      if (savedY > 0) {
+        requestAnimationFrame(function () {
+          window.scrollTo({ top: savedY, behavior: 'instant' });
+        });
+      }
+    }
+    window.addEventListener('pagehide', function () {
+      try { sessionStorage.setItem(SCROLL_KEY, String(Math.round(window.scrollY))); }
+      catch (_) { /* noop */ }
+    });
+  }
+
+  // ── Init V5 (aguarda conteúdo async) ─────────────────────────────────────
+  function initV5() {
+    if (E._initWakeLockBtn) E._initWakeLockBtn();
+    injectCopyProgressBtn();
+    injectShareProgressBtn();
+    persistOpenFases();
+    restoreOpenFases();
+  }
+
+  function waitForContentV5() {
+    var content = document.getElementById('fases-content');
+    if (!content) { setTimeout(waitForContentV5, 160); return; }
+    if (content.children.length > 0) { initV5(); return; }
+    var obs = new MutationObserver(function () {
+      if (content.children.length > 0) { obs.disconnect(); setTimeout(initV5, 90); }
+    });
+    obs.observe(content, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
+  // Execuções imediatas (não dependem do conteúdo async)
+  setupPageVisibility();
+  setupVibration();
+  setupWakeLock();
+  setupNetworkInfo();
+  setupOnlineOffline();
+  setupBatteryStatus();
+  setupScrollPersistence();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContentV5);
+  } else {
+    waitForContentV5();
+  }
+})();
