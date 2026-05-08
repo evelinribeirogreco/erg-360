@@ -871,3 +871,239 @@ body[data-wake-lock="active"]::after {
     display: none !important;
   }
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+
+/* V7-1. Botão trigger telemetria ────────────────────────────────────────── */
+#v7-tel-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--subtitle);
+  border-radius: 2px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+#v7-tel-trigger:hover {
+  color: var(--detail);
+  border-color: var(--border);
+}
+#v7-tel-trigger:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* V7-2. Hot-dot em campos frequentemente revisitados ────────────────────── */
+.v7-hot-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  margin-left: 5px;
+  vertical-align: middle;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* V7-3. Backdrop do painel de telemetria ────────────────────────────────── */
+#v7-tel-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,26,22,0.48);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#v7-tel-panel.v7-tel-visible {
+  opacity: 1;
+}
+
+/* V7-4. Inner panel ─────────────────────────────────────────────────────── */
+#v7-tel-inner {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  max-width: 420px;
+  width: 100%;
+  padding: 28px 24px 22px;
+  box-shadow: var(--shadow-lg);
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(10px);
+  transition: transform 0.2s ease;
+}
+#v7-tel-panel.v7-tel-visible #v7-tel-inner {
+  transform: translateY(0);
+}
+#v7-tel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+#v7-tel-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: var(--text);
+  margin: 0;
+}
+#v7-tel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 2px 6px;
+  transition: color 0.15s;
+}
+#v7-tel-close:hover { color: var(--text); }
+#v7-tel-caption {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  color: var(--subtitle);
+  margin-bottom: 18px;
+  letter-spacing: 0.03em;
+}
+
+/* V7-5. Grid de estatísticas ────────────────────────────────────────────── */
+#v7-tel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.v7-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.v7-stat strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--detail);
+  line-height: 1;
+}
+.v7-stat span {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.55rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  line-height: 1.3;
+}
+
+/* V7-6. Seções de listas de telemetria ──────────────────────────────────── */
+.v7-section-lbl {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin: 14px 0 6px;
+}
+.v7-stat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 4px;
+}
+.v7-stat-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: var(--text-light);
+}
+.v7-stat-list li:last-child { border-bottom: none; }
+.v7-stat-list li strong {
+  font-size: 0.68rem;
+  color: var(--detail);
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+/* V7-7. Botões de ação do painel ────────────────────────────────────────── */
+#v7-tel-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+#v7-tel-export {
+  padding: 8px 18px;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #fff;
+  transition: opacity 0.15s;
+}
+#v7-tel-export:hover { opacity: 0.85; }
+#v7-tel-clear {
+  padding: 8px 18px;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  transition: border-color 0.15s, color 0.15s;
+}
+#v7-tel-clear:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+#v7-tel-export:focus-visible,
+#v7-tel-clear:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* V7-8. Mobile do painel ────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #v7-tel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  #v7-tel-btns {
+    flex-direction: column;
+  }
+  #v7-tel-export,
+  #v7-tel-clear {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* V7-9. prefers-reduced-motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  #v7-tel-panel,
+  #v7-tel-inner {
+    transition: none !important;
+  }
+}

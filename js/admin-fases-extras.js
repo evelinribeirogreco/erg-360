@@ -1704,3 +1704,387 @@
     initV6();
   }
 })();
+
+// ═══ POLIMENTO V7 ═══
+// 10 melhorias de telemetria local — feature tracking, heatmap de cliques,
+// session duration, focus frequency map, view switch counter, form abandonment,
+// completion timing, error heatmap, painel de telemetria com export + clear, idle tracker.
+// NÃO duplica: streak/XP/badges (V6), performance marks (V5-9),
+//              sessionStorage cache (V4-6), page visibility guards (V4-7/V5-8).
+
+(function () {
+  'use strict';
+
+  const NS   = 'v7_tel';
+  const KEYS = {
+    features:    `${NS}_features`,
+    heatmap:     `${NS}_heatmap`,
+    sessionTime: `${NS}_sestime`,
+    focusMap:    `${NS}_focusmap`,
+    viewSwitches:`${NS}_vsw`,
+    abandonments:`${NS}_aband`,
+    timing:      `${NS}_timing`,
+    errorHeat:   `${NS}_errheat`,
+    idleTotal:   `${NS}_idle_total`,
+    idleCount:   `${NS}_idle_count`,
+  };
+
+  function telGet(key, def) {
+    try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; } catch(_) { return def; }
+  }
+  function telSet(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(_) {}
+  }
+
+  // ── V7-1. Feature usage tracker ───────────────────────────────────────────
+  function trackFeature(id) {
+    const map = telGet(KEYS.features, {});
+    map[id] = (map[id] || 0) + 1;
+    telSet(KEYS.features, map);
+  }
+
+  function initFeatureTracker() {
+    document.addEventListener('click', (e) => {
+      const t = e.target?.closest('button,a') || e.target;
+      if (!t) return;
+      if (t.id === 'v5-share-btn'  || t.closest('#v5-share-btn'))  trackFeature('share');
+      if (t.classList.contains('v5-copy-btn') || t.closest('.v5-copy-btn')) trackFeature('copy_fase');
+      if (t.id === 'v4-restore-btn') trackFeature('draft_restore');
+      if (t.id === 'v4-discard-btn') trackFeature('draft_discard');
+      if (t.id === 'cbox-ok')        trackFeature('confirm_ok');
+      if (t.id === 'cbox-cancel')    trackFeature('confirm_cancel');
+    }, { capture: true, passive: true });
+
+    window.addEventListener('keydown', (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === 'n' || e.key === 'N') trackFeature('shortcut_nova');
+      if (e.key === 'l' || e.key === 'L') trackFeature('shortcut_lista');
+    }, { passive: true });
+  }
+
+  // ── V7-2. Heatmap de cliques (grid 20×20) ─────────────────────────────────
+  function initHeatmap() {
+    const main = document.querySelector('.main-content');
+    if (!main) return;
+    main.addEventListener('click', (e) => {
+      const rect  = main.getBoundingClientRect();
+      const scrollH = main.scrollHeight || 1;
+      const xCell = Math.min(19, Math.floor(((e.clientX - rect.left) / rect.width) * 20));
+      const yCell = Math.min(19, Math.floor(((e.clientY - rect.top + main.scrollTop) / scrollH) * 20));
+      const map = telGet(KEYS.heatmap, {});
+      const k   = `${xCell}_${yCell}`;
+      map[k] = (map[k] || 0) + 1;
+      telSet(KEYS.heatmap, map);
+    }, { passive: true });
+  }
+
+  // ── V7-3. Session duration accumulator ────────────────────────────────────
+  let _sessionStart = Date.now();
+
+  function _flushSession() {
+    const elapsed = Date.now() - _sessionStart;
+    if (elapsed < 2000) return;
+    const d = telGet(KEYS.sessionTime, { total: 0, sessions: 0 });
+    d.total    += elapsed;
+    d.sessions += 1;
+    telSet(KEYS.sessionTime, d);
+    _sessionStart = Date.now();
+  }
+
+  function initSessionTimer() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) _flushSession();
+      else _sessionStart = Date.now();
+    }, { passive: true });
+    window.addEventListener('pagehide', _flushSession, { passive: true });
+  }
+
+  // ── V7-4. Focus frequency map + hot-dot visual ────────────────────────────
+  const TRACK_FIELDS = [
+    'f-nome','f-ordem','f-status','f-duracao','f-inicio',
+    'f-objetivo-clinico','f-meta-peso','f-objetivo','f-descricao',
+    'f-dicas','f-calorias','f-proteina','f-carboidrato','f-gordura',
+    'f-restricoes','f-permitidos',
+  ];
+
+  function initFocusFrequency() {
+    TRACK_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('focus', () => {
+        const map = telGet(KEYS.focusMap, {});
+        map[id] = (map[id] || 0) + 1;
+        telSet(KEYS.focusMap, map);
+      }, { passive: true });
+    });
+    const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 1800));
+    ric(markHotFields);
+  }
+
+  function markHotFields() {
+    const map     = telGet(KEYS.focusMap, {});
+    const entries = Object.entries(map);
+    if (entries.length < 4) return;
+    const avg = entries.reduce((s, [, v]) => s + v, 0) / entries.length;
+    entries.filter(([, v]) => v > avg * 2.5).forEach(([id]) => {
+      const el = document.getElementById(id);
+      if (!el || el.getAttribute('data-v7-hot')) return;
+      el.setAttribute('data-v7-hot', '');
+      const label = document.querySelector(`label[for="${id}"]`);
+      if (label && !label.querySelector('.v7-hot-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'v7-hot-dot';
+        dot.setAttribute('title', 'Campo frequentemente revisitado');
+        dot.setAttribute('aria-hidden', 'true');
+        label.appendChild(dot);
+      }
+    });
+  }
+
+  // ── V7-5 + V7-6. View switch counter + form abandonment (patch único) ─────
+  let _formDirtyV7  = false;
+  let _formSubmitV7 = false;
+  let _lastSwitch   = null;
+  let _switchSession = 0;
+
+  function patchShowViewForTelemetry() {
+    const orig = window.showView;
+    if (!orig || orig._v7patched) return;
+
+    document.addEventListener('input', (e) => {
+      if (e.target?.closest('#fase-form')) _formDirtyV7 = true;
+    }, { passive: true });
+
+    const form = document.getElementById('fase-form');
+    if (form) form.addEventListener('submit', () => { _formSubmitV7 = true; }, { passive: true });
+
+    window.showView = function (view) {
+      // V7-5: contagem de trocas de view
+      const now = Date.now();
+      const d   = telGet(KEYS.viewSwitches, { count: 0, hesitations: 0 });
+      d.count += 1;
+      _switchSession += 1;
+      if (_lastSwitch && (now - _lastSwitch) < 3000) d.hesitations += 1;
+      _lastSwitch = now;
+      telSet(KEYS.viewSwitches, d);
+
+      if (_switchSession >= 5 && _switchSession % 5 === 0) {
+        const live = document.getElementById('extras-aria-live');
+        if (live) { live.textContent = ''; requestAnimationFrame(() => { live.textContent = 'Dica: Alt+N e Alt+L para navegar rapidamente.'; }); }
+      }
+
+      // V7-6: detecção de abandono de formulário
+      if (view === 'lista' && _formDirtyV7 && !_formSubmitV7) {
+        telSet(KEYS.abandonments, telGet(KEYS.abandonments, 0) + 1);
+      }
+      if (view === 'nova') { _formDirtyV7 = false; _formSubmitV7 = false; }
+
+      return orig.apply(this, arguments);
+    };
+    window.showView._v7patched = true;
+  }
+
+  // ── V7-7. Completion timing ────────────────────────────────────────────────
+  let _formStart = null;
+
+  function initCompletionTiming() {
+    const form = document.getElementById('fase-form');
+    if (!form) return;
+    form.addEventListener('input', () => { if (!_formStart) _formStart = Date.now(); }, { passive: true });
+    form.addEventListener('submit', () => {
+      if (!_formStart) return;
+      setTimeout(() => {
+        if (form.querySelector('.form-message.error.visible')) { _formStart = null; return; }
+        const elapsed = Date.now() - _formStart;
+        const d = telGet(KEYS.timing, { samples: [], avg: 0 });
+        d.samples.push(elapsed);
+        if (d.samples.length > 20) d.samples.shift();
+        d.avg = Math.round(d.samples.reduce((s, v) => s + v, 0) / d.samples.length);
+        telSet(KEYS.timing, d);
+        _formStart = null;
+      }, 2600);
+    });
+  }
+
+  // ── V7-8. Error heatmap por campo ─────────────────────────────────────────
+  function initErrorHeatmap() {
+    const form = document.getElementById('fase-form');
+    if (!form) return;
+    form.addEventListener('focusout', (e) => {
+      const field = e.target;
+      if (!field?.classList.contains('field-error')) return;
+      const map = telGet(KEYS.errorHeat, {});
+      map[field.id] = (map[field.id] || 0) + 1;
+      telSet(KEYS.errorHeat, map);
+    }, { passive: true });
+  }
+
+  // ── V7-9. Painel de telemetria ────────────────────────────────────────────
+  function buildTelPanel() {
+    if (document.getElementById('v7-tel-panel')) return;
+
+    const features    = telGet(KEYS.features,    {});
+    const sesTime     = telGet(KEYS.sessionTime, { total: 0, sessions: 0 });
+    const viewSw      = telGet(KEYS.viewSwitches,{ count: 0, hesitations: 0 });
+    const aband       = telGet(KEYS.abandonments, 0);
+    const timing      = telGet(KEYS.timing,      { avg: 0, samples: [] });
+    const errorHeat   = telGet(KEYS.errorHeat,   {});
+    const focusMap    = telGet(KEYS.focusMap,     {});
+    const idleCt      = telGet(KEYS.idleCount,    0);
+
+    const totalMins = Math.round(sesTime.total / 60000);
+    const topFeat   = Object.entries(features).sort(([,a],[,b]) => b-a).slice(0,3);
+    const topErrors = Object.entries(errorHeat).sort(([,a],[,b]) => b-a).slice(0,3);
+    const topFocus  = Object.entries(focusMap).sort(([,a],[,b]) => b-a).slice(0,3);
+
+    const featHtml = topFeat.length
+      ? `<p class="v7-section-lbl">Features mais usadas</p><ul class="v7-stat-list">${topFeat.map(([k,v])=>`<li><span>${k.replace(/_/g,' ')}</span><strong>${v}×</strong></li>`).join('')}</ul>`
+      : '';
+    const errHtml = topErrors.length
+      ? `<p class="v7-section-lbl">Campos com mais erros</p><ul class="v7-stat-list">${topErrors.map(([k,v])=>`<li><span>${k}</span><strong>${v}×</strong></li>`).join('')}</ul>`
+      : '';
+    const focHtml = topFocus.length
+      ? `<p class="v7-section-lbl">Campos mais focados</p><ul class="v7-stat-list">${topFocus.map(([k,v])=>`<li><span>${k}</span><strong>${v}×</strong></li>`).join('')}</ul>`
+      : '';
+
+    const panel = document.createElement('div');
+    panel.id = 'v7-tel-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'v7-tel-title');
+    panel.innerHTML = `
+      <div id="v7-tel-inner" role="document">
+        <div id="v7-tel-hdr">
+          <h2 id="v7-tel-title">Telemetria Local</h2>
+          <button id="v7-tel-close" type="button" aria-label="Fechar painel">&#215;</button>
+        </div>
+        <p id="v7-tel-caption">Dados armazenados apenas neste dispositivo. Nenhum envio a servidores.</p>
+        <div id="v7-tel-grid">
+          <div class="v7-stat"><strong>${totalMins}</strong><span>min de uso</span></div>
+          <div class="v7-stat"><strong>${sesTime.sessions}</strong><span>sessões</span></div>
+          <div class="v7-stat"><strong>${viewSw.count}</strong><span>trocas de view</span></div>
+          <div class="v7-stat"><strong>${aband}</strong><span>formu. abandonados</span></div>
+          <div class="v7-stat"><strong>${timing.avg > 0 ? Math.round(timing.avg/1000)+'s' : '—'}</strong><span>tempo médio form</span></div>
+          <div class="v7-stat"><strong>${idleCt}</strong><span>inatividd. detectadas</span></div>
+        </div>
+        ${featHtml}${errHtml}${focHtml}
+        <div id="v7-tel-btns">
+          <button id="v7-tel-export" type="button">Exportar JSON</button>
+          <button id="v7-tel-clear"  type="button">Limpar dados</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(panel);
+    requestAnimationFrame(() => panel.classList.add('v7-tel-visible'));
+
+    const close = () => {
+      panel.classList.remove('v7-tel-visible');
+      panel.addEventListener('transitionend', () => panel.remove(), { once: true });
+      document.getElementById('v7-tel-trigger')?.focus();
+    };
+    panel.querySelector('#v7-tel-close').addEventListener('click', close);
+    panel.addEventListener('click', (e) => { if (e.target === panel) close(); });
+    panel.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'Tab') {
+        const focusable = Array.from(panel.querySelectorAll('button'));
+        const idx = focusable.indexOf(document.activeElement);
+        if (idx === -1) return;
+        const next = e.shiftKey ? focusable[idx-1] || focusable[focusable.length-1] : focusable[idx+1] || focusable[0];
+        e.preventDefault(); next.focus();
+      }
+    });
+    panel.querySelector('#v7-tel-export').addEventListener('click', exportTelemetria);
+    panel.querySelector('#v7-tel-clear').addEventListener('click', () => { clearTelemetria(); close(); });
+    panel.querySelector('#v7-tel-close').focus();
+  }
+
+  function injectTelTrigger() {
+    if (document.getElementById('v7-tel-trigger')) return;
+    const btn = document.createElement('button');
+    btn.id   = 'v7-tel-trigger';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Abrir painel de telemetria de uso');
+    btn.setAttribute('title', 'Telemetria de uso (local)');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>`;
+    btn.addEventListener('click', buildTelPanel);
+
+    const anchor = document.querySelector('.admin-back-top') || document.querySelector('.main-content');
+    if (anchor) anchor.appendChild(btn);
+    else document.body.appendChild(btn);
+  }
+
+  // ── V7-10. Export JSON ────────────────────────────────────────────────────
+  function exportTelemetria() {
+    const payload = {
+      exportedAt:   new Date().toISOString(),
+      features:     telGet(KEYS.features,    {}),
+      sessionTime:  telGet(KEYS.sessionTime, {}),
+      viewSwitches: telGet(KEYS.viewSwitches,{}),
+      abandonments: telGet(KEYS.abandonments, 0),
+      timing:       telGet(KEYS.timing,      {}),
+      errorHeat:    telGet(KEYS.errorHeat,   {}),
+      focusMap:     telGet(KEYS.focusMap,    {}),
+      heatmapCells: Object.keys(telGet(KEYS.heatmap, {})).length,
+      idleCount:    telGet(KEYS.idleCount,    0),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `erg360-telemetria-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // ── V7-11. Idle tracker ────────────────────────────────────────────────────
+  const IDLE_THRESHOLD = 2 * 60 * 1000;
+  let _idleTimer = null;
+
+  function _onActive() {
+    clearTimeout(_idleTimer);
+    _idleTimer = setTimeout(() => {
+      telSet(KEYS.idleTotal, telGet(KEYS.idleTotal, 0) + IDLE_THRESHOLD);
+      telSet(KEYS.idleCount, telGet(KEYS.idleCount, 0) + 1);
+    }, IDLE_THRESHOLD);
+  }
+
+  function initIdleTracker() {
+    ['mousemove','keydown','click','scroll','touchstart'].forEach(ev => {
+      document.addEventListener(ev, _onActive, { passive: true });
+    });
+    _onActive();
+  }
+
+  // ── V7-12. Clear telemetria ────────────────────────────────────────────────
+  function clearTelemetria() {
+    Object.values(KEYS).forEach(k => { try { localStorage.removeItem(k); } catch(_) {} });
+    if (window.showToast) window.showToast('Dados de telemetria apagados.');
+    const live = document.getElementById('extras-aria-live');
+    if (live) { live.textContent = ''; requestAnimationFrame(() => { live.textContent = 'Dados de telemetria apagados.'; }); }
+  }
+
+  // ── Init V7 ────────────────────────────────────────────────────────────────
+  function initV7() {
+    initFeatureTracker();
+    initHeatmap();
+    initSessionTimer();
+    initFocusFrequency();
+    patchShowViewForTelemetry();
+    initCompletionTiming();
+    initErrorHeatmap();
+    injectTelTrigger();
+    initIdleTracker();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV7);
+  } else {
+    initV7();
+  }
+})();
