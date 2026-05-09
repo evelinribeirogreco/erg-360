@@ -1287,3 +1287,334 @@ window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
     prefetchSubst: _v4SubstPF,
   },
 });
+
+// ═══ POLIMENTO V5 ═══
+// 10 melhorias com Web APIs modernas: Wake Lock, Web Share, Clipboard,
+// Notification, Vibration, Online/Offline, BeforeInstallPrompt,
+// Storage Estimate, Broadcast Channel, Performance marks.
+
+// ── V5.1 WAKE LOCK API — tela não apaga durante edição ──────
+let _v5WakeLock = null;
+async function _v5RequestWakeLock() {
+  if (!('wakeLock' in navigator) || _v5WakeLock) return;
+  try {
+    _v5WakeLock = await navigator.wakeLock.request('screen');
+    _v5WakeLock.addEventListener('release', () => { _v5WakeLock = null; }, { once: true });
+  } catch (_) {}
+}
+async function _v5ReleaseWakeLock() {
+  if (!_v5WakeLock) return;
+  try { await _v5WakeLock.release(); } catch (_) {}
+  _v5WakeLock = null;
+}
+// Solicita wake lock na primeira interação com o formulário
+document.addEventListener('focusin', () => {
+  if (!_v5WakeLock) _v5RequestWakeLock();
+}, { once: true });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) _v5ReleaseWakeLock();
+  else if (document.activeElement?.closest('form, #plano-form')) _v5RequestWakeLock();
+});
+window.addEventListener('beforeunload', _v5ReleaseWakeLock, { once: true });
+
+// ── V5.2 WEB SHARE API — compartilha resumo do plano ────────
+function _v5BuildShareText() {
+  const paciente = document.getElementById('sb-paciente-nome')?.textContent?.trim() ||
+                   'Paciente';
+  const kcal = document.getElementById('prev-kcal')?.textContent?.trim() ||
+               document.getElementById('f-kcal')?.value || '—';
+  const ptn  = document.getElementById('prev-ptn')?.textContent?.trim()  || '—';
+  const cho  = document.getElementById('prev-cho')?.textContent?.trim()  || '—';
+  const lip  = document.getElementById('prev-lip')?.textContent?.trim()  || '—';
+  const refs = Array.from(document.querySelectorAll('.dynamic-block[data-refid]'))
+    .map(b => {
+      const nome  = b.querySelector('input[name="ref-nome"]')?.value?.trim()    || 'Refeição';
+      const hora  = b.querySelector('input[name="ref-horario"]')?.value?.trim() || '';
+      const items = Array.from(b.querySelectorAll('input[name="item-nome"]'))
+        .map(i => i.value.trim()).filter(Boolean);
+      return `• ${nome}${hora ? ' (' + hora + ')' : ''}${items.length ? ': ' + items.slice(0, 3).join(', ') + (items.length > 3 ? '…' : '') : ''}`;
+    }).join('\n');
+  return `🥗 Plano Alimentar — ${paciente}\n` +
+    `📊 Meta: ${kcal} kcal/dia | P ${ptn}g · C ${cho}g · L ${lip}g\n\n` +
+    (refs || 'Plano em elaboração') +
+    '\n\n— ERG 360';
+}
+function _v5CompartilharPlano() {
+  const texto = _v5BuildShareText();
+  const nomePlano = document.getElementById('f-plano-nome')?.value?.trim() ||
+                    'Plano Alimentar ERG 360';
+  if (navigator.share) {
+    navigator.share({ title: nomePlano, text: texto }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(texto)
+      .then(() => _anunciarSR('Resumo do plano copiado para área de transferência.'))
+      .catch(() => {});
+  }
+}
+(function _v5InjectShareBtn() {
+  const init = () => {
+    if (document.getElementById('ap-v5-share-btn')) return;
+    const saveBtn = document.getElementById('btn-save');
+    if (!saveBtn) return;
+    const btn = document.createElement('button');
+    btn.id = 'ap-v5-share-btn';
+    btn.type = 'button';
+    btn.className = 'ap-v5-share-btn';
+    btn.setAttribute('aria-label', 'Compartilhar resumo do plano');
+    btn.title = 'Compartilhar plano com paciente';
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Compartilhar</span>`;
+    btn.addEventListener('click', _v5CompartilharPlano);
+    saveBtn.insertAdjacentElement('beforebegin', btn);
+  };
+  if (document.readyState !== 'loading') setTimeout(init, 800);
+  else document.addEventListener('DOMContentLoaded', () => setTimeout(init, 800));
+})();
+
+// ── V5.3 CLIPBOARD API — copia resumo de macros ─────────────
+function _v5CopiarMacros() {
+  const kcal   = document.getElementById('prev-kcal')?.textContent?.trim()   || '—';
+  const ptn    = document.getElementById('prev-ptn')?.textContent?.trim()    || '—';
+  const cho    = document.getElementById('prev-cho')?.textContent?.trim()    || '—';
+  const lip    = document.getElementById('prev-lip')?.textContent?.trim()    || '—';
+  const fibras = document.getElementById('prev-fibras')?.textContent?.trim() || '—';
+  const texto  = `Calorias\t${kcal} kcal\nProteína\t${ptn} g\nCarboidratos\t${cho} g\nLipídios\t${lip} g\nFibras\t${fibras} g`;
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(texto).then(() => {
+    const badge = document.createElement('div');
+    badge.className = 'ap-v5-copy-badge';
+    badge.setAttribute('role', 'status');
+    badge.textContent = 'Macros copiados ✓';
+    document.body.appendChild(badge);
+    requestAnimationFrame(() => requestAnimationFrame(() => badge.classList.add('ap-v5-copy-badge--show')));
+    setTimeout(() => {
+      badge.classList.remove('ap-v5-copy-badge--show');
+      badge.addEventListener('transitionend', () => badge.remove(), { once: true });
+    }, 2000);
+    _anunciarSR('Tabela de macros copiada.');
+  }).catch(() => {});
+}
+(function _v5InjectCopyBtn() {
+  const init = () => {
+    if (document.getElementById('ap-v5-copy-btn')) return;
+    const preview = document.querySelector('.plano-preview');
+    if (!preview) return;
+    const btn = document.createElement('button');
+    btn.id = 'ap-v5-copy-btn';
+    btn.type = 'button';
+    btn.className = 'ap-v5-copy-btn';
+    btn.setAttribute('aria-label', 'Copiar tabela de macros');
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar macros`;
+    btn.addEventListener('click', _v5CopiarMacros);
+    preview.appendChild(btn);
+  };
+  if (document.readyState !== 'loading') setTimeout(init, 1000);
+  else document.addEventListener('DOMContentLoaded', () => setTimeout(init, 1000));
+})();
+
+// ── V5.4 NOTIFICATION API — notifica autosave em background ─
+let _v5NotifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'denied';
+(function _v5InitNotif() {
+  if (typeof Notification === 'undefined') return;
+  // Solicita permissão discretamente após primeira interação real do usuário
+  document.addEventListener('click', function _reqNotif(e) {
+    if (!e.target.closest('button, input, textarea, select, a')) return;
+    if (_v5NotifPermission !== 'default') {
+      document.removeEventListener('click', _reqNotif);
+      return;
+    }
+    Notification.requestPermission().then(p => {
+      _v5NotifPermission = p;
+      document.removeEventListener('click', _reqNotif);
+    });
+  });
+})();
+
+function _v5NotificarAutosave() {
+  if (_v5NotifPermission !== 'granted' || !document.hidden) return;
+  try {
+    new Notification('ERG 360 — Rascunho salvo', {
+      body: 'Plano alimentar salvo automaticamente.',
+      tag:    'ap-autosave',
+      silent: true,
+    });
+  } catch (_) {}
+}
+
+// ── V5.5 VIBRATION API — feedback tátil em mobile ───────────
+function _v5Vibrar(pattern = [25]) {
+  try { navigator.vibrate?.(pattern); } catch (_) {}
+}
+// Toque leve ao selecionar alimento do autocomplete
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.alim-autocomplete-opt')) _v5Vibrar([20]);
+}, { capture: true, passive: true });
+// Padrão duplo ao submeter/publicar
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#btn-save, form [type="submit"]')) _v5Vibrar([30, 60, 30]);
+}, { passive: true });
+
+// ── V5.6 ONLINE/OFFLINE DETECTION — banner + queue ──────────
+const _v5OfflineQueue = [];
+(function _v5InitOffline() {
+  function _showBanner(show) {
+    let banner = document.getElementById('ap-v5-offline-banner');
+    if (!show) {
+      if (banner) {
+        banner.classList.remove('ap-v5-offline-banner--show');
+        banner.addEventListener('transitionend', () => banner.remove(), { once: true });
+      }
+      return;
+    }
+    if (banner) return;
+    banner = document.createElement('div');
+    banner.id = 'ap-v5-offline-banner';
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.className = 'ap-v5-offline-banner';
+    banner.textContent = '⚠ Sem conexão — alterações sendo salvas localmente';
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('ap-v5-offline-banner--show')));
+  }
+  window.addEventListener('offline', () => {
+    _showBanner(true);
+    _anunciarSR('Conexão perdida. Plano sendo salvo localmente.');
+  });
+  window.addEventListener('online', () => {
+    _showBanner(false);
+    _anunciarSR('Conexão restaurada.');
+    while (_v5OfflineQueue.length) {
+      const fn = _v5OfflineQueue.shift();
+      try { fn(); } catch (_) {}
+    }
+  });
+  if (!navigator.onLine) _showBanner(true);
+})();
+
+// ── V5.7 BeforeInstallPrompt — botão "Instalar app" ─────────
+let _v5DeferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _v5DeferredInstall = e;
+  if (document.getElementById('ap-v5-install-btn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'ap-v5-install-btn';
+  btn.className = 'ap-v5-install-btn';
+  btn.setAttribute('aria-label', 'Instalar ERG 360 como aplicativo');
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar ERG 360`;
+  btn.addEventListener('click', async () => {
+    if (!_v5DeferredInstall) return;
+    _v5DeferredInstall.prompt();
+    const { outcome } = await _v5DeferredInstall.userChoice;
+    _v5DeferredInstall = null;
+    btn.remove();
+    if (outcome === 'accepted') _anunciarSR('ERG 360 instalado com sucesso.');
+  });
+  document.body.appendChild(btn);
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('ap-v5-install-btn')?.remove();
+  _v5DeferredInstall = null;
+});
+
+// ── V5.8 STORAGE ESTIMATE — avisa quando quase cheio ────────
+(async function _v5CheckStorage() {
+  if (!navigator.storage?.estimate) return;
+  await new Promise(r => setTimeout(r, 4000));
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (!quota || usage / quota < 0.80) return;
+    const pct = Math.round((usage / quota) * 100);
+    const aviso = document.createElement('div');
+    aviso.id = 'ap-v5-storage-warn';
+    aviso.className = 'ap-v5-storage-warn';
+    aviso.setAttribute('role', 'alert');
+    aviso.innerHTML = `⚠ Armazenamento ${pct}% cheio &nbsp;<button id="ap-v5-limpar-btn" type="button">Limpar rascunhos antigos</button>`;
+    document.body.appendChild(aviso);
+    requestAnimationFrame(() => requestAnimationFrame(() => aviso.classList.add('ap-v5-storage-warn--show')));
+    document.getElementById('ap-v5-limpar-btn')?.addEventListener('click', () => {
+      const LIMIT = 30 * 86400000;
+      const agora = Date.now();
+      Object.keys(localStorage).filter(k => k.startsWith('rascunho-plano-')).forEach(k => {
+        try {
+          const obj = JSON.parse(localStorage.getItem(k) || '{}');
+          if (!obj.ts || agora - obj.ts > LIMIT) localStorage.removeItem(k);
+        } catch (_) { localStorage.removeItem(k); }
+      });
+      aviso.remove();
+      _anunciarSR('Rascunhos antigos removidos com sucesso.');
+    });
+  } catch (_) {}
+})();
+
+// ── V5.9 BROADCAST CHANNEL — sync e notificação entre abas ──
+// Wrapped save: notifica Notification (V5.4) + Broadcast (V5.9)
+const _v5OrigSalvar = salvarRascunhoLocal;
+salvarRascunhoLocal = function _v5WrappedSave() {
+  const r = _v5OrigSalvar.apply(this, arguments);
+  _v5NotificarAutosave();
+  if (typeof BroadcastChannel !== 'undefined' && _v5BcChannel) {
+    try {
+      const planoId = document.getElementById('f-plano-id')?.value || 'sem-id';
+      _v5BcChannel.postMessage({ tipo: 'autosave', planoId, ts: Date.now() });
+    } catch (_) {}
+  }
+  return r;
+};
+
+let _v5BcChannel = null;
+if (typeof BroadcastChannel !== 'undefined') {
+  _v5BcChannel = new BroadcastChannel('erg360-admin-plano');
+  _v5BcChannel.onmessage = ({ data }) => {
+    if (data?.tipo !== 'autosave') return;
+    const planoIdLocal = document.getElementById('f-plano-id')?.value;
+    if (data.planoId && planoIdLocal && data.planoId !== planoIdLocal) return;
+    const badge = document.getElementById('autosave-plano-badge');
+    if (badge) {
+      badge.style.opacity = '1';
+      clearTimeout(badge._fadeTimer);
+      badge._fadeTimer = setTimeout(() => { badge.style.opacity = '0.4'; }, 1800);
+    }
+    _anunciarSR('Rascunho sincronizado de outra aba.');
+  };
+}
+
+// ── V5.10 PERFORMANCE MARKS — User Timing API ───────────────
+performance.mark('ap-v5-loaded');
+performance.measure('ap-extras-total-load', 'ap-v5-init-start', 'ap-v5-loaded');
+
+// Marca quando o banco de alimentos ficar disponível
+const _v5OrigCarregarBanco = carregarBancoAlimentos;
+carregarBancoAlimentos = async function _v5MarkedBancoLoad() {
+  if (!performance.getEntriesByName('ap-banco-load-start').length) {
+    performance.mark('ap-banco-load-start');
+  }
+  const r = await _v5OrigCarregarBanco.apply(this, arguments);
+  if (!performance.getEntriesByName('ap-banco-load-end').length) {
+    performance.mark('ap-banco-load-end');
+    try {
+      performance.measure('ap-banco-carregamento', 'ap-banco-load-start', 'ap-banco-load-end');
+    } catch (_) {}
+  }
+  return r;
+};
+
+// Marca quando a primeira refeição é adicionada pelo usuário
+document.addEventListener('click', function _markFirstBlock(e) {
+  if (!e.target.closest('[onclick*="addRefeicao"], .btn-add-refeicao')) return;
+  performance.mark('ap-first-refeicao-added');
+  document.removeEventListener('click', _markFirstBlock);
+});
+
+performance.mark('ap-v5-init-start'); // retrocompatível: recria se ausente
+
+// ── EXPÕE EXTENSÕES V5 ───────────────────────────────────────
+window._adminPlanoExtras = Object.assign(window._adminPlanoExtras || {}, {
+  v5: {
+    wakeLock:      { request: _v5RequestWakeLock, release: _v5ReleaseWakeLock },
+    compartilhar:  _v5CompartilharPlano,
+    copiarMacros:  _v5CopiarMacros,
+    vibrar:        _v5Vibrar,
+    offlineQueue:  _v5OfflineQueue,
+    channel:       _v5BcChannel,
+  },
+});
