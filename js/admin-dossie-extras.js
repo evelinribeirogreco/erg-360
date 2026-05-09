@@ -1499,3 +1499,185 @@ window._adminDossieExtras = (() => {
 
   document.addEventListener('DOMContentLoaded', initV3);
 })();
+
+// ═══ POLIMENTO V4 ═══
+// Performance: requestIdleCallback · rAF throttle · hover prefetch · ResizeObserver · IO sentinel · pagehide cleanup — 10 melhorias
+(function () {
+  'use strict';
+
+  // ─── V4 state ─────────────────────────────────────────────────
+  var _v4Observers = [];
+  var _prefetched = new Set();
+
+  // ─── V4.1 requestIdleCallback polyfill ───────────────────────
+  var ric = window.requestIdleCallback
+    ? function (cb, opts) { return window.requestIdleCallback(cb, opts || { timeout: 2000 }); }
+    : function (cb) { return setTimeout(function () { cb({ timeRemaining: function () { return 0; }, didTimeout: true }); }, 1); };
+
+  // ─── V4.2 rAF throttle factory ───────────────────────────────
+  function rafThrottle(fn) {
+    var pending = false;
+    return function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; fn(); });
+    };
+  }
+
+  // ─── V4.3 Hover prefetch for sidebar navigation links ────────
+  function initHoverPrefetch() {
+    document.querySelectorAll('.sidebar-nav a[href]:not([data-v4-pf])').forEach(function (a) {
+      a.dataset.v4Pf = '1';
+      a.addEventListener('mouseenter', function () {
+        var href = a.href;
+        if (!href || _prefetched.has(href)) return;
+        if (href === window.location.href) return;
+        if (href.startsWith('javascript') || href.startsWith('mailto')) return;
+        _prefetched.add(href);
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = href;
+        link.as = 'document';
+        document.head.appendChild(link);
+      }, { passive: true });
+    });
+  }
+
+  // ─── V4.4 ResizeObserver compact toolbar mode ─────────────────
+  function initToolbarResizeObserver() {
+    var toolbar = document.getElementById('ded-toolbar');
+    if (!toolbar || toolbar.dataset.v4Resize || !window.ResizeObserver) return;
+    toolbar.dataset.v4Resize = '1';
+    var ro = new ResizeObserver(rafThrottle(function () {
+      toolbar.classList.toggle('ded-toolbar-compact', toolbar.scrollHeight > 46);
+    }));
+    ro.observe(toolbar);
+    _v4Observers.push({ disconnect: function () { ro.disconnect(); } });
+  }
+
+  // ─── V4.5 IntersectionObserver sentinel for back-to-top ───────
+  function upgradeBackToTopIO() {
+    var btn = document.getElementById('ded-back-top');
+    if (!btn || btn.dataset.v4Io || !window.IntersectionObserver) return;
+    btn.dataset.v4Io = '1';
+    var sentinel = document.getElementById('ded-v4-sentinel');
+    if (!sentinel) {
+      sentinel = document.createElement('div');
+      sentinel.id = 'ded-v4-sentinel';
+      sentinel.setAttribute('aria-hidden', 'true');
+      document.body.prepend(sentinel);
+    }
+    var io = new IntersectionObserver(function (entries) {
+      btn.classList.toggle('ded-back-top-visible', !entries[0].isIntersecting);
+    }, { threshold: 0, rootMargin: '-400px 0px 0px 0px' });
+    io.observe(sentinel);
+    _v4Observers.push(io);
+  }
+
+  // ─── V4.6 document.fonts.ready body class ─────────────────────
+  function initFontsReadyClass() {
+    if (!document.fonts || typeof document.fonts.ready === 'undefined') {
+      document.body.classList.add('ded-fonts-ready');
+      return;
+    }
+    document.fonts.ready.then(function () {
+      document.body.classList.add('ded-fonts-ready');
+    });
+  }
+
+  // ─── V4.7 Performance timing marks ────────────────────────────
+  function wirePerformanceMarks() {
+    if (!window.performance || !performance.mark) return;
+    try { performance.mark('ded:init'); } catch (e) { /* noop */ }
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      try {
+        performance.mark('ded:dossier-ready');
+        performance.measure('ded:time-to-dossier', 'ded:init', 'ded:dossier-ready');
+      } catch (e) { /* noop */ }
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      try {
+        performance.mark('ded:dossier-ready');
+        performance.measure('ded:time-to-dossier', 'ded:init', 'ded:dossier-ready');
+      } catch (e) { /* noop */ }
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+    _v4Observers.push(obs);
+  }
+
+  // ─── V4.8 Idle-time prefetch of in-dossier cross-links ────────
+  function idlePrefetchCrossLinks() {
+    ric(function () {
+      document.querySelectorAll('#dos-mount a[href]:not([data-v4-pf])').forEach(function (a) {
+        var href = a.href;
+        if (!href || _prefetched.has(href) || href === window.location.href) return;
+        if (href.startsWith('http') && href.indexOf(window.location.hostname) === -1) return;
+        if (href.startsWith('javascript') || href.startsWith('mailto')) return;
+        _prefetched.add(href);
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = href;
+        link.as = 'document';
+        document.head.appendChild(link);
+      });
+    }, { timeout: 6000 });
+  }
+
+  // ─── V4.9 Observer cleanup on pagehide ────────────────────────
+  function wireCleanup() {
+    window.addEventListener('pagehide', function () {
+      _v4Observers.forEach(function (obs) {
+        try { if (obs && typeof obs.disconnect === 'function') obs.disconnect(); } catch (e) { /* noop */ }
+      });
+      _v4Observers.length = 0;
+    }, { once: true });
+  }
+
+  // ─── V4.10 Lazy-load images inside dossier content ────────────
+  function lazyLoadDossierImages() {
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    mount.querySelectorAll('img:not([loading])').forEach(function (img) {
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+    });
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────
+  function onDossierReadyV4() {
+    setTimeout(function () {
+      upgradeBackToTopIO();
+      initToolbarResizeObserver();
+      lazyLoadDossierImages();
+      idlePrefetchCrossLinks();
+    }, 320);
+  }
+
+  function initV4() {
+    wireCleanup();
+    wirePerformanceMarks();
+    initFontsReadyClass();
+    initHoverPrefetch();
+
+    var mount = document.getElementById('dos-mount');
+    if (!mount) return;
+    if (mount.querySelector('.dos-documento')) {
+      onDossierReadyV4();
+      return;
+    }
+    var obs = new MutationObserver(function () {
+      if (!mount.querySelector('.dos-documento')) return;
+      obs.disconnect();
+      onDossierReadyV4();
+    });
+    obs.observe(mount, { childList: true, subtree: true });
+    _v4Observers.push(obs);
+  }
+
+  document.addEventListener('DOMContentLoaded', initV4);
+})();
