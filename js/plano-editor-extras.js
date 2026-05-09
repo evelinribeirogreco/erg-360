@@ -813,3 +813,285 @@
   }
 
 })();
+
+// ═══ POLIMENTO V5 ═══
+
+(function () {
+  'use strict';
+
+  window._planoEditorExtras.version = 5;
+
+  // ── V5.1: WAKE LOCK — mantém tela ligada ao editar ────────────
+  function initWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    var wl = null;
+
+    var dot = document.createElement('div');
+    dot.id = 'pe-wl-dot';
+    dot.className = 'pe-wl-dot';
+    dot.title = 'Tela mantida ativa durante edição';
+    dot.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(dot);
+
+    function acquire() {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wl = lock;
+        dot.classList.add('pe-wl-on');
+        lock.addEventListener('release', function () { dot.classList.remove('pe-wl-on'); });
+      }).catch(function () {});
+    }
+
+    acquire();
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') acquire();
+    });
+    window.addEventListener('pagehide', function () { if (wl) wl.release(); });
+    window._planoEditorExtras.wakeLockRelease = function () { if (wl) wl.release(); };
+  }
+
+  // ── V5.2: WEB SHARE — compartilhar resumo do plano ────────────
+  function initWebShare() {
+    if (!navigator.share) return;
+    var actions = document.querySelector('.pe-header-actions');
+    if (!actions) return;
+
+    var btn = document.createElement('button');
+    btn.className = 'pe-share-btn';
+    btn.type = 'button';
+    btn.textContent = 'Compartilhar';
+    btn.setAttribute('aria-label', 'Compartilhar resumo do plano');
+    actions.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var titulo = (document.getElementById('plano-titulo') || {}).value || 'Plano Alimentar';
+      var g = function (id) { return (document.getElementById(id) || {}).textContent || '0'; };
+      var text = titulo + '\n\nTotais diários:\n' +
+        '• ' + g('total-kcal') + ' kcal\n' +
+        '• Proteínas: ' + g('total-ptn') + 'g\n' +
+        '• Carboidratos: ' + g('total-cho') + 'g\n' +
+        '• Lipídios: ' + g('total-lip') + 'g\n\nElaborado via ERG 360';
+      navigator.share({ title: titulo, text: text }).catch(function (e) {
+        if (e.name !== 'AbortError') {
+          window._planoEditorExtras.showToast &&
+            window._planoEditorExtras.showToast('Compartilhamento indisponível', 'info');
+        }
+      });
+    });
+  }
+
+  // ── V5.3: VIBRATION — feedback háptico contextual ─────────────
+  function initVibration() {
+    if (!navigator.vibrate) return;
+    window._planoEditorExtras._vibrate = function (pattern) {
+      try { navigator.vibrate(pattern); } catch (_) {}
+    };
+  }
+
+  // ── V5.4: OFFLINE DETECTOR — banner animado ───────────────────
+  function initOfflineDetector() {
+    var banner = document.createElement('div');
+    banner.id = 'pe-offline-banner';
+    banner.className = 'pe-offline-banner';
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.textContent = 'Sem conexão — alterações salvas localmente';
+    document.body.appendChild(banner);
+
+    function update() {
+      banner.classList.toggle('pe-offline-visible', !navigator.onLine);
+    }
+    update();
+    window.addEventListener('online', function () {
+      update();
+      window._planoEditorExtras.showToast &&
+        window._planoEditorExtras.showToast('Conexão restaurada', 'ok', 2000);
+    });
+    window.addEventListener('offline', update);
+  }
+
+  // ── V5.5: BATTERY API — reduz animações com bateria baixa ─────
+  function initBatteryAware() {
+    if (!navigator.getBattery) return;
+    navigator.getBattery().then(function (bat) {
+      function check() {
+        document.documentElement.classList.toggle('pe-battery-saver', bat.level < 0.2 && !bat.charging);
+      }
+      check();
+      bat.addEventListener('levelchange', check);
+      bat.addEventListener('chargingchange', check);
+    }).catch(function () {});
+  }
+
+  // ── V5.6: CLIPBOARD — copiar totais do dia ────────────────────
+  function initCopyTotals() {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+    var btn = document.createElement('button');
+    btn.id = 'pe-copy-totals';
+    btn.className = 'pe-copy-totals-btn';
+    btn.type = 'button';
+    btn.textContent = 'Copiar totais';
+    btn.setAttribute('aria-label', 'Copiar totais para área de transferência');
+
+    btn.addEventListener('click', function () {
+      var g = function (id) { return (document.getElementById(id) || {}).textContent || '0'; };
+      var text = 'Kcal: ' + g('total-kcal') +
+        ' | Ptn: ' + g('total-ptn') + 'g' +
+        ' | CHO: ' + g('total-cho') + 'g' +
+        ' | Lip: ' + g('total-lip') + 'g' +
+        ' | Fib: ' + g('total-fib') + 'g';
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copiado!';
+        btn.classList.add('pe-copy-ok');
+        if (window._planoEditorExtras._vibrate) window._planoEditorExtras._vibrate(50);
+        setTimeout(function () {
+          btn.textContent = 'Copiar totais';
+          btn.classList.remove('pe-copy-ok');
+        }, 2000);
+      }).catch(function () {
+        window._planoEditorExtras.showToast &&
+          window._planoEditorExtras.showToast('Não foi possível copiar', 'err');
+      });
+    });
+
+    var title = document.querySelector('.panel-right .totais-title');
+    if (title) title.insertAdjacentElement('afterend', btn);
+  }
+
+  // ── V5.7: NOTIFICATION — lembrete de alterações não salvas ────
+  function initIdleNotification() {
+    if (!('Notification' in window)) return;
+    var idleTimer = null;
+    var dirty = false;
+    var IDLE_MS = 10 * 60 * 1000;
+
+    window._planoEditorExtras._markDirty = function () {
+      dirty = true;
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () {
+        if (!dirty || document.visibilityState === 'visible') return;
+        var req = Notification.permission === 'granted'
+          ? Promise.resolve('granted')
+          : Notification.requestPermission();
+        req.then(function (perm) {
+          if (perm !== 'granted') return;
+          new Notification('ERG 360', {
+            body: 'Há alterações não salvas no plano alimentar.',
+            tag: 'pe-unsaved',
+            requireInteraction: false
+          });
+        }).catch(function () {});
+      }, IDLE_MS);
+    };
+    window._planoEditorExtras._clearDirtyTimer = function () {
+      dirty = false;
+      clearTimeout(idleTimer);
+    };
+  }
+
+  // ── V5.8: BROADCAST CHANNEL — detecta edição em outra aba ─────
+  function initBroadcastChannel() {
+    if (!('BroadcastChannel' in window)) return;
+    var pid = new URLSearchParams(location.search).get('patient') || '_';
+    var ch = new BroadcastChannel('pe_' + pid);
+    var myId = Date.now() + '_' + Math.floor(Math.random() * 1e9);
+    setTimeout(function () { ch.postMessage({ type: 'hello', id: myId }); }, 600);
+    ch.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'hello' && e.data.id !== myId) {
+        window._planoEditorExtras.showToast &&
+          window._planoEditorExtras.showToast('Atenção: plano aberto em outra aba!', 'err', 6000);
+      }
+    });
+    window.addEventListener('pagehide', function () { ch.close(); });
+    window._planoEditorExtras._bc = ch;
+  }
+
+  // ── V5.9: STORAGE QUOTA — avisa se armazenamento quase cheio ──
+  function initStorageQuota() {
+    if (!navigator.storage || !navigator.storage.estimate) return;
+    navigator.storage.estimate().then(function (est) {
+      if (est.quota > 0 && est.usage / est.quota > 0.88) {
+        window._planoEditorExtras.showToast &&
+          window._planoEditorExtras.showToast(
+            'Armazenamento quase cheio (' + Math.round(est.usage / est.quota * 100) + '%) — salve no servidor',
+            'err', 7000
+          );
+      }
+    }).catch(function () {});
+  }
+
+  // ── V5.10: NETWORK INFORMATION — indicador de conexão lenta ───
+  function initNetworkAwareness() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    var badge = null;
+    function check() {
+      var slow = conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g';
+      if (slow && !badge) {
+        badge = document.createElement('div');
+        badge.id = 'pe-slow-badge';
+        badge.className = 'pe-slow-badge';
+        badge.textContent = 'Conexão lenta';
+        badge.setAttribute('aria-live', 'polite');
+        document.body.appendChild(badge);
+      } else if (!slow && badge) {
+        badge.remove();
+        badge = null;
+      }
+    }
+    check();
+    conn.addEventListener('change', check);
+  }
+
+  // ── WRAPPERS V5: vibração + dirty flag ────────────────────────
+  function wrapV5() {
+    var origSalvar = window.salvarPlano;
+    if (origSalvar) {
+      window.salvarPlano = async function () {
+        var r = await origSalvar.call(this);
+        if (window._planoEditorExtras._vibrate) window._planoEditorExtras._vibrate(200);
+        if (window._planoEditorExtras._clearDirtyTimer) window._planoEditorExtras._clearDirtyTimer();
+        return r;
+      };
+    }
+
+    var origConfirmar = window.confirmarAdicao;
+    if (origConfirmar) {
+      window.confirmarAdicao = function () {
+        origConfirmar.call(this);
+        if (window._planoEditorExtras._vibrate) window._planoEditorExtras._vibrate(50);
+        if (window._planoEditorExtras._markDirty) window._planoEditorExtras._markDirty();
+      };
+    }
+
+    var origRemover = window.removerItem;
+    if (origRemover) {
+      window.removerItem = function (k, i) {
+        origRemover.call(this, k, i);
+        if (window._planoEditorExtras._vibrate) window._planoEditorExtras._vibrate(30);
+        if (window._planoEditorExtras._markDirty) window._planoEditorExtras._markDirty();
+      };
+    }
+  }
+
+  // ── INIT V5 ────────────────────────────────────────────────────
+  function initV5() {
+    initWakeLock();
+    initWebShare();
+    initVibration();
+    initOfflineDetector();
+    initBatteryAware();
+    initCopyTotals();
+    initIdleNotification();
+    initBroadcastChannel();
+    initStorageQuota();
+    initNetworkAwareness();
+    wrapV5();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+
+})();

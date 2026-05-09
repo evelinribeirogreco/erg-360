@@ -350,3 +350,147 @@
     border-radius: 2px;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+
+/* ── V5.1 WAKE LOCK DOT ─────────────────────────────────────── */
+.pe-wl-dot {
+  position: fixed;
+  bottom: 76px;
+  right: 24px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  z-index: 8000;
+  pointer-events: none;
+  transition: background 0.3s;
+}
+.pe-wl-dot.pe-wl-on {
+  background: var(--detail, #4CB8A0);
+  box-shadow: 0 0 5px var(--detail, #4CB8A0);
+  animation: pe-wl-pulse 2.4s ease-in-out infinite;
+}
+@keyframes pe-wl-pulse {
+  0%, 100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── V5.2 SHARE BUTTON ──────────────────────────────────────── */
+.pe-share-btn {
+  font-family: 'Jost', sans-serif;
+  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sub, #6B6659);
+  background: transparent;
+  border: 1px solid var(--bg2, #F0EDE6);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.pe-share-btn:hover {
+  border-color: var(--detail, #4CB8A0);
+  color: var(--text, #1A1A16);
+}
+
+/* ── V5.4 OFFLINE BANNER ────────────────────────────────────── */
+.pe-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--danger, #B85C38);
+  color: #fff;
+  text-align: center;
+  padding: 7px 16px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  z-index: 9998;
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+.pe-offline-banner.pe-offline-visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ── V5.5 BATTERY SAVER MODE ────────────────────────────────── */
+.pe-battery-saver .pe-modelo-visible,
+.pe-battery-saver .pe-ripple,
+.pe-battery-saver .pe-pulse,
+.pe-battery-saver .pe-wl-dot {
+  animation: none !important;
+  transition-duration: 0.05ms !important;
+}
+
+/* ── V5.6 COPY TOTALS BUTTON ────────────────────────────────── */
+.pe-copy-totals-btn {
+  display: block;
+  width: 100%;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sub, #6B6659);
+  background: transparent;
+  border: 1px solid var(--bg2, #F0EDE6);
+  padding: 6px 12px;
+  margin: 10px 0 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  text-align: left;
+}
+.pe-copy-totals-btn:hover {
+  border-color: var(--detail, #4CB8A0);
+  color: var(--text, #1A1A16);
+}
+.pe-copy-totals-btn.pe-copy-ok {
+  border-color: var(--ok, #5A8A6A);
+  color: var(--ok, #5A8A6A);
+  background: rgba(90, 138, 106, 0.06);
+}
+
+/* ── V5.10 SLOW NETWORK BADGE ───────────────────────────────── */
+.pe-slow-badge {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold, #C9A84C);
+  color: var(--text, #1A1A16);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  z-index: 8900;
+  pointer-events: none;
+}
+
+/* ── PRINT: oculta elementos V5 ─────────────────────────────── */
+@media print {
+  .pe-wl-dot,
+  .pe-offline-banner,
+  .pe-slow-badge,
+  .pe-share-btn,
+  .pe-copy-totals-btn {
+    display: none !important;
+  }
+}
+
+/* ── PREFERS-REDUCED-MOTION: sem pulsação no wake lock ──────── */
+@media (prefers-reduced-motion: reduce) {
+  .pe-wl-dot.pe-wl-on {
+    animation: none;
+  }
+}
