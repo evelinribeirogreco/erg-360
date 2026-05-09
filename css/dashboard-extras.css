@@ -438,3 +438,223 @@ button:focus-visible,
     page-break-inside: avoid;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* 10 Web APIs: share-btn, clipboard-copy, offline-banner, notif-banner,
+   pwa-banner, battery-low, page-hidden, touch-active-feedback */
+
+/* ── Share button (score card) ───────────────────────────────────────── */
+.db-share-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid rgba(76, 184, 160, 0.25);
+  border-radius: 50%;
+  color: var(--detail);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+  touch-action: manipulation;
+  padding: 0;
+}
+.db-share-btn:hover,
+.db-share-btn:focus-visible {
+  background: rgba(76, 184, 160, 0.1);
+  border-color: var(--detail);
+  transform: scale(1.08);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Copy button (score) ─────────────────────────────────────────────── */
+.db-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: transparent;
+  border: 1px solid rgba(76, 184, 160, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--detail);
+  font-size: 0.75rem;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+.db-copy-btn:hover,
+.db-copy-btn:focus-visible {
+  background: rgba(76, 184, 160, 0.1);
+  border-color: var(--detail);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.db-copy-btn--done {
+  background: rgba(76, 184, 160, 0.15);
+  color: var(--accent);
+  border-color: var(--detail);
+}
+
+/* ── Offline banner ──────────────────────────────────────────────────── */
+.db-offline-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: #333;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 8000;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.db-offline-banner--visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Notification permission banner ──────────────────────────────────── */
+.db-notif-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid rgba(76, 184, 160, 0.25);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 10px 16px;
+  z-index: 7800;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  animation: db-notif-pop 0.25s ease;
+  max-width: calc(100vw - 32px);
+}
+.db-notif-text {
+  color: var(--text-primary);
+  flex: 1;
+}
+.db-notif-allow {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.db-notif-deny {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* ── PWA install banner ──────────────────────────────────────────────── */
+.db-pwa-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border-top: 1px solid rgba(76, 184, 160, 0.2);
+  box-shadow: var(--shadow-md);
+  padding: 12px 16px;
+  z-index: 7900;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  animation: db-pwa-slide-up 0.3s ease;
+}
+.db-pwa-text {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.db-pwa-install {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.db-pwa-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  touch-action: manipulation;
+}
+
+/* ── Low battery mode — reduz animações ─────────────────────────────── */
+.db-low-battery .db-reveal,
+.db-low-battery .db-card-hidden,
+.db-low-battery .db-tip-hidden {
+  transition-duration: 0.01ms !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.db-low-battery .db-ripple {
+  display: none;
+}
+.db-low-battery .db-score-pulse {
+  animation: none !important;
+}
+.db-low-battery #db-scroll-progress {
+  display: none;
+}
+
+/* ── Page hidden — pausa CSS animations ──────────────────────────────── */
+.db-page-hidden .db-reveal,
+.db-page-hidden .db-card-hidden,
+.db-page-hidden .db-tip-hidden {
+  animation-play-state: paused !important;
+}
+
+/* ── Banner keyframes ────────────────────────────────────────────────── */
+@keyframes db-notif-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes db-pwa-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Touch active state — feedback tátil visual ──────────────────────── */
+.db-quick-card:active {
+  transform: scale(0.97);
+  transition-duration: 0.08s;
+}
+.fab-checkin:active {
+  transform: translateY(-1px) scale(0.96);
+  transition-duration: 0.08s;
+}

@@ -888,3 +888,262 @@
     window._dashboardExtras.v4 = true;
   }
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 Web APIs modernas: Wake Lock, Web Share, Clipboard score-copy,
+// Battery Status, Vibration haptics, Online/Offline banner,
+// Storage persistence, beforeinstallprompt PWA,
+// Notification reminder, Page Visibility extended.
+
+(function () {
+  'use strict';
+
+  // ── 41. Wake Lock API — mantém tela ativa ao abrir check-in ──────────
+  var _wakeLock = null;
+  function initWakeLock() {
+    if (!navigator.wakeLock) return;
+    var fab = document.getElementById('fab-checkin');
+    if (!fab) return;
+    fab.addEventListener('click', function () {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        _wakeLock = lock;
+        lock.addEventListener('release', function () { _wakeLock = null; });
+        setTimeout(function () {
+          if (_wakeLock) _wakeLock.release().catch(function () {});
+        }, 5 * 60 * 1000);
+      }).catch(function () {});
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && _wakeLock) {
+        _wakeLock.release().then(function () { _wakeLock = null; }).catch(function () {});
+      }
+    });
+  }
+
+  // ── 42. Web Share API — compartilhar score do dia ──────────────────
+  function initWebShare() {
+    if (!navigator.share) return;
+    var scoreCard = document.getElementById('score-hoje-card');
+    if (!scoreCard || document.getElementById('db-share-btn')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'db-share-btn';
+    btn.className = 'db-share-btn';
+    btn.setAttribute('aria-label', 'Compartilhar score do dia');
+    btn.setAttribute('title', 'Compartilhar');
+    btn.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">'
+      + '<path d="M18 16.1a2.9 2.9 0 0 0-1.96.77L8.91 12.7a3.1 3.1 0 0 0 0-1.4l7.05-4.11A2.9 2.9 0 0 0 18 7.9a3 3 0 1 0-3-3c0 .25.04.48.1.71L8.04 9.72A3 3 0 0 0 6 9a3 3 0 0 0 0 6c.79 0 1.5-.31 2.04-.78l7.06 4.12c-.06.22-.1.45-.1.69A3 3 0 1 0 18 16.1z"/>'
+      + '</svg>';
+    scoreCard.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var num   = (document.getElementById('score-num-dash') || {}).textContent || '';
+      var label = (document.getElementById('score-label-dash') || {}).textContent || '';
+      var text  = (num && num !== '—')
+        ? 'Meu score de hoje no ERG 360°: ' + num + ' pontos (' + label.trim() + ')'
+        : 'Confira meu acompanhamento no ERG 360°!';
+      navigator.share({ title: 'ERG 360°', text: text }).catch(function () {});
+    });
+  }
+
+  // ── 43. Clipboard API — copiar score com um clique ─────────────────
+  function initClipboardCopy() {
+    if (!navigator.clipboard) return;
+    var scoreNum = document.getElementById('score-num-dash');
+    if (!scoreNum || !scoreNum.parentNode || document.getElementById('db-copy-btn')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'db-copy-btn';
+    btn.className = 'db-copy-btn';
+    btn.setAttribute('aria-label', 'Copiar pontuação');
+    btn.setAttribute('title', 'Copiar pontuação');
+    btn.textContent = '⎘';
+    scoreNum.parentNode.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var num   = scoreNum.textContent.trim();
+      var label = (document.getElementById('score-label-dash') || {}).textContent || '';
+      if (!num || num === '—') return;
+      navigator.clipboard.writeText(num + ' pts — ' + label.trim()).then(function () {
+        btn.textContent = '✓';
+        btn.classList.add('db-copy-btn--done');
+        setTimeout(function () {
+          btn.textContent = '⎘';
+          btn.classList.remove('db-copy-btn--done');
+        }, 1500);
+      }).catch(function () {});
+    });
+  }
+
+  // ── 44. Battery Status API — reduz animações com bateria < 20% ─────
+  function initBatteryStatus() {
+    if (!navigator.getBattery) return;
+    navigator.getBattery().then(function (bat) {
+      function applyBattery() {
+        var low = !bat.charging && bat.level < 0.2;
+        document.documentElement.classList.toggle('db-low-battery', low);
+      }
+      applyBattery();
+      bat.addEventListener('levelchange',    applyBattery);
+      bat.addEventListener('chargingchange', applyBattery);
+    }).catch(function () {});
+  }
+
+  // ── 45. Vibration API — haptic feedback em ações principais ────────
+  function initVibration() {
+    if (!navigator.vibrate) return;
+    var fab = document.getElementById('fab-checkin');
+    if (fab) fab.addEventListener('pointerdown', function () { navigator.vibrate(12); });
+    document.querySelectorAll('.db-quick-card').forEach(function (card) {
+      card.addEventListener('pointerdown', function () { navigator.vibrate(6); });
+    });
+  }
+
+  // ── 46. Online/Offline detection — banner de conexão ───────────────
+  function initOnlineOffline() {
+    if (document.getElementById('db-offline-banner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'db-offline-banner';
+    banner.className = 'db-offline-banner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.textContent = 'Sem conexão — dados podem estar desatualizados';
+    document.body.appendChild(banner);
+
+    function update() {
+      banner.classList.toggle('db-offline-banner--visible', !navigator.onLine);
+    }
+    update();
+    window.addEventListener('online',  update);
+    window.addEventListener('offline', update);
+  }
+
+  // ── 47. Storage persistence — solicita cota persistente (PWA) ──────
+  function initStoragePersist() {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    if (sessionStorage.getItem('db_persist_asked')) return;
+    sessionStorage.setItem('db_persist_asked', '1');
+    navigator.storage.persisted().then(function (already) {
+      if (!already) navigator.storage.persist().catch(function () {});
+    }).catch(function () {});
+  }
+
+  // ── 48. beforeinstallprompt — banner de instalação PWA ─────────────
+  function initPWAInstall() {
+    if (localStorage.getItem('db_pwa_dismissed')) return;
+    var deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (document.getElementById('db-pwa-banner')) return;
+
+      var banner = document.createElement('div');
+      banner.id = 'db-pwa-banner';
+      banner.className = 'db-pwa-banner';
+      banner.setAttribute('role', 'banner');
+      banner.innerHTML = '<span class="db-pwa-text">Instalar ERG 360° como app</span>'
+        + '<button class="db-pwa-install">Instalar</button>'
+        + '<button class="db-pwa-dismiss" aria-label="Fechar">✕</button>';
+      document.body.appendChild(banner);
+
+      banner.querySelector('.db-pwa-install').addEventListener('click', function () {
+        banner.remove();
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function () {
+          localStorage.setItem('db_pwa_dismissed', '1');
+          deferredPrompt = null;
+        });
+      });
+      banner.querySelector('.db-pwa-dismiss').addEventListener('click', function () {
+        localStorage.setItem('db_pwa_dismissed', '1');
+        banner.remove();
+      });
+    });
+
+    window.addEventListener('appinstalled', function () {
+      localStorage.setItem('db_pwa_dismissed', '1');
+      var b = document.getElementById('db-pwa-banner');
+      if (b) b.remove();
+    });
+  }
+
+  // ── 49. Notification reminder — opt-in no horário de uso ───────────
+  function initNotificationReminder() {
+    if (!('Notification' in window)) return;
+    if (localStorage.getItem('db_notif_asked')) return;
+    var hours = new Date().getHours();
+    if (hours < 8 || hours > 20) return;
+
+    setTimeout(function () {
+      if (Notification.permission !== 'default') {
+        localStorage.setItem('db_notif_asked', '1');
+        return;
+      }
+      if (document.getElementById('db-notif-banner')) return;
+
+      var banner = document.createElement('div');
+      banner.id = 'db-notif-banner';
+      banner.className = 'db-notif-banner';
+      banner.setAttribute('role', 'dialog');
+      banner.setAttribute('aria-label', 'Habilitar lembretes de check-in');
+      banner.innerHTML = '<span class="db-notif-text">🔔 Ativar lembretes de check-in?</span>'
+        + '<button class="db-notif-allow">Sim</button>'
+        + '<button class="db-notif-deny">Agora não</button>';
+      document.body.appendChild(banner);
+
+      banner.querySelector('.db-notif-allow').addEventListener('click', function () {
+        Notification.requestPermission().then(function (perm) {
+          if (perm === 'granted') {
+            new Notification('ERG 360°', { body: 'Ótimo! Você receberá lembretes de check-in.' });
+          }
+          localStorage.setItem('db_notif_asked', '1');
+          banner.remove();
+        }).catch(function () { banner.remove(); });
+      });
+      banner.querySelector('.db-notif-deny').addEventListener('click', function () {
+        localStorage.setItem('db_notif_asked', '1');
+        banner.remove();
+      });
+    }, 9000);
+  }
+
+  // ── 50. Page Visibility extended — pausa animações quando oculto ───
+  function initPageVisibilityExtended() {
+    document.addEventListener('visibilitychange', function () {
+      var animEls = document.querySelectorAll('.db-reveal, .db-card-hidden, .db-tip-hidden');
+      if (document.hidden) {
+        document.documentElement.classList.add('db-page-hidden');
+        animEls.forEach(function (el) { el.style.animationPlayState = 'paused'; });
+      } else {
+        document.documentElement.classList.remove('db-page-hidden');
+        animEls.forEach(function (el) { el.style.animationPlayState = ''; });
+      }
+    });
+  }
+
+  // ── Bootstrap V5 ───────────────────────────────────────────────────
+  function initV5() {
+    initWakeLock();
+    initWebShare();
+    initClipboardCopy();
+    initBatteryStatus();
+    initVibration();
+    initOnlineOffline();
+    initStoragePersist();
+    initPWAInstall();
+    initPageVisibilityExtended();
+    initNotificationReminder();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+
+  if (window._dashboardExtras) {
+    window._dashboardExtras.version = 5;
+    window._dashboardExtras.v5 = true;
+  }
+})();
