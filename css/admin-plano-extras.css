@@ -344,3 +344,218 @@
     transform: none !important;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* Web APIs modernas: Wake Lock, Web Share, Clipboard, Notification,
+   Vibration, Online/Offline, BeforeInstallPrompt, Storage Estimate,
+   Broadcast Channel, Performance marks. */
+
+/* ── V5.2 Botão compartilhar ──────────────────────────────── */
+.ap-v5-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1.5px solid var(--detail, #4CB8A0);
+  border-radius: 8px;
+  color: var(--detail, #4CB8A0);
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  margin-right: 8px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.ap-v5-share-btn:hover {
+  background: rgba(76, 184, 160, 0.12);
+  transform: translateY(-1px);
+}
+.ap-v5-share-btn:active { transform: scale(0.97); }
+
+/* ── V5.3 Botão copiar macros + badge de confirmação ─────── */
+.ap-v5-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid rgba(76, 184, 160, 0.30);
+  border-radius: 8px;
+  color: var(--detail, #4CB8A0);
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  letter-spacing: 0.02em;
+}
+.ap-v5-copy-btn:hover {
+  background: rgba(76, 184, 160, 0.09);
+  border-color: rgba(76, 184, 160, 0.55);
+}
+.ap-v5-copy-btn:active { transform: scale(0.98); }
+
+.ap-v5-copy-badge {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #1A1A16;
+  color: #7EDCC8;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 7px 20px;
+  border-radius: 100px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 4200;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+.ap-v5-copy-badge--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── V5.6 Banner offline ─────────────────────────────────── */
+.ap-v5-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--gold, #C9A84C);
+  color: #1A1A16;
+  text-align: center;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  z-index: 5500;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 12px rgba(201, 168, 76, 0.30);
+}
+.ap-v5-offline-banner--show {
+  transform: translateY(0);
+}
+
+/* ── V5.7 Botão instalar PWA ─────────────────────────────── */
+.ap-v5-install-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 20px;
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  border: none;
+  border-radius: 100px;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 22px rgba(45, 106, 86, 0.42);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 4800;
+  animation: ap-v5-install-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1.5s both;
+}
+@keyframes ap-v5-install-in {
+  from { transform: translateY(90px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.ap-v5-install-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(45, 106, 86, 0.52);
+}
+.ap-v5-install-btn:active { transform: scale(0.97); }
+
+/* ── V5.8 Aviso de armazenamento cheio ───────────────────── */
+.ap-v5-storage-warn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #FFF8E8;
+  border: 1.5px solid var(--gold, #C9A84C);
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  color: #7A5C00;
+  z-index: 4000;
+  box-shadow: 0 4px 18px rgba(201, 168, 76, 0.22);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.ap-v5-storage-warn--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.ap-v5-storage-warn button {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  background: var(--gold, #C9A84C);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ap-v5-storage-warn button:hover { background: #A88430; }
+
+/* ── V5 Reduced-motion ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ap-v5-offline-banner,
+  .ap-v5-install-btn,
+  .ap-v5-copy-badge,
+  .ap-v5-share-btn,
+  .ap-v5-storage-warn {
+    transition: none !important;
+    animation: none !important;
+  }
+  .ap-v5-offline-banner { transform: translateY(0); }
+  .ap-v5-install-btn    { animation: none; }
+  .ap-v5-storage-warn   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .ap-v5-copy-badge--show { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── V5 Mobile ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .ap-v5-install-btn {
+    bottom: 80px;
+    right: 16px;
+    font-size: 0.74rem;
+    padding: 10px 16px;
+  }
+  .ap-v5-storage-warn {
+    white-space: normal;
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  .ap-v5-share-btn {
+    margin-right: 0;
+    margin-bottom: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+}
