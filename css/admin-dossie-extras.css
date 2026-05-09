@@ -3,7 +3,7 @@
    Dossiê Clínico · Dra. Evelin Ribeiro Greco
    ════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Skip link ──────────────────────────────────────────────── */
+/* ── 1. Skip link ─────────────────────────────────────────────── */
 .ded-skip-link {
   position: absolute;
   top: -120%;
@@ -25,7 +25,7 @@
   outline-offset: 2px;
 }
 
-/* ── 2. Screen-reader only ─────────────────────────────────────── */
+/* ── 2. Screen-reader only ───────────────────────────────────── */
 .ded-sr-only {
   position: absolute;
   width: 1px;
@@ -38,7 +38,7 @@
   border: 0;
 }
 
-/* ── 3. Loading progress toast ─────────────────────────────────── */
+/* ── 3. Loading progress toast ───────────────────────────────── */
 .ded-toast {
   position: fixed;
   bottom: 72px;
@@ -83,7 +83,7 @@
   50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
-/* ── 4. Reading progress bar ───────────────────────────────────── */
+/* ── 4. Reading progress bar ─────────────────────────────────── */
 .ded-progress-bar {
   position: fixed;
   top: 0;
@@ -96,7 +96,7 @@
   pointer-events: none;
 }
 
-/* ── 5. Floating ToC button ────────────────────────────────────── */
+/* ── 5. Floating ToC button ──────────────────────────────────── */
 .ded-toc-btn {
   position: fixed;
   right: 16px;
@@ -129,7 +129,7 @@
   color: var(--detail, #4CB8A0);
 }
 
-/* ── 5. ToC slide-in panel ─────────────────────────────────────── */
+/* ── 5. ToC slide-in panel ─────────────────────────────────── */
 .ded-toc-panel {
   position: fixed;
   right: 0;
@@ -217,7 +217,7 @@
   display: none;
 }
 
-/* ── 6. Inline search bar ──────────────────────────────────────── */
+/* ── 6. Inline search bar ──────────────────────────────────── */
 .ded-search-bar {
   position: fixed;
   top: 0;
@@ -300,7 +300,7 @@ mark.ded-highlight-active {
   outline: 1px solid var(--gold, #C9A84C);
 }
 
-/* ── 7. Section collapse ───────────────────────────────────────── */
+/* ── 7. Section collapse ────────────────────────────────────────── */
 .ded-section-toggle {
   cursor: pointer;
   user-select: none;
@@ -325,7 +325,7 @@ mark.ded-highlight-active {
   opacity: 0;
 }
 
-/* ── 8. Patient tags ───────────────────────────────────────────── */
+/* ── 8. Patient tags ────────────────────────────────────────────── */
 .ded-tags-area {
   margin-top: 8px;
   display: flex;
@@ -448,7 +448,7 @@ mark.ded-highlight-active {
   border-color: var(--accent, #2D6A56);
 }
 
-/* ── 9–12 + 18–20. Action toolbar ─────────────────────────────── */
+/* ── 9–12 + 18–20. Action toolbar ────────────────────────────────── */
 .ded-toolbar {
   position: sticky;
   top: 0;
@@ -508,7 +508,7 @@ mark.ded-highlight-active {
   text-align: center;
 }
 
-/* ── 13. Dark mode ─────────────────────────────────────────────── */
+/* ── 13. Dark mode ───────────────────────────────────────────────── */
 body.ded-dark {
   --bg-primary:   #181c22;
   --bg-secondary: #1e242c;
@@ -576,7 +576,7 @@ body.ded-dark .dos-proximo-item {
   border-color: var(--border) !important;
 }
 
-/* ── 14. Presentation mode ─────────────────────────────────────── */
+/* ── 14. Presentation mode ────────────────────────────────────── */
 body.ded-presentation .dos-documento {
   font-size: 1.18em;
 }
@@ -616,7 +616,7 @@ body.ded-presentation .ded-presentation-exit {
   display: block;
 }
 
-/* ── 15. Sticky notes ──────────────────────────────────────────── */
+/* ── 15. Sticky notes ────────────────────────────────────────────── */
 .ded-note-btn {
   display: inline-flex;
   align-items: center;
@@ -672,7 +672,7 @@ body.ded-presentation .ded-presentation-exit {
   box-sizing: border-box;
 }
 
-/* ── 16. Back-to-top button ────────────────────────────────────── */
+/* ── 16. Back-to-top button ────────────────────────────────────────── */
 .ded-back-top {
   position: fixed;
   bottom: 20px;
@@ -703,7 +703,7 @@ body.ded-presentation .ded-presentation-exit {
   background: var(--detail, #4CB8A0);
 }
 
-/* ── 17. Smart insights panel ──────────────────────────────────── */
+/* ── 17. Smart insights panel ────────────────────────────────────── */
 .ded-insights-panel {
   margin-bottom: 20px;
   border: 1px solid rgba(76, 184, 160, 0.4);
@@ -760,7 +760,7 @@ body.ded-presentation .ded-presentation-exit {
 .ded-insight-atencao .ded-insight-dot { background: #B8860B; }
 .ded-insight-info    .ded-insight-dot { background: var(--detail, #4CB8A0); }
 
-/* ── 19. Keyboard help overlay ─────────────────────────────────── */
+/* ── 19. Keyboard help overlay ────────────────────────────────────── */
 .ded-kb-overlay {
   position: fixed;
   inset: 0;
@@ -830,7 +830,7 @@ body.ded-presentation .ded-presentation-exit {
   background: var(--accent, #2D6A56);
 }
 
-/* ── General notification toast ────────────────────────────────── */
+/* ── General notification toast ──────────────────────────────────── */
 .ded-notif {
   position: fixed;
   bottom: 20px;
@@ -857,7 +857,7 @@ body.ded-presentation .ded-presentation-exit {
   background: #B33030;
 }
 
-/* ── Print: hide extras UI ─────────────────────────────────────── */
+/* ── Print: hide extras UI ────────────────────────────────────────── */
 @media print {
   .ded-toolbar,
   .ded-toc-btn,
@@ -883,7 +883,7 @@ body.ded-presentation .ded-presentation-exit {
   }
 }
 
-/* ── Responsive ────────────────────────────────────────────────── */
+/* ── Responsive ────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .ded-toc-btn  { right: 6px; padding: 8px 6px; font-size: 0; }
   .ded-toc-btn span { display: none; }
@@ -1149,4 +1149,100 @@ body.ded-reduced-motion .ded-toolbar-btn:active {
 .ded-back-top:focus-visible {
   outline: 3px solid var(--detail, #4CB8A0);
   outline-offset: 3px;
+}
+
+/* ═══ POLIMENTO V4 ═══ */
+/* Performance: ResizeObserver compact toolbar · IO sentinel · fonts ready · will-change — 10 melhorias */
+
+/* V4.4 Compact toolbar when wrapping to 2 rows */
+.ded-toolbar.ded-toolbar-compact {
+  gap: 3px;
+}
+.ded-toolbar.ded-toolbar-compact .ded-toolbar-btn {
+  padding: 4px 7px;
+  gap: 0;
+  font-size: 0.62rem;
+}
+.ded-toolbar.ded-toolbar-compact .ded-toolbar-btn svg + * {
+  display: none;
+}
+.ded-toolbar.ded-toolbar-compact .ded-font-indicator {
+  display: none;
+}
+.ded-toolbar.ded-toolbar-compact .ded-toolbar-sep {
+  height: 14px;
+}
+
+/* V4.5 IO sentinel element */
+#ded-v4-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1px;
+  width: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* V4.6 Smooth text appearance once fonts are loaded */
+.dos-documento,
+.dos-capa-nome,
+.dos-sec-titulo {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+body.ded-fonts-ready .dos-capa-nome {
+  transition: letter-spacing 0.25s ease;
+}
+
+/* V4.10 Prevent layout shift for lazy-loaded images */
+#dos-mount img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V4 Performance: GPU-layer promotion for frequently animated elements */
+.ded-progress-bar,
+.ded-back-top,
+.ded-toast,
+.ded-notif {
+  will-change: transform, opacity;
+}
+.ded-toc-panel {
+  will-change: transform;
+}
+.ded-search-bar {
+  will-change: opacity, transform;
+}
+
+/* V4 Ultra-compact toolbar on very narrow viewports */
+@media (max-width: 480px) {
+  .ded-toolbar {
+    gap: 2px;
+    padding: 5px 6px;
+  }
+  .ded-toolbar .ded-toolbar-btn {
+    padding: 3px 6px;
+    font-size: 0.6rem;
+  }
+  .ded-toolbar .ded-toolbar-btn svg + * {
+    display: none;
+  }
+  .ded-toolbar .ded-font-indicator {
+    display: none;
+  }
+}
+
+/* V4 Reduced motion: suppress will-change to save compositor layers */
+@media (prefers-reduced-motion: reduce) {
+  .ded-progress-bar,
+  .ded-back-top,
+  .ded-toast,
+  .ded-notif,
+  .ded-toc-panel,
+  .ded-search-bar {
+    will-change: auto;
+  }
 }
