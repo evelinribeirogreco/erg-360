@@ -1107,3 +1107,342 @@ body[data-wake-lock="active"]::after {
     transition: none !important;
   }
 }
+
+/* ═══ POLIMENTO V8 ═══ */
+
+/* V8-0. CSS custom var de escala de fonte (default = 16px) ─────────────── */
+:root { --v8-font: 16px; }
+
+/* V8-1. Foco Profundo ───────────────────────────────────────────────────── */
+body.v8-focus .admin-sidebar,
+body.v8-focus .admin-topbar,
+body.v8-focus .admin-nav,
+body.v8-focus .back-btn-wrap {
+  opacity: 0.1;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+body.v8-focus .fase-card:not(:focus-within):not(:hover) {
+  opacity: 0.4;
+  filter: grayscale(0.25);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+body.v8-focus .fase-card:focus-within,
+body.v8-focus .fase-card:hover {
+  opacity: 1;
+  filter: none;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+body.v8-focus #fase-form {
+  box-shadow: 0 0 0 3px rgba(76, 184, 160, 0.2);
+}
+
+/* V8-2. Alto Contraste ─────────────────────────────────────────────────── */
+body.v8-contrast {
+  --text:       #000000;
+  --text-light: #111111;
+  --subtitle:   #2a2a2a;
+  --bg-primary: #ffffff;
+  --bg-card:    #f2f2f2;
+  --border:     #000000;
+  --detail:     #005a46;
+  --accent:     #004236;
+  --gold:       #7a5c00;
+}
+body.v8-contrast .fase-card,
+body.v8-contrast .form-card {
+  border-width: 2px !important;
+}
+body.v8-contrast input,
+body.v8-contrast select,
+body.v8-contrast textarea {
+  border: 2px solid #000 !important;
+  background: #fff !important;
+}
+body.v8-contrast .btn-primary,
+body.v8-contrast .admin-btn {
+  border-width: 2px !important;
+}
+body.v8-contrast a:not([class]) {
+  text-decoration: underline;
+}
+
+/* V8-3. Modo Leitura ───────────────────────────────────────────────────── */
+body.v8-reading .main-content {
+  font-size: var(--v8-font);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+body.v8-reading .fase-card,
+body.v8-reading .form-card {
+  padding: 28px 32px;
+}
+body.v8-reading .fase-card p,
+body.v8-reading .form-group label {
+  font-size: 1.06em;
+  line-height: 1.8;
+}
+body.v8-reading .fase-card h3,
+body.v8-reading h2.section-title {
+  font-size: 1.25em;
+  letter-spacing: 0.01em;
+}
+
+/* V8-4. HUD flutuante ──────────────────────────────────────────────────── */
+#v8-hud {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2800;
+}
+#v8-hud-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--subtitle);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+#v8-hud-btn:hover {
+  color: var(--detail);
+  border-color: var(--detail);
+  box-shadow: 0 3px 14px rgba(76,184,160,0.15);
+}
+#v8-hud-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+#v8-hud.v8-hud-on #v8-hud-btn {
+  border-color: var(--detail);
+  color: var(--detail);
+}
+#v8-hud-dots {
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  opacity: 0.8;
+}
+
+/* V8-5. Mode Switcher (popover) ─────────────────────────────────────────── */
+#v8-sw {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 224px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  padding: 16px;
+  z-index: 10;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+#v8-sw.v8-sw-on {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+#v8-sw-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+#v8-sw-ttl {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.88rem;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+#v8-sw-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--subtitle);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 2px 5px;
+  transition: color 0.15s;
+}
+#v8-sw-x:hover { color: var(--text); }
+#v8-sw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.v8-mbtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-light);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.v8-mbtn:hover {
+  border-color: var(--detail);
+  color: var(--detail);
+  background: rgba(76,184,160,0.05);
+}
+.v8-mbtn.v8-mon {
+  border-color: var(--detail);
+  color: var(--detail);
+  background: rgba(76,184,160,0.09);
+}
+.v8-mbtn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 1px;
+}
+.v8-mbtn kbd {
+  margin-left: auto;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.5rem;
+  color: var(--subtitle);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  padding: 1px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.v8-mbtn.v8-mon kbd { color: var(--detail); border-color: var(--detail); }
+
+/* V8-6. Font scale controls ─────────────────────────────────────────────── */
+.v8-sw-lbl {
+  display: block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.53rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+  margin-bottom: 6px;
+}
+#v8-font-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.v8-font-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-light);
+  letter-spacing: -0.02em;
+  transition: border-color 0.15s, color 0.15s;
+}
+.v8-font-btn:hover { border-color: var(--detail); color: var(--detail); }
+.v8-font-btn:focus-visible { outline: 2px solid var(--detail); outline-offset: 2px; }
+#v8-font-val {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.63rem;
+  color: var(--subtitle);
+  min-width: 38px;
+  text-align: center;
+}
+#v8-print {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  transition: border-color 0.15s, color 0.15s;
+}
+#v8-print:hover { border-color: var(--accent); color: var(--accent); }
+#v8-print:focus-visible { outline: 2px solid var(--detail); outline-offset: 2px; }
+
+/* V8-7. Sleep mode overlay ─────────────────────────────────────────────── */
+#v8-sleep {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 14, 11, 0.93);
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  cursor: pointer;
+}
+#v8-sleep.v8-sleep-on { opacity: 1; }
+#v8-sleep-body { text-align: center; }
+#v8-sleep-clock {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(3.2rem, 8vw, 5.5rem);
+  font-weight: 300;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin-bottom: 22px;
+}
+#v8-sleep-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin: 0;
+}
+
+/* V8-8. Print ───────────────────────────────────────────────────────────── */
+@media print {
+  #v8-hud, #v7-tel-trigger, #v2-fab, #v5-share-btn,
+  .admin-sidebar, .admin-topbar, .admin-nav,
+  .page-header-actions, .back-btn-wrap,
+  .v5-copy-btn, #extras-aria-live { display: none !important; }
+  body.v8-printing .main-content { margin: 0; padding: 0; max-width: 100%; }
+  .fase-card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; margin-bottom: 12pt; }
+}
+
+/* V8-9. Reduced motion ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  #v8-sw, #v8-sleep,
+  body.v8-focus .admin-sidebar,
+  body.v8-focus .admin-topbar,
+  body.v8-focus .admin-nav,
+  body.v8-focus .back-btn-wrap,
+  body.v8-focus .fase-card { transition: none !important; }
+}
+
+/* V8-10. Mobile ─────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  #v8-hud { bottom: 14px; right: 14px; }
+  #v8-sw { width: calc(100vw - 28px); right: 0; }
+  body.v8-reading .main-content { padding-left: 16px; padding-right: 16px; }
+}
