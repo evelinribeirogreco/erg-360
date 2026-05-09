@@ -426,7 +426,6 @@ body.pp-no-motion .refeicao-block {
 }
 
 /* ── 31. CSS contain nas refeição-blocks inativas (suporte) ── */
-/* contain: layout style é aplicado via JS; garante base segura */
 .refeicao-block {
   position: relative;
 }
@@ -458,4 +457,163 @@ body.pp-no-motion .refeicao-block {
 .tabs-wrap {
   min-height: 44px;
   contain: layout;
+}
+
+/* ═══ POLIMENTO V5 ═══ */
+
+/* ── 38. Wake Lock: sem CSS necessário ── */
+
+/* ── 39. Botão offline banner ── */
+#pp-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--gold, #C9A84C);
+  color: var(--text, #1A1A16);
+  text-align: center;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 8px 16px;
+  transform: translateY(-110%);
+  transition: transform 0.28s ease;
+  pointer-events: none;
+}
+#pp-offline-banner.pp-offline-show {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ── 40. Botão compartilhar ── */
+#pp-btn-share {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--detail, #4CB8A0);
+  color: var(--text, #1A1A16);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.18s;
+}
+#pp-btn-share:hover {
+  background: rgba(76, 184, 160, 0.1);
+}
+#pp-btn-share:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* ── 41. Botão copiar refeição ── */
+.ref-header {
+  align-items: center;
+}
+.pp-copy-meal-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--sub, #6B6659);
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.pp-copy-meal-btn:hover {
+  color: var(--detail, #4CB8A0);
+  background: rgba(76, 184, 160, 0.08);
+}
+.pp-copy-meal-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* ── 42. PWA install button ── */
+.page-header {
+  position: relative;
+}
+#pp-install-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: 1px solid rgba(76, 184, 160, 0.35);
+  color: var(--sub, #6B6659);
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 0.18s, color 0.18s;
+}
+#pp-install-btn:hover {
+  border-color: var(--detail, #4CB8A0);
+  color: var(--detail, #4CB8A0);
+}
+#pp-install-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+/* ── 43. save-data mode: desativa animações de baixa prioridade ── */
+body.pp-save-data .pp-skeleton {
+  animation: none !important;
+  background: var(--bg2, #F0EDE6) !important;
+}
+body.pp-save-data .pp-macro-bar-fill,
+body.pp-save-data .alimento-row,
+body.pp-save-data .macro-card,
+body.pp-save-data .resumo-line,
+body.pp-save-data .back-link,
+body.pp-save-data #pp-toast,
+body.pp-save-data #pp-sticky-macro {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ── 44. low-memory mode: remove transições desnecessárias ── */
+body.pp-low-memory .alimento-row,
+body.pp-low-memory .macro-card,
+body.pp-low-memory .resumo-line {
+  transition: none !important;
+}
+body.pp-low-memory .pp-macro-bar-fill {
+  transition-duration: 0.3s !important;
+}
+
+/* ── 45. prefers-reduced-motion: novos elementos V5 ── */
+@media (prefers-reduced-motion: reduce) {
+  #pp-offline-banner,
+  #pp-btn-share,
+  .pp-copy-meal-btn,
+  #pp-install-btn {
+    transition: none !important;
+  }
+}
+
+/* ── 46. forced-colors: novos elementos V5 ── */
+@media (forced-colors: active) {
+  #pp-offline-banner {
+    background: ButtonFace !important;
+    color: ButtonText !important;
+    border-bottom: 2px solid ButtonText;
+  }
+  #pp-btn-share,
+  .pp-copy-meal-btn,
+  #pp-install-btn {
+    border-color: ButtonText !important;
+    color: ButtonText !important;
+  }
 }

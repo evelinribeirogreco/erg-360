@@ -631,7 +631,6 @@ function setupMacroBarIO() {
   new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (!e.isIntersecting) return;
-      // Garante que fills não-animadas recebam seus valores ao entrar na tela
       e.target.querySelectorAll('.pp-macro-bar-fill').forEach(fill => {
         if (!fill.style.width || fill.style.width === '0' || fill.style.width === '0%') {
           window._planoPacienteExtras?.injetarMacroBars?.();
@@ -649,7 +648,6 @@ function setupStickyBarIO() {
   if (grid._ppStickyIO) return;
   grid._ppStickyIO = true;
 
-  // Esconde a barra quando o macro-grid está visível, mostra quando sai da tela
   new IntersectionObserver(entries => {
     entries.forEach(e => {
       bar.classList.toggle('pp-sticky-hidden-io', e.isIntersecting);
@@ -743,4 +741,240 @@ Object.assign(window._planoPacienteExtras || (window._planoPacienteExtras = {}),
   makeRAFThrottle,
   ppDebounce,
   ppCache,
+});
+
+// ═══ POLIMENTO V5 ═══
+// V5 — 10 melhorias com Web APIs modernas:
+//      Wake Lock, Web Share, Vibration, offline banner,
+//      copiar refeição, saveData, PWA install, Storage Estimate,
+//      Device Memory, welcome-back após ausência longa
+
+// ── 38. Wake Lock API — mantém tela acesa durante leitura ────
+async function setupWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  let lock = null;
+  const acquire = async () => {
+    try { lock = await navigator.wakeLock.request('screen'); } catch (_) {}
+  };
+  const release = () => { lock?.release(); lock = null; };
+  acquire();
+  document.addEventListener('visibilitychange', () =>
+    document.visibilityState === 'visible' ? acquire() : release()
+  );
+  window.addEventListener('pagehide', release, { once: true });
+}
+
+// ── 39. Web Share API — botão compartilhar com fallback ──────
+function setupWebShare() {
+  if (!navigator.share && !navigator.clipboard) return;
+  const ppActions = document.getElementById('pp-pdf-actions');
+  if (!ppActions) return;
+
+  const buildBtn = () => {
+    if (document.getElementById('pp-btn-share')) return;
+    const btn = document.createElement('button');
+    btn.id = 'pp-btn-share';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Compartilhar plano alimentar');
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar';
+    btn.addEventListener('click', async () => {
+      const titulo = document.getElementById('plano-titulo')?.textContent?.trim() || 'Plano Alimentar';
+      const nome   = document.getElementById('paciente-nome')?.textContent?.trim() || '';
+      const kcal   = document.getElementById('m-kcal')?.textContent?.trim() || '—';
+      const ptn    = document.getElementById('m-ptn')?.textContent?.trim() || '—';
+      const text   = `${titulo}${nome ? ' — ' + nome : ''}\n📊 ${kcal} kcal · ${ptn}g proteína/dia\n${window.location.href}`;
+      const shareData = { title: titulo, text, url: window.location.href };
+      if (navigator.canShare?.(shareData)) {
+        try { await navigator.share(shareData); return; } catch (e) {
+          if (e.name === 'AbortError') return;
+        }
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text).catch(() => {});
+        window._planoPacienteExtras?.showToast?.('Link copiado!');
+      }
+    });
+    ppActions.prepend(btn);
+  };
+
+  if (ppActions.style.display !== 'none') {
+    buildBtn();
+  } else {
+    const obs = new MutationObserver(() => {
+      if (ppActions.style.display !== 'none') { obs.disconnect(); buildBtn(); }
+    });
+    obs.observe(ppActions, { attributes: true, attributeFilter: ['style'] });
+  }
+}
+
+// ── 40. Vibration API — feedback tátil ───────────────────────
+function setupVibration() {
+  if (!navigator.vibrate) return;
+  document.getElementById('tabs-wrap')?.addEventListener('click', e => {
+    if (e.target.closest('.tab')) navigator.vibrate(12);
+  }, { passive: true });
+  document.addEventListener('dblclick', e => {
+    if (e.target.closest('.alimento-nome')) navigator.vibrate([20, 30, 20]);
+  }, { passive: true });
+}
+
+// ── 41. Offline banner ────────────────────────────────────────
+function setupOfflineBanner() {
+  if (document.getElementById('pp-offline-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pp-offline-banner';
+  banner.setAttribute('role', 'alert');
+  banner.setAttribute('aria-live', 'assertive');
+  banner.textContent = 'Você está offline — o plano exibido pode estar desatualizado.';
+  document.body.appendChild(banner);
+
+  const toggle = online => banner.classList.toggle('pp-offline-show', !online);
+  toggle(navigator.onLine);
+  window.addEventListener('online',  () => toggle(true));
+  window.addEventListener('offline', () => toggle(false));
+}
+
+// ── 42. Botão copiar lista de alimentos da refeição ativa ────
+function setupCopyMealList() {
+  const injectButtons = () => {
+    document.querySelectorAll('.refeicao-block:not([data-pp-copy-btn])').forEach(block => {
+      const header = block.querySelector('.ref-header');
+      if (!header) return;
+      block.dataset.ppCopyBtn = '1';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pp-copy-meal-btn';
+      btn.dataset.ppCopyMeal = '1';
+      btn.setAttribute('aria-label', 'Copiar lista de alimentos desta refeição');
+      btn.title = 'Copiar alimentos';
+      btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      header.appendChild(btn);
+    });
+  };
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-pp-copy-meal]') || !navigator.clipboard) return;
+    const block = document.querySelector('.refeicao-block.active');
+    if (!block) return;
+    const title = block.querySelector('.ref-title')?.textContent?.trim() || '';
+    const lines = [...block.querySelectorAll('.alimento-row')].map(row => {
+      const nome   = row.querySelector('.alimento-nome')?.textContent?.trim() || '';
+      const medida = row.querySelector('.alimento-medida')?.textContent?.trim() || '';
+      return nome + (medida ? ' — ' + medida : '');
+    }).filter(Boolean);
+    if (!lines.length) return;
+    navigator.clipboard.writeText((title ? title + '\n' : '') + lines.join('\n'))
+      .then(() => {
+        window._planoPacienteExtras?.showToast?.('Lista copiada!');
+        if (navigator.vibrate) navigator.vibrate(30);
+      }).catch(() => {});
+  });
+
+  const ppD = window._planoPacienteExtras?.ppDebounce;
+  const handler = ppD ? ppD(injectButtons, 200) : injectButtons;
+  new MutationObserver(handler).observe(
+    document.querySelector('.page-content') || document.body,
+    { childList: true, subtree: true }
+  );
+  setTimeout(injectButtons, 2500);
+}
+
+// ── 43. Network Information — saveData e conexão lenta ───────
+function setupNetworkAdaptation() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn) return;
+  const applyAdaptation = () => {
+    const slow = conn.saveData || ['slow-2g', '2g'].includes(conn.effectiveType);
+    document.body.classList.toggle('pp-save-data', !!slow);
+  };
+  applyAdaptation();
+  conn.addEventListener('change', applyAdaptation);
+}
+
+// ── 44. beforeinstallprompt — botão de instalação PWA ────────
+function setupPWAInstall() {
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (document.getElementById('pp-install-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'pp-install-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Instalar ERG 360 como aplicativo');
+    btn.title = 'Instalar ERG 360';
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v13"/><path d="m5 9 7 6 7-6"/><path d="M5 20h14"/></svg>Instalar';
+    btn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (outcome === 'accepted') btn.remove();
+    });
+    document.querySelector('.page-header')?.appendChild(btn);
+  });
+}
+
+// ── 45. Storage Estimate — avisa se armazenamento quase cheio ─
+async function checkStorageQuota() {
+  if (!navigator.storage?.estimate) return;
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (quota && usage / quota > 0.85) {
+      window._planoPacienteExtras?.showToast?.(
+        'Armazenamento local quase cheio — libere espaço no navegador.'
+      );
+    }
+  } catch (_) {}
+}
+
+// ── 46. Device Memory API — simplifica UI em <1 GB RAM ───────
+function setupDeviceMemoryAdaptation() {
+  const mem = navigator.deviceMemory;
+  if (mem && mem < 1) document.body.classList.add('pp-low-memory');
+}
+
+// ── 47. Visibility: anuncia retorno após ≥10min de ausência ──
+function setupVisibilityWelcomeBack() {
+  let hiddenAt = null;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+    } else if (hiddenAt) {
+      const away = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (away >= 10 * 60 * 1000) {
+        const live  = document.getElementById('pp-aria-live');
+        const title = document.getElementById('plano-titulo')?.textContent?.trim() || 'plano alimentar';
+        if (live) live.textContent = `Bem-vindo de volta ao ${title}.`;
+      }
+    }
+  });
+}
+
+// ── V5 Boot ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setupOfflineBanner();
+  setupVibration();
+  setupNetworkAdaptation();
+  setupDeviceMemoryAdaptation();
+  setupPWAInstall();
+  setupVisibilityWelcomeBack();
+
+  setTimeout(() => {
+    setupWebShare();
+    setupCopyMealList();
+  }, 1000);
+
+  const idle = window.requestIdleCallback
+    ? fn => requestIdleCallback(fn, { timeout: 3000 })
+    : fn => setTimeout(fn, 200);
+  idle(setupWakeLock);
+  idle(checkStorageQuota);
+});
+
+Object.assign(window._planoPacienteExtras || (window._planoPacienteExtras = {}), {
+  setupWebShare,
+  setupOfflineBanner,
+  checkStorageQuota,
 });
