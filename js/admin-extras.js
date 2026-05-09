@@ -2950,3 +2950,713 @@ if (window._adminExtras) {
     _v8ApplyConfMask,
   });
 }
+
+// ═══ POLIMENTO V9 ═══
+// 10 features: quick-notes scratchpad, column-visibility toggle,
+// filter presets, search history, risk badge por linha,
+// right-click context menu, cheat sheet de atalhos,
+// countdown no agenda widget, persistência de estado da view,
+// clipboard auto-paste no command palette.
+
+const _V9_KEY_NOTES   = 'erg_v9_notes';
+const _V9_KEY_COLS    = 'erg_v9_col_vis';
+const _V9_KEY_PRESETS = 'erg_v9_presets';
+const _V9_KEY_HIST    = 'erg_v9_cmd_hist';
+const _V9_KEY_VIEW    = 'erg_v9_view_state';
+
+// ── V9.1 Quick Notes scratchpad ────────────────────────────────────
+function _v9BuildNotes() {
+  if (document.getElementById('v9-notes')) return;
+  const panel = document.createElement('div');
+  panel.id = 'v9-notes';
+  panel.className = 'v9-notes';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Bloco de notas rápidas');
+  panel.setAttribute('hidden', '');
+  panel.innerHTML =
+    '<div class="v9-notes-header" aria-label="Mover bloco de notas">' +
+    '<span class="v9-notes-title">Notas</span>' +
+    '<button type="button" class="v9-notes-close" aria-label="Fechar notas">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+    '</button></div>' +
+    '<textarea id="v9-notes-ta" class="v9-notes-ta" maxlength="2000" placeholder="Notas rápidas…" aria-label="Área de notas"></textarea>' +
+    '<div class="v9-notes-footer"><span id="v9-notes-count" class="v9-notes-count">0 / 2000</span>' +
+    '<button type="button" class="v9-notes-clear" aria-label="Limpar notas">Limpar</button></div>';
+  document.body.appendChild(panel);
+
+  const ta = document.getElementById('v9-notes-ta');
+  ta.value = localStorage.getItem(_V9_KEY_NOTES) || '';
+  _v9NotesUpdateCount();
+
+  let _saveTm;
+  ta.addEventListener('input', () => {
+    _v9NotesUpdateCount();
+    clearTimeout(_saveTm);
+    _saveTm = setTimeout(() => localStorage.setItem(_V9_KEY_NOTES, ta.value), 600);
+  });
+
+  panel.querySelector('.v9-notes-close').addEventListener('click', _v9CloseNotes);
+  panel.querySelector('.v9-notes-clear').addEventListener('click', () => {
+    ta.value = '';
+    localStorage.removeItem(_V9_KEY_NOTES);
+    _v9NotesUpdateCount();
+    ta.focus();
+  });
+
+  _v9DragPanel(panel, panel.querySelector('.v9-notes-header'));
+}
+
+function _v9NotesUpdateCount() {
+  const ta      = document.getElementById('v9-notes-ta');
+  const counter = document.getElementById('v9-notes-count');
+  if (ta && counter) counter.textContent = `${ta.value.length} / 2000`;
+}
+
+function _v9OpenNotes() {
+  _v9BuildNotes();
+  const panel = document.getElementById('v9-notes');
+  if (!panel) return;
+  panel.removeAttribute('hidden');
+  requestAnimationFrame(() => panel.classList.add('v9-notes-in'));
+  document.getElementById('v9-notes-ta')?.focus();
+}
+
+function _v9CloseNotes() {
+  const panel = document.getElementById('v9-notes');
+  if (!panel) return;
+  panel.classList.remove('v9-notes-in');
+  setTimeout(() => panel.setAttribute('hidden', ''), 240);
+}
+
+function _v9ToggleNotes() {
+  const panel = document.getElementById('v9-notes');
+  if (!panel || panel.hasAttribute('hidden')) _v9OpenNotes();
+  else _v9CloseNotes();
+}
+
+function _v9DragPanel(panel, handle) {
+  let ox = 0, oy = 0, startX = 0, startY = 0;
+  handle.style.cursor = 'grab';
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const rect = panel.getBoundingClientRect();
+    ox = rect.left; oy = rect.top;
+    startX = e.clientX; startY = e.clientY;
+    panel.style.right = 'auto';
+    panel.style.left  = ox + 'px';
+    panel.style.top   = oy + 'px';
+    handle.style.cursor = 'grabbing';
+    function onMove(ev) {
+      panel.style.left = (ox + ev.clientX - startX) + 'px';
+      panel.style.top  = (oy + ev.clientY - startY) + 'px';
+    }
+    function onUp() {
+      handle.style.cursor = 'grab';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+// ── V9.2 Column visibility toggle ─────────────────────────────────
+const _V9_COLS = [
+  { idx: 0, key: 'col_nome',    label: 'Nome' },
+  { idx: 1, key: 'col_email',   label: 'E-mail' },
+  { idx: 2, key: 'col_status',  label: 'Status' },
+  { idx: 3, key: 'col_fase',    label: 'Fase' },
+  { idx: 4, key: 'col_checkin', label: 'Último check-in' },
+  { idx: 5, key: 'col_next',    label: 'Próx. consulta' },
+];
+
+function _v9GetColVis() { return getJSON(_V9_KEY_COLS, {}); }
+
+function _v9ApplyColVis() {
+  const vis   = _v9GetColVis();
+  const table = document.querySelector('#patients-table, table.admin-table');
+  if (!table) return;
+  _V9_COLS.forEach(c => {
+    const hidden = vis[c.key] === false;
+    table.querySelectorAll(`th:nth-child(${c.idx + 1}), td:nth-child(${c.idx + 1})`).forEach(cell => {
+      cell.style.display = hidden ? 'none' : '';
+    });
+  });
+}
+
+function _v9BuildColToggle() {
+  if (document.getElementById('v9-col-popover')) return;
+  const vis = _v9GetColVis();
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id   = 'v9-col-toggle-btn';
+  btn.className = 'v9-col-toggle-btn btn-secondary';
+  btn.setAttribute('aria-label', 'Mostrar/ocultar colunas');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'v9-col-popover');
+  btn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/></svg>' +
+    '<span>Colunas</span>';
+
+  const popover = document.createElement('div');
+  popover.id        = 'v9-col-popover';
+  popover.className = 'v9-col-popover';
+  popover.setAttribute('role', 'menu');
+  popover.setAttribute('hidden', '');
+  popover.innerHTML =
+    '<div class="v9-col-popover-title">Colunas visíveis</div>' +
+    _V9_COLS.map(c =>
+      `<label class="v9-col-item"><input type="checkbox" data-colkey="${c.key}" ${vis[c.key] !== false ? 'checked' : ''}/>` +
+      `<span>${escapeHTML(c.label)}</span></label>`
+    ).join('');
+
+  popover.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const v = _v9GetColVis();
+      v[cb.dataset.colkey] = cb.checked;
+      setJSON(_V9_KEY_COLS, v);
+      _v9ApplyColVis();
+    });
+  });
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = !popover.hasAttribute('hidden');
+    if (open) {
+      popover.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      popover.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      popover.querySelector('input')?.focus();
+    }
+  });
+  document.addEventListener('click', () => {
+    popover.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', 'false');
+  }, { passive: true });
+  popover.addEventListener('click', e => e.stopPropagation());
+
+  const toolbar = document.querySelector('.admin-table-toolbar, .table-actions, #admin-search-bar');
+  if (toolbar) {
+    toolbar.appendChild(btn);
+    toolbar.appendChild(popover);
+  } else {
+    document.body.appendChild(btn);
+    document.body.appendChild(popover);
+  }
+  _v9ApplyColVis();
+}
+
+// ── V9.3 Filter presets ────────────────────────────────────────────
+function _v9GetPresets() { return getJSON(_V9_KEY_PRESETS, []); }
+function _v9SetPresets(arr) { setJSON(_V9_KEY_PRESETS, arr); }
+
+function _v9CaptureFilterState() {
+  return {
+    q:        (document.getElementById('admin-search') || document.querySelector('input[type="search"]'))?.value.trim() || '',
+    status:   document.getElementById('filter-status')?.value  || '',
+    fase:     document.getElementById('filter-fase')?.value    || '',
+    objetivo: document.getElementById('filter-objetivo')?.value || '',
+  };
+}
+
+function _v9ApplyFilterState(state) {
+  const search = document.getElementById('admin-search') || document.querySelector('input[type="search"]');
+  if (search && state.q !== undefined) {
+    search.value = state.q;
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  [['filter-status', 'status'], ['filter-fase', 'fase'], ['filter-objetivo', 'objetivo']].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el && state[key] !== undefined) {
+      el.value = state[key];
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+}
+
+function _v9SavePreset() {
+  const name = prompt('Nome do preset de filtros:');
+  if (!name?.trim()) return;
+  const presets = _v9GetPresets();
+  presets.push({ name: name.trim(), state: _v9CaptureFilterState(), ts: Date.now() });
+  _v9SetPresets(presets);
+  _v9RefreshPresetSelect();
+  window._adminExtras?.showToast?.(`Preset "${name.trim()}" salvo`, 'ok');
+}
+
+function _v9RefreshPresetSelect() {
+  const sel = document.getElementById('v9-preset-select');
+  if (!sel) return;
+  const presets = _v9GetPresets();
+  sel.innerHTML =
+    '<option value="">— Carregar preset —</option>' +
+    presets.map((p, i) => `<option value="${i}">${escapeHTML(p.name)}</option>`).join('');
+}
+
+function _v9BuildPresets() {
+  if (document.getElementById('v9-preset-bar')) return;
+  const bar = document.createElement('div');
+  bar.id        = 'v9-preset-bar';
+  bar.className = 'v9-preset-bar';
+  bar.innerHTML =
+    '<select id="v9-preset-select" class="v9-preset-select" aria-label="Carregar preset de filtros"></select>' +
+    '<button type="button" id="v9-preset-save" class="v9-preset-save btn-secondary" aria-label="Salvar filtro atual como preset">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>' +
+    'Salvar filtro</button>' +
+    '<button type="button" id="v9-preset-del" class="v9-preset-del btn-ghost" aria-label="Excluir preset selecionado" title="Excluir preset">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>' +
+    '</button>';
+
+  const anchor = document.getElementById('admin-advanced-filters') || document.querySelector('.admin-filter-bar');
+  if (anchor) anchor.appendChild(bar);
+  else {
+    const main = document.querySelector('main');
+    if (main) main.prepend(bar);
+  }
+
+  document.getElementById('v9-preset-save').addEventListener('click', _v9SavePreset);
+
+  document.getElementById('v9-preset-select').addEventListener('change', function () {
+    const idx = parseInt(this.value);
+    if (isNaN(idx)) return;
+    const presets = _v9GetPresets();
+    if (presets[idx]) _v9ApplyFilterState(presets[idx].state);
+  });
+
+  document.getElementById('v9-preset-del').addEventListener('click', () => {
+    const sel  = document.getElementById('v9-preset-select');
+    const idx  = parseInt(sel?.value);
+    if (isNaN(idx)) return;
+    const presets = _v9GetPresets();
+    const name    = presets[idx]?.name;
+    if (!name) return;
+    presets.splice(idx, 1);
+    _v9SetPresets(presets);
+    _v9RefreshPresetSelect();
+    window._adminExtras?.showToast?.(`Preset "${name}" removido`, 'info');
+  });
+
+  _v9RefreshPresetSelect();
+}
+
+// ── V9.4 Search history in command palette ─────────────────────────
+const _V9_HIST_MAX = 10;
+
+function _v9HistGet() { return getJSON(_V9_KEY_HIST, []); }
+function _v9HistPush(q) {
+  if (!q?.trim()) return;
+  const h = _v9HistGet().filter(x => x !== q.trim());
+  h.unshift(q.trim());
+  setJSON(_V9_KEY_HIST, h.slice(0, _V9_HIST_MAX));
+}
+
+function _v9InitCmdHistory() {
+  if (window._v9CmdHistBound) return;
+  window._v9CmdHistBound = true;
+
+  document.addEventListener('keydown', e => {
+    if (!e.ctrlKey || e.key.toLowerCase() !== 'k') return;
+    requestAnimationFrame(() => {
+      const input = document.getElementById('cmd-input');
+      if (!input) return;
+
+      function onFocusEmpty() {
+        if (input.value.trim() !== '') return;
+        const hist = _v9HistGet();
+        if (!hist.length) return;
+        const list = document.getElementById('cmd-results');
+        if (!list || list.children.length > 0) return;
+
+        const header = document.createElement('div');
+        header.className = 'cmd-item cmd-item-header';
+        header.setAttribute('role', 'presentation');
+        header.innerHTML = '<span style="font-size:.7rem;opacity:.6;padding:4px 12px;display:block">Pesquisas recentes</span>';
+        list.prepend(header);
+
+        hist.slice(0, 5).forEach(q => {
+          const item = document.createElement('div');
+          item.className = 'cmd-item';
+          item.setAttribute('tabindex', '0');
+          item.setAttribute('role', 'option');
+          item.innerHTML =
+            '<div class="cmd-item-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/></svg></div>' +
+            `<div class="cmd-item-text"><span class="cmd-item-title">${escapeHTML(q)}</span></div>` +
+            '<button type="button" class="v9-hist-remove" aria-label="Remover da história" title="Remover">×</button>';
+
+          item.querySelector('.v9-hist-remove').addEventListener('click', ev => {
+            ev.stopPropagation();
+            setJSON(_V9_KEY_HIST, _v9HistGet().filter(x => x !== q));
+            item.remove();
+          });
+          item.addEventListener('click', e => {
+            if (e.target.classList.contains('v9-hist-remove')) return;
+            input.value = q;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          list.appendChild(item);
+        });
+      }
+      input.addEventListener('focus', onFocusEmpty, { once: true });
+
+      const overlay = document.getElementById('cmd-overlay');
+      if (overlay) {
+        overlay.addEventListener('click', () => {
+          const q = input.value.trim();
+          if (q) _v9HistPush(q);
+        }, { once: true, passive: true });
+      }
+    });
+  }, { passive: true });
+}
+
+// ── V9.5 Risk badge on patient rows ───────────────────────────────
+function _v9RiskLevel(patient) {
+  const raw  = patient.ultimo_checkin || patient.ultimoCheckin || patient.last_checkin;
+  if (!raw) return 'none';
+  const days = Math.floor((Date.now() - new Date(raw).getTime()) / 86400000);
+  if (days <= 7)  return 'ok';
+  if (days <= 30) return 'warn';
+  return 'alert';
+}
+
+const _V9_RISK_LABEL = { ok: 'Check-in em dia', warn: 'Check-in atrasado', alert: 'Sem check-in recente', none: 'Sem dados' };
+const _V9_RISK_ICON  = { ok: '🟢', warn: '🟡', alert: '🔴', none: '⚫' };
+
+function _v9InjectRiskBadges() {
+  const table    = document.querySelector('#patients-table, table.admin-table');
+  if (!table) return;
+  const patients = window._extrasFilteredPatients || getPatients();
+  table.querySelectorAll('tbody tr[data-id], tbody tr[data-patient-id]').forEach(row => {
+    if (row.querySelector('.v9-risk')) return;
+    const id = row.dataset.id || row.dataset.patientId;
+    const p  = patients.find(x => String(x.id) === String(id));
+    if (!p) return;
+    const lvl   = _v9RiskLevel(p);
+    const badge = document.createElement('span');
+    badge.className = `v9-risk v9-risk-${lvl}`;
+    badge.setAttribute('aria-label', _V9_RISK_LABEL[lvl]);
+    badge.setAttribute('title',      _V9_RISK_LABEL[lvl]);
+    badge.textContent = _V9_RISK_ICON[lvl];
+    const firstCell = row.querySelector('td');
+    if (firstCell) firstCell.insertBefore(badge, firstCell.firstChild);
+  });
+}
+
+function _v9InitRiskObserver() {
+  if (window._v9RiskObserver) return;
+  const table  = document.querySelector('#patients-table, table.admin-table');
+  const target = table?.querySelector('tbody') || document.querySelector('main');
+  if (!target) return;
+  window._v9RiskObserver = new MutationObserver(() => _v9InjectRiskBadges());
+  window._v9RiskObserver.observe(target, { childList: true, subtree: true });
+  _v9InjectRiskBadges();
+  window.addEventListener('erg:patients-rendered', _v9InjectRiskBadges, { passive: true });
+}
+
+// ── V9.6 Right-click context menu ─────────────────────────────────
+function _v9InitContextMenu() {
+  if (window._v9CtxBound) return;
+  window._v9CtxBound = true;
+
+  let _activeCtx = null;
+  function _closeCtx() { if (_activeCtx) { _activeCtx.remove(); _activeCtx = null; } }
+
+  document.addEventListener('contextmenu', e => {
+    const row = e.target.closest('tr[data-id], tr[data-patient-id]');
+    if (!row) return;
+    e.preventDefault();
+    _closeCtx();
+
+    const id   = row.dataset.id || row.dataset.patientId;
+    const uid  = row.dataset.uid || id;
+    const nome = decodeURIComponent(row.dataset.nome || row.querySelector('td')?.textContent?.trim() || '');
+    const p    = getPatients().find(x => String(x.id) === String(id)) || {};
+
+    const menu = document.createElement('div');
+    menu.id        = 'v9-ctx-menu';
+    menu.className = 'v9-ctx-menu';
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('aria-label', `Ações para ${nome}`);
+
+    const items = [
+      { icon: '👁', label: 'Ver dossiê',      action: () => { if (uid) location.href = `admin-dossie.html?uid=${uid}`; } },
+      { icon: '📋', label: 'Ver plano',        action: () => { if (uid) location.href = `plano-paciente.html?uid=${uid}`; } },
+      { icon: '📞', label: 'Copiar telefone',  action: () => navigator.clipboard?.writeText(p.telefone || '').then(() => window._adminExtras?.showToast?.('Telefone copiado', 'ok')) },
+      { icon: '✉',  label: 'Copiar e-mail',   action: () => navigator.clipboard?.writeText(p.email    || '').then(() => window._adminExtras?.showToast?.('E-mail copiado', 'ok')) },
+      { icon: '⭐', label: 'Fixar / desfixar', action: () => { window._adminExtras?.toggleFav?.(id); _closeCtx(); } },
+    ];
+
+    menu.innerHTML = items.map((item, i) =>
+      `<button type="button" class="v9-ctx-item" role="menuitem" data-v9idx="${i}">` +
+      `<span class="v9-ctx-icon" aria-hidden="true">${item.icon}</span>` +
+      `<span class="v9-ctx-label">${escapeHTML(item.label)}</span></button>`
+    ).join('');
+
+    menu.querySelectorAll('.v9-ctx-item').forEach((btn, i) => {
+      btn.addEventListener('click', () => { items[i].action(); _closeCtx(); });
+      btn.addEventListener('keydown', ev => {
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); (btn.nextElementSibling   || menu.firstElementChild)?.focus(); }
+        if (ev.key === 'ArrowUp')   { ev.preventDefault(); (btn.previousElementSibling || menu.lastElementChild)?.focus(); }
+        if (ev.key === 'Escape')    { ev.preventDefault(); _closeCtx(); }
+      });
+    });
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = e.clientX, top = e.clientY;
+    document.body.appendChild(menu);
+    const rect = menu.getBoundingClientRect();
+    if (left + rect.width  > vw - 8) left = vw - rect.width  - 8;
+    if (top  + rect.height > vh - 8) top  = vh - rect.height - 8;
+    menu.style.left = left + 'px';
+    menu.style.top  = top  + 'px';
+    requestAnimationFrame(() => menu.classList.add('v9-ctx-in'));
+    menu.querySelector('.v9-ctx-item')?.focus();
+    _activeCtx = menu;
+  });
+
+  document.addEventListener('click',   _closeCtx, { passive: true });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeCtx(); }, { passive: true });
+}
+
+// ── V9.7 '?' cheat sheet overlay ──────────────────────────────────
+const _V9_SHORTCUTS = [
+  { group: 'Navegação',   kbd: 'Ctrl+K',        desc: 'Command palette' },
+  { group: 'Navegação',   kbd: '?',              desc: 'Mostrar atalhos de teclado' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+M',  desc: 'Painel de modos especiais' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+F',  desc: 'Foco profundo' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+H',  desc: 'Alto contraste' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+R',  desc: 'Modo leitura' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+C',  desc: 'Modo compacto' },
+  { group: 'Modos',       kbd: 'Ctrl+Shift+P',  desc: 'Modo conferência' },
+  { group: 'Ferramentas', kbd: 'Ctrl+Shift+N',  desc: 'Notas rápidas' },
+  { group: 'Ferramentas', kbd: 'Ctrl+Shift+E',  desc: 'Exportar CSV' },
+  { group: 'Ferramentas', kbd: 'Ctrl+Shift+T',  desc: 'Telemetria' },
+  { group: 'Tabela',      kbd: 'Botão direito', desc: 'Menu de contexto do paciente' },
+  { group: 'Tabela',      kbd: 'F',             desc: 'Tela cheia (fullscreen)' },
+];
+
+function _v9BuildCheatSheet() {
+  if (document.getElementById('v9-cheat-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id        = 'v9-cheat-overlay';
+  overlay.className = 'v9-cheat-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Atalhos de teclado');
+  overlay.setAttribute('hidden', '');
+  overlay.setAttribute('tabindex', '-1');
+
+  const groups = {};
+  _V9_SHORTCUTS.forEach(s => { if (!groups[s.group]) groups[s.group] = []; groups[s.group].push(s); });
+
+  const rows = Object.entries(groups).map(([g, items]) =>
+    `<div class="v9-cheat-group"><div class="v9-cheat-group-title">${escapeHTML(g)}</div>` +
+    items.map(s =>
+      `<div class="v9-cheat-row"><kbd class="v9-cheat-kbd">${escapeHTML(s.kbd)}</kbd>` +
+      `<span class="v9-cheat-desc">${escapeHTML(s.desc)}</span></div>`
+    ).join('') + '</div>'
+  ).join('');
+
+  overlay.innerHTML =
+    '<div class="v9-cheat-panel">' +
+    '<div class="v9-cheat-header">' +
+    '<h2 class="v9-cheat-title">Atalhos de teclado</h2>' +
+    '<button type="button" class="v9-cheat-close" aria-label="Fechar (Esc)">Fechar <kbd>Esc</kbd></button>' +
+    '</div>' +
+    '<div class="v9-cheat-body">' + rows + '</div>' +
+    '<p class="v9-cheat-hint">Pressione <kbd>?</kbd> novamente para fechar</p>' +
+    '</div>';
+
+  overlay.querySelector('.v9-cheat-close').addEventListener('click', _v9CloseCheat);
+  overlay.addEventListener('click', e => { if (e.target === overlay) _v9CloseCheat(); });
+  document.body.appendChild(overlay);
+}
+
+function _v9OpenCheat() {
+  _v9BuildCheatSheet();
+  const ov = document.getElementById('v9-cheat-overlay');
+  if (!ov) return;
+  ov.removeAttribute('hidden');
+  requestAnimationFrame(() => ov.classList.add('v9-cheat-in'));
+  ov.focus();
+}
+
+function _v9CloseCheat() {
+  const ov = document.getElementById('v9-cheat-overlay');
+  if (!ov) return;
+  ov.classList.remove('v9-cheat-in');
+  setTimeout(() => ov.setAttribute('hidden', ''), 240);
+}
+
+function _v9InitCheatSheet() {
+  if (window._v9CheatBound) return;
+  window._v9CheatBound = true;
+  document.addEventListener('keydown', e => {
+    if (e.key !== '?') return;
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    e.preventDefault();
+    const ov = document.getElementById('v9-cheat-overlay');
+    if (ov && !ov.hasAttribute('hidden')) _v9CloseCheat();
+    else _v9OpenCheat();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const ov = document.getElementById('v9-cheat-overlay');
+      if (ov && !ov.hasAttribute('hidden')) { e.stopPropagation(); _v9CloseCheat(); }
+    }
+  });
+}
+
+// ── V9.8 Countdown chips in agenda widget ─────────────────────────
+function _v9AgendaCountdown() {
+  const agenda = document.getElementById('admin-agenda');
+  if (!agenda) return;
+  const now      = new Date();
+  const todayISO = now.toISOString().split('T')[0];
+
+  agenda.querySelectorAll('[data-iso]').forEach(btn => {
+    if (btn.dataset.iso !== todayISO) return;
+    if (btn.querySelector('.v9-countdown')) return;
+    const chip       = document.createElement('span');
+    chip.className   = 'v9-countdown';
+    const hoursLeft  = 23 - now.getHours();
+    const minsLeft   = 59 - now.getMinutes();
+    chip.textContent = hoursLeft > 0 ? `${hoursLeft}h${minsLeft}m restantes` : `${minsLeft}min restantes`;
+    chip.setAttribute('aria-label', `Hoje, ${chip.textContent}`);
+    btn.appendChild(chip);
+  });
+
+  agenda.querySelectorAll('.agenda-day-header, .admin-agenda-day').forEach(header => {
+    if (header.textContent.toLowerCase().includes('hoje') && !header.querySelector('.v9-hoje-pulse')) {
+      const pulse = document.createElement('span');
+      pulse.className = 'v9-hoje-pulse';
+      pulse.setAttribute('aria-hidden', 'true');
+      header.appendChild(pulse);
+    }
+  });
+}
+
+// ── V9.9 View state persistence ───────────────────────────────────
+function _v9SaveViewState() {
+  const state = {
+    scrollY:  window.scrollY,
+    search:   (document.getElementById('admin-search') || document.querySelector('input[type="search"]'))?.value || '',
+    status:   document.getElementById('filter-status')?.value  || '',
+    fase:     document.getElementById('filter-fase')?.value    || '',
+    objetivo: document.getElementById('filter-objetivo')?.value || '',
+  };
+  try { sessionStorage.setItem(_V9_KEY_VIEW, JSON.stringify(state)); } catch {}
+}
+
+function _v9RestoreViewState() {
+  const raw = sessionStorage.getItem(_V9_KEY_VIEW);
+  if (!raw) return;
+  let state;
+  try { state = JSON.parse(raw); } catch { return; }
+  const search = document.getElementById('admin-search') || document.querySelector('input[type="search"]');
+  if (search && state.search) {
+    search.value = state.search;
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  [['filter-status', 'status'], ['filter-fase', 'fase'], ['filter-objetivo', 'objetivo']].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el && state[key]) { el.value = state[key]; el.dispatchEvent(new Event('change', { bubbles: true })); }
+  });
+  if (state.scrollY > 100) {
+    requestAnimationFrame(() => window.scrollTo({ top: state.scrollY, behavior: 'instant' }));
+  }
+}
+
+function _v9InitViewState() {
+  if (window._v9ViewStateBound) return;
+  window._v9ViewStateBound = true;
+  const debounceSave = (() => { let t; return () => { clearTimeout(t); t = setTimeout(_v9SaveViewState, 500); }; })();
+  ['scroll', 'input', 'change'].forEach(ev => document.addEventListener(ev, debounceSave, { passive: true }));
+  window.addEventListener('beforeunload', _v9SaveViewState);
+  setTimeout(_v9RestoreViewState, 800);
+}
+
+// ── V9.10 Clipboard auto-paste in command palette ──────────────────
+function _v9InitClipboardPaste() {
+  if (window._v9ClipBound) return;
+  window._v9ClipBound = true;
+  document.addEventListener('keydown', e => {
+    if (!e.ctrlKey || e.key.toLowerCase() !== 'k') return;
+    requestAnimationFrame(() => {
+      const input = document.getElementById('cmd-input');
+      if (!input || input.value.trim()) return;
+      navigator.clipboard?.readText?.().then(text => {
+        const t = (text || '').trim();
+        if (!t || t.length < 2 || t.length > 80) return;
+        const isName  = /^[A-Za-zÀ-ÿ\s]{3,}$/.test(t);
+        const isPhone = /^\+?[\d\s()\-]{7,}$/.test(t);
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+        if (!isName && !isPhone && !isEmail) return;
+        if (input.value.trim()) return;
+        input.value = t;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        window._adminExtras?.showToast?.('📋 Pesquisa preenchida com área de transferência', 'info');
+      }).catch(() => {});
+    });
+  }, { passive: true });
+}
+
+// ── V9 DOMContentLoaded ────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _v9BuildColToggle();
+  _v9BuildPresets();
+  _v9InitCmdHistory();
+  _v9InitRiskObserver();
+  _v9InitContextMenu();
+  _v9InitCheatSheet();
+  _v9AgendaCountdown();
+  _v9InitViewState();
+  _v9InitClipboardPaste();
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'N') {
+      e.preventDefault();
+      _v9ToggleNotes();
+    }
+  });
+
+  // Item "Notas rápidas" no command palette
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.admin-cmd-trigger,[data-cmd-trigger]')) return;
+    requestAnimationFrame(() => {
+      const list = document.querySelector('#cmd-list,.cmd-list');
+      if (!list || list.querySelector('[data-v9notes]')) return;
+      const item = document.createElement('div');
+      item.className = 'cmd-item';
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('role', 'option');
+      item.dataset.v9notes = '1';
+      item.innerHTML =
+        '<div class="cmd-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>' +
+        '<div class="cmd-item-text"><span class="cmd-item-title">Notas rápidas — Ctrl+Shift+N</span></div>';
+      item.addEventListener('click', () => {
+        document.getElementById('cmd-overlay')?.dispatchEvent(new MouseEvent('click'));
+        setTimeout(_v9ToggleNotes, 200);
+      });
+      item.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+      });
+      list.appendChild(item);
+    });
+  }, { passive: true });
+});
+
+// Expõe para hooks externos (V9)
+if (window._adminExtras) {
+  Object.assign(window._adminExtras, {
+    _v9ToggleNotes,
+    _v9OpenCheat,
+    _v9SavePreset,
+    _v9RefreshPresetSelect,
+    _v9InjectRiskBadges,
+  });
+}
