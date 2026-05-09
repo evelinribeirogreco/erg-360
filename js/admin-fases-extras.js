@@ -2088,3 +2088,292 @@
     initV7();
   }
 })();
+
+// ═══ POLIMENTO V8 ═══
+// 10 modos especiais: persistência (V8-1), foco profundo Alt+F (V8-2),
+// alto contraste Alt+C (V8-3), leitura Alt+R (V8-4), HUD flutuante (V8-5),
+// mode switcher Alt+M (V8-6), font scale +/- (V8-7), sleep mode 20min (V8-8),
+// print trigger (V8-9), ARIA announcements por modo (V8-10).
+// NÃO duplica: Wake Lock/Share/Vibration (V5), idle/telemetria (V7),
+//              streaks/confetti (V6), sessionStorage/debounce (V4),
+//              ARIA live region (V3), ripples/hover (V2).
+
+(function () {
+  'use strict';
+
+  const V8_KEY   = 'v8_modes';
+  const SLEEP_MS = 20 * 60 * 1000; // 20 min de inatividade
+
+  // ── V8-1. Estado dos modos + persistência local ───────────────────────────
+  const modes = { focus: false, contrast: false, reading: false, font: 16 };
+
+  function loadModes() {
+    try {
+      const s = JSON.parse(localStorage.getItem(V8_KEY) || '{}');
+      if (typeof s.focus    === 'boolean') modes.focus    = s.focus;
+      if (typeof s.contrast === 'boolean') modes.contrast = s.contrast;
+      if (typeof s.reading  === 'boolean') modes.reading  = s.reading;
+      if (typeof s.font     === 'number')  modes.font     = Math.min(22, Math.max(14, s.font));
+    } catch (_) {}
+  }
+
+  function saveModes() {
+    try { localStorage.setItem(V8_KEY, JSON.stringify(modes)); } catch (_) {}
+  }
+
+  function applyModes() {
+    document.body.classList.toggle('v8-focus',    modes.focus);
+    document.body.classList.toggle('v8-contrast', modes.contrast);
+    document.body.classList.toggle('v8-reading',  modes.reading);
+    document.documentElement.style.setProperty('--v8-font', modes.font + 'px');
+    updateHUD();
+    syncSwitcherButtons();
+  }
+
+  // ── V8-2. Toggle de modo + anúncio ARIA (region já existe de V3) ─────────
+  const MODE_LABELS = { focus: 'Foco Profundo', contrast: 'Alto Contraste', reading: 'Leitura' };
+
+  function toggleMode(m) {
+    modes[m] = !modes[m];
+    saveModes();
+    applyModes();
+    const live = document.getElementById('extras-aria-live');
+    if (live) {
+      live.textContent = '';
+      requestAnimationFrame(() => {
+        live.textContent = `Modo ${MODE_LABELS[m]} ${modes[m] ? 'ativado' : 'desativado'}.`;
+      });
+    }
+  }
+
+  // ── V8-3. Atalhos de teclado para modos (Alt+F/C/R/M) ────────────────────
+  // Alt+N e Alt+L já usados por V3 para showView — sem conflito.
+  function initModeShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'f') { e.preventDefault(); toggleMode('focus');    return; }
+      if (k === 'c') { e.preventDefault(); toggleMode('contrast'); return; }
+      if (k === 'r') { e.preventDefault(); toggleMode('reading');  return; }
+      if (k === 'm') { e.preventDefault(); toggleModeSwitcher();   return; }
+    });
+  }
+
+  // ── V8-4. Font scale ──────────────────────────────────────────────────────
+  function adjustFont(delta) {
+    modes.font = Math.min(22, Math.max(14, modes.font + delta));
+    saveModes();
+    applyModes();
+    const el = document.getElementById('v8-font-val');
+    if (el) el.textContent = modes.font + 'px';
+  }
+
+  // ── V8-5. HUD flutuante (pill bottom-right) ───────────────────────────────
+  function buildHUD() {
+    if (document.getElementById('v8-hud')) return;
+    const hud = document.createElement('div');
+    hud.id = 'v8-hud';
+    hud.innerHTML = `
+      <button id="v8-hud-btn" type="button"
+        aria-label="Modos especiais (Alt+M)" title="Modos especiais (Alt+M)"
+        aria-haspopup="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        </svg>
+        <span id="v8-hud-dots" aria-hidden="true"></span>
+      </button>`;
+    document.body.appendChild(hud);
+    document.getElementById('v8-hud-btn').addEventListener('click', toggleModeSwitcher);
+    updateHUD();
+  }
+
+  function updateHUD() {
+    const dots = document.getElementById('v8-hud-dots');
+    if (!dots) return;
+    const active = [
+      modes.focus    && '◉',
+      modes.contrast && '◑',
+      modes.reading  && '◎',
+    ].filter(Boolean);
+    dots.textContent = active.join('');
+    const hud = document.getElementById('v8-hud');
+    if (hud) hud.classList.toggle('v8-hud-on', active.length > 0);
+  }
+
+  // ── V8-6. Mode Switcher (popover acima do HUD) ────────────────────────────
+  let _swOpen = false;
+
+  function toggleModeSwitcher() { _swOpen ? closeModeSwitcher() : openModeSwitcher(); }
+
+  function openModeSwitcher() {
+    if (document.getElementById('v8-sw')) return;
+    _swOpen = true;
+    const sw = document.createElement('div');
+    sw.id = 'v8-sw';
+    sw.setAttribute('role', 'dialog');
+    sw.setAttribute('aria-label', 'Modos especiais');
+    sw.innerHTML = `
+      <div id="v8-sw-hdr">
+        <span id="v8-sw-ttl">Modos especiais</span>
+        <button id="v8-sw-x" type="button" aria-label="Fechar">&#215;</button>
+      </div>
+      <div id="v8-sw-list" role="group" aria-label="Ativar ou desativar modos">
+        <button class="v8-mbtn${modes.focus    ? ' v8-mon' : ''}" data-m="focus"    type="button" aria-pressed="${modes.focus}"   >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 5v2M12 17v2M5 12H3M21 12h-2M7.05 7.05l-1.41-1.41M18.36 18.36l-1.41-1.41M7.05 16.95l-1.41 1.41M18.36 5.64l-1.41 1.41"/></svg>
+          <span>Foco Profundo</span><kbd>Alt+F</kbd>
+        </button>
+        <button class="v8-mbtn${modes.contrast ? ' v8-mon' : ''}" data-m="contrast" type="button" aria-pressed="${modes.contrast}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20V2z" fill="currentColor"/></svg>
+          <span>Alto Contraste</span><kbd>Alt+C</kbd>
+        </button>
+        <button class="v8-mbtn${modes.reading  ? ' v8-mon' : ''}" data-m="reading"  type="button" aria-pressed="${modes.reading}" >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Modo Leitura</span><kbd>Alt+R</kbd>
+        </button>
+      </div>
+      <div id="v8-sw-font" role="group" aria-labelledby="v8-font-lbl">
+        <span id="v8-font-lbl" class="v8-sw-lbl">Tamanho do texto</span>
+        <div id="v8-font-ctrl">
+          <button class="v8-font-btn" id="v8-font-d" type="button" aria-label="Reduzir fonte">A−</button>
+          <output id="v8-font-val" aria-live="polite">${modes.font}px</output>
+          <button class="v8-font-btn" id="v8-font-i" type="button" aria-label="Aumentar fonte">A+</button>
+        </div>
+      </div>
+      <button id="v8-print" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir
+      </button>`;
+    const hud = document.getElementById('v8-hud') || document.body;
+    hud.appendChild(sw);
+    requestAnimationFrame(() => sw.classList.add('v8-sw-on'));
+    sw.querySelector('#v8-sw-x').addEventListener('click', closeModeSwitcher);
+    sw.querySelectorAll('.v8-mbtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        toggleMode(btn.dataset.m);
+        btn.classList.toggle('v8-mon', modes[btn.dataset.m]);
+        btn.setAttribute('aria-pressed', String(modes[btn.dataset.m]));
+      });
+    });
+    sw.querySelector('#v8-font-d').addEventListener('click', () => adjustFont(-2));
+    sw.querySelector('#v8-font-i').addEventListener('click', () => adjustFont(+2));
+    sw.querySelector('#v8-print').addEventListener('click', () => { closeModeSwitcher(); triggerPrint(); });
+    sw.querySelector('#v8-sw-x').focus();
+    document.addEventListener('keydown', _onSwKey);
+    setTimeout(() => document.addEventListener('click', _onSwOutside, { capture: true }), 0);
+  }
+
+  function syncSwitcherButtons() {
+    ['focus', 'contrast', 'reading'].forEach(m => {
+      const btn = document.querySelector(`.v8-mbtn[data-m="${m}"]`);
+      if (!btn) return;
+      btn.classList.toggle('v8-mon', modes[m]);
+      btn.setAttribute('aria-pressed', String(modes[m]));
+    });
+  }
+
+  function closeModeSwitcher() {
+    _swOpen = false;
+    const sw = document.getElementById('v8-sw');
+    if (!sw) return;
+    sw.classList.remove('v8-sw-on');
+    sw.addEventListener('transitionend', () => sw.remove(), { once: true });
+    document.removeEventListener('keydown', _onSwKey);
+    document.removeEventListener('click', _onSwOutside, { capture: true });
+    document.getElementById('v8-hud-btn')?.focus();
+  }
+
+  function _onSwKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeModeSwitcher(); }
+  }
+
+  function _onSwOutside(e) {
+    const sw  = document.getElementById('v8-sw');
+    const hud = document.getElementById('v8-hud');
+    if (sw && !sw.contains(e.target) && !(hud && hud.contains(e.target))) closeModeSwitcher();
+  }
+
+  // ── V8-7. Font scale via CSS custom property ──────────────────────────────
+  // Aplicado via --v8-font em applyModes(); CSS usa em .main-content.v8-reading.
+
+  // ── V8-8. Sleep mode (overlay após 20min idle) ────────────────────────────
+  let _sleepTimer = null;
+  let _sleeping   = false;
+
+  function _resetSleep() {
+    if (_sleeping) return;
+    clearTimeout(_sleepTimer);
+    _sleepTimer = setTimeout(_activateSleep, SLEEP_MS);
+  }
+
+  function _activateSleep() {
+    if (_sleeping || document.hidden) return;
+    _sleeping = true;
+    const ov = document.createElement('div');
+    ov.id = 'v8-sleep';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', 'Modo repouso ativo. Clique ou pressione uma tecla para retomar.');
+    ov.innerHTML = `
+      <div id="v8-sleep-body">
+        <div id="v8-sleep-clock"></div>
+        <p id="v8-sleep-hint">Toque ou pressione qualquer tecla para retomar</p>
+      </div>`;
+    document.body.appendChild(ov);
+    _tickClock();
+    requestAnimationFrame(() => ov.classList.add('v8-sleep-on'));
+    const tick = setInterval(() => { if (!_sleeping) { clearInterval(tick); return; } _tickClock(); }, 10000);
+    const _wake = () => _deactivateSleep(tick);
+    ov.addEventListener('click', _wake, { once: true });
+    document.addEventListener('keydown', _wake, { once: true });
+    document.addEventListener('touchstart', _wake, { once: true, passive: true });
+  }
+
+  function _tickClock() {
+    const el = document.getElementById('v8-sleep-clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function _deactivateSleep(interval) {
+    _sleeping = false;
+    clearInterval(interval);
+    const ov = document.getElementById('v8-sleep');
+    if (!ov) return;
+    ov.classList.remove('v8-sleep-on');
+    ov.addEventListener('transitionend', () => ov.remove(), { once: true });
+    _resetSleep();
+  }
+
+  function initSleepMode() {
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(ev => {
+      document.addEventListener(ev, _resetSleep, { passive: true });
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) clearTimeout(_sleepTimer);
+      else if (!_sleeping) _resetSleep();
+    });
+    _resetSleep();
+  }
+
+  // ── V8-9. Print trigger ────────────────────────────────────────────────────
+  function triggerPrint() {
+    document.body.classList.add('v8-printing');
+    window.print();
+    window.addEventListener('afterprint', () => document.body.classList.remove('v8-printing'), { once: true });
+  }
+
+  // ── Init V8 ────────────────────────────────────────────────────────────────
+  function initV8() {
+    loadModes();
+    applyModes();
+    buildHUD();
+    initModeShortcuts();
+    initSleepMode();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV8);
+  } else {
+    initV8();
+  }
+})();
