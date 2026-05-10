@@ -1098,3 +1098,342 @@ html.ci-dark-auto .ci-header {
 .ci-reduced-motion .ci-trend-badge {
   animation: none;
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+/* 10 melhorias de telemetria local: Bristol histograma, média semanal, recorde
+   pessoal, dropout nudge, alerta energia baixa, estabilidade, painel diagnóstico */
+
+/* ── V7-4. Bristol distribuição histograma ───────────────────────────────── */
+.ci-bristol-dist {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px 8px;
+  background: rgba(76, 184, 160, 0.05);
+  border: 1px solid rgba(76, 184, 160, 0.15);
+  border-radius: 10px;
+}
+
+.ci-bdist-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-light, #6B6659);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.ci-bdist-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 1;
+  height: 40px;
+}
+
+.ci-bdist-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.ci-bdist-bar {
+  width: 100%;
+  min-height: 2px;
+  height: var(--bdist-pct, 4px);
+  max-height: 34px;
+  background: var(--bdist-color, #4CB8A0);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.4s ease;
+}
+
+.ci-bdist-lbl {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.5rem;
+  color: var(--text-light, #6B6659);
+  line-height: 1;
+}
+
+/* ── V7-5. Média semanal ─────────────────────────────────────────────────── */
+.ci-weekly-avg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(45, 106, 86, 0.06);
+  border-radius: 8px;
+}
+
+.ci-weekly-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light, #6B6659);
+}
+
+.ci-weekly-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent, #2D6A56);
+  letter-spacing: 0.01em;
+}
+
+/* ── V7-6. Badge de recorde pessoal ─────────────────────────────────────── */
+.ci-pr-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.12), rgba(201, 168, 76, 0.06));
+  border: 1.5px solid var(--gold, #C9A84C);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  color: #7A5A10;
+  animation: ci-score-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ci-pr-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ci-pr-badge strong {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-left: 4px;
+  color: var(--gold, #C9A84C);
+}
+
+/* ── V7-7. Dropout nudge na tela de início ───────────────────────────────── */
+.ci-dropout-nudge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-light, #6B6659);
+  text-align: center;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  background: rgba(201, 168, 76, 0.08);
+  border-left: 2px solid var(--gold, #C9A84C);
+  border-radius: 0 6px 6px 0;
+  animation: ci-fade 0.4s ease both;
+}
+
+/* ── V7-8. Alerta energia baixa recorrente ───────────────────────────────── */
+.ci-low-energy-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: rgba(122, 46, 46, 0.07);
+  border: 1px solid rgba(122, 46, 46, 0.25);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  color: #5A1E1E;
+  line-height: 1.5;
+  animation: ci-fade 0.5s ease both;
+}
+
+.ci-lea-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ci-low-energy-alert strong {
+  font-weight: 600;
+}
+
+/* ── V7-9. Índice de estabilidade ────────────────────────────────────────── */
+.ci-volatility-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(76, 184, 160, 0.05);
+  border-radius: 8px;
+}
+
+.ci-vol-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light, #6B6659);
+  white-space: nowrap;
+}
+
+.ci-vol-meter {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ci-vol-meter::-webkit-meter-bar {
+  background: rgba(76, 184, 160, 0.15);
+  border-radius: 3px;
+  border: none;
+}
+
+.ci-vol-meter::-webkit-meter-optimum-value {
+  background: var(--detail, #4CB8A0);
+  border-radius: 3px;
+}
+
+.ci-vol-meter::-webkit-meter-suboptimum-value {
+  background: var(--gold, #C9A84C);
+  border-radius: 3px;
+}
+
+.ci-vol-meter::-webkit-meter-even-less-good-value {
+  background: #B55A2E;
+  border-radius: 3px;
+}
+
+.ci-vol-val {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--detail, #4CB8A0);
+  white-space: nowrap;
+}
+
+/* ── V7-10. Painel diagnóstico (triple-tap) ──────────────────────────────── */
+.ci-diag-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 22, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20000;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.ci-diag-panel.ci-diag-show {
+  opacity: 1;
+}
+
+.ci-diag-inner {
+  background: var(--bg-card, #fff);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 24px 32px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.ci-diag-panel.ci-diag-show .ci-diag-inner {
+  transform: translateY(0);
+}
+
+.ci-diag-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(76, 184, 160, 0.1);
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text, #1A1A16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ci-diag-close:hover {
+  background: rgba(76, 184, 160, 0.2);
+}
+
+.ci-diag-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  margin: 0 0 16px;
+}
+
+.ci-diag-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+}
+
+.ci-diag-dl dt {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-light, #6B6659);
+  white-space: nowrap;
+}
+
+.ci-diag-dl dd {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text, #1A1A16);
+  margin: 0;
+}
+
+.ci-diag-note {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.62rem;
+  color: var(--text-light, #6B6659);
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(76, 184, 160, 0.12);
+}
+
+/* ── V7 reduced-motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ci-pr-badge,
+  .ci-dropout-nudge,
+  .ci-low-energy-alert {
+    animation: none;
+  }
+
+  .ci-diag-panel,
+  .ci-diag-inner {
+    transition: none;
+  }
+
+  .ci-bdist-bar {
+    transition: none;
+  }
+}
+
+.ci-reduced-motion .ci-pr-badge,
+.ci-reduced-motion .ci-dropout-nudge,
+.ci-reduced-motion .ci-low-energy-alert {
+  animation: none;
+}
+
+.ci-reduced-motion .ci-diag-panel,
+.ci-reduced-motion .ci-diag-inner {
+  transition: none;
+}
