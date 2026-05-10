@@ -1438,3 +1438,459 @@ Object.assign(window._diarioExtras, {
   insertDailyQuote:     _insertDailyQuote,
   checkProgressShimmer: _checkProgressShimmer,
 });
+
+// ═══ POLIMENTO V7 ═══
+// 10 features de telemetria local: contadores de feature-use, heatmap de
+// completude (30 dias), timing de refeições, fill-rate por slot, métricas de
+// sessão, record de streak, nudge inteligente, frequência de alimentos,
+// painel de insights, reset de privacidade.
+
+// ── T1. Feature usage counter ─────────────────────────────────────────────────
+const _TELEMETRY_KEY_V7 = 'erg_telemetry_v7';
+
+function _getTelemetryV7() {
+  try { return JSON.parse(localStorage.getItem(_TELEMETRY_KEY_V7) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function _saveTelemetryV7(data) {
+  try { localStorage.setItem(_TELEMETRY_KEY_V7, JSON.stringify(data)); }
+  catch (_) {}
+}
+
+function _trackFeatureV7(feature) {
+  const t = _getTelemetryV7();
+  t.features = t.features || {};
+  t.features[feature] = (t.features[feature] || 0) + 1;
+  _saveTelemetryV7(t);
+}
+
+function _initFeatureTrackingV7() {
+  const map = [
+    ['#diario-water-plus',   'water_add'],
+    ['#diario-water-minus',  'water_remove'],
+    ['#diario-copy-prev',    'copy_prev'],
+    ['#diario-export-btn',   'export'],
+    ['#diario-filter-btn',   'filter'],
+    ['#diario-reminder-btn', 'reminders'],
+    ['.diario-voice-btn',    'voice'],
+    ['#diario-save-btn',     'save'],
+  ];
+  map.forEach(([selector, feature]) => {
+    document.querySelectorAll(selector).forEach(el => {
+      if (el.dataset.trackV7) return;
+      el.dataset.trackV7 = '1';
+      el.addEventListener('click', () => _trackFeatureV7(feature), { passive: true });
+    });
+  });
+}
+
+// ── T2. 30-day completion heatmap ─────────────────────────────────────────────
+const _HEATMAP_KEY_V7 = 'erg_heatmap_v7';
+
+function _getHeatmapV7() {
+  try { return JSON.parse(localStorage.getItem(_HEATMAP_KEY_V7) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function _recordDailyCompletionV7() {
+  const date = document.getElementById('diario-date-input')?.value;
+  if (!date) return;
+  const today = new Date().toISOString().split('T')[0];
+  if (date !== today) return;
+  const filled = _MEAL_IDS.filter(id => document.getElementById(id)?.value.trim().length > 0).length;
+  const pct = Math.round((filled / _MEAL_IDS.length) * 100);
+  const hm = _getHeatmapV7();
+  hm[date] = pct;
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - 90);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  Object.keys(hm).filter(k => k < cutoffStr).forEach(k => delete hm[k]);
+  try { localStorage.setItem(_HEATMAP_KEY_V7, JSON.stringify(hm)); } catch (_) {}
+}
+
+function _renderHeatmapV7() {
+  const container = document.getElementById('diario-heatmap-grid');
+  if (!container) return;
+  const hm = _getHeatmapV7();
+  const today = new Date();
+  container.innerHTML = '';
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const pct = Object.prototype.hasOwnProperty.call(hm, key) ? hm[key] : -1;
+    const cell = document.createElement('span');
+    cell.className = 'diario-hm-cell';
+    const level = pct < 0 ? 0 : pct === 0 ? 1 : pct < 50 ? 2 : pct < 100 ? 3 : 4;
+    cell.dataset.level = level;
+    const label = pct < 0 ? 'Sem dado' : `${pct}% preenchido`;
+    cell.setAttribute('aria-label', `${key}: ${label}`);
+    cell.setAttribute('title', `${key}: ${label}`);
+    container.appendChild(cell);
+  }
+}
+
+// ── T3. Meal timing tracker (hora de edição por refeição) ─────────────────────
+const _TIMING_KEY_V7 = 'erg_meal_timing_v7';
+
+function _getMealTimingV7() {
+  try { return JSON.parse(localStorage.getItem(_TIMING_KEY_V7) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function _recordMealHourV7(mealId) {
+  const hour = new Date().getHours();
+  const t = _getMealTimingV7();
+  t[mealId] = t[mealId] || [];
+  t[mealId].push(hour);
+  if (t[mealId].length > 60) t[mealId] = t[mealId].slice(-60);
+  try { localStorage.setItem(_TIMING_KEY_V7, JSON.stringify(t)); } catch (_) {}
+}
+
+function _initMealTimingTrackerV7() {
+  _MEAL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.timingV7) return;
+    el.dataset.timingV7 = '1';
+    let lastTracked = 0;
+    el.addEventListener('focus', () => {
+      const now = Date.now();
+      if (now - lastTracked > 120000) { lastTracked = now; _recordMealHourV7(id); }
+    }, { passive: true });
+  });
+}
+
+function _getMostCommonHourV7(hours) {
+  if (!hours?.length) return null;
+  const freq = {};
+  hours.forEach(h => { freq[h] = (freq[h] || 0) + 1; });
+  return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0], 10);
+}
+
+// ── T4. Meal fill rate per slot (últimos 30 dias) ─────────────────────────────
+const _FILLRATE_KEY_V7 = 'erg_meal_fillrate_v7';
+
+function _recordMealFillRateV7() {
+  const date = document.getElementById('diario-date-input')?.value;
+  if (!date) return;
+  const today = new Date().toISOString().split('T')[0];
+  if (date !== today) return;
+  let rates;
+  try { rates = JSON.parse(localStorage.getItem(_FILLRATE_KEY_V7) || '{}'); }
+  catch (_) { rates = {}; }
+  _MEAL_IDS.forEach(id => {
+    const filled = (document.getElementById(id)?.value.trim().length > 0) ? 1 : 0;
+    if (!rates[id]) rates[id] = [];
+    const last = rates[id][rates[id].length - 1];
+    if (!last || last.date !== date) {
+      rates[id].push({ date, filled });
+      if (rates[id].length > 30) rates[id] = rates[id].slice(-30);
+    }
+  });
+  try { localStorage.setItem(_FILLRATE_KEY_V7, JSON.stringify(rates)); } catch (_) {}
+}
+
+function _getLeastFilledMealV7() {
+  let rates;
+  try { rates = JSON.parse(localStorage.getItem(_FILLRATE_KEY_V7) || '{}'); }
+  catch (_) { return null; }
+  const NAMES = {
+    'd-cafe': 'café da manhã', 'd-lanche-manha': 'lanche da manhã',
+    'd-almoco': 'almoço', 'd-lanche-tarde': 'lanche da tarde',
+    'd-jantar': 'jantar', 'd-ceia': 'ceia',
+  };
+  let worst = null, worstRate = 1;
+  Object.entries(rates).forEach(([id, entries]) => {
+    if (entries.length < 5) return;
+    const rate = entries.reduce((a, e) => a + e.filled, 0) / entries.length;
+    if (rate < worstRate) { worstRate = rate; worst = { id, rate, name: NAMES[id] || id }; }
+  });
+  return worst;
+}
+
+// ── T5. Session metrics (tempo até primeira interação e até salvar) ────────────
+const _SESSION_KEY_V7 = 'erg_session_meta_v7';
+let _sessionStartV7 = Date.now();
+let _firstInteractionV7 = null;
+
+function _initSessionMetricsV7() {
+  const markFirst = () => { if (!_firstInteractionV7) _firstInteractionV7 = Date.now(); };
+  document.addEventListener('keydown', markFirst, { once: true, passive: true });
+  document.addEventListener('click',   markFirst, { once: true, passive: true });
+
+  document.getElementById('diario-form')?.addEventListener('submit', () => {
+    const submitAt = Date.now();
+    const meta = {
+      date:   new Date().toISOString().split('T')[0],
+      loadMs: _firstInteractionV7 ? _firstInteractionV7 - _sessionStartV7 : null,
+      fillMs: (_firstInteractionV7 && submitAt) ? submitAt - _firstInteractionV7 : null,
+    };
+    try {
+      const sessions = JSON.parse(localStorage.getItem(_SESSION_KEY_V7) || '[]');
+      sessions.push(meta);
+      if (sessions.length > 30) sessions.shift();
+      localStorage.setItem(_SESSION_KEY_V7, JSON.stringify(sessions));
+    } catch (_) {}
+  });
+}
+
+function _getAvgFillTimeV7() {
+  try {
+    const sessions = JSON.parse(localStorage.getItem(_SESSION_KEY_V7) || '[]');
+    const times = sessions.map(s => s.fillMs).filter(ms => ms && ms > 0 && ms < 3600000);
+    if (!times.length) return null;
+    return Math.round(times.reduce((a, b) => a + b, 0) / times.length / 1000);
+  } catch (_) { return null; }
+}
+
+// ── T6. Record de streak (armazenado separadamente do streak atual) ────────────
+const _RECORD_STREAK_KEY_V7 = 'erg_record_streak_v7';
+
+function _updateRecordStreakV7(current) {
+  if (!current) return;
+  try {
+    const prev = parseInt(localStorage.getItem(_RECORD_STREAK_KEY_V7) || '0', 10);
+    if (current > prev) localStorage.setItem(_RECORD_STREAK_KEY_V7, String(current));
+  } catch (_) {}
+}
+
+function _getRecordStreakV7() {
+  try { return parseInt(localStorage.getItem(_RECORD_STREAK_KEY_V7) || '0', 10); }
+  catch (_) { return 0; }
+}
+
+// ── T7. Nudge contextual baseado em padrões (1x por dia) ──────────────────────
+const _NUDGE_KEY_V7 = 'erg_nudge_v7';
+
+function _buildNudgeTextV7() {
+  const worst   = _getLeastFilledMealV7();
+  const avgFill = _getAvgFillTimeV7();
+  const record  = _getRecordStreakV7();
+  const t       = _getTelemetryV7();
+  const featureCount = Object.keys(t.features || {}).length;
+
+  const nudges = [];
+  if (worst && worst.rate < 0.4)
+    nudges.push(`Você frequentemente esquece o ${worst.name} — que tal registrar agora?`);
+  if (avgFill && avgFill < 90)
+    nudges.push(`Você preenche o diário em média em ${avgFill}s — consistência incrível!`);
+  if (record >= 7)
+    nudges.push(`Seu recorde de sequência é ${record} dias — você pode superar!`);
+  if (featureCount < 3)
+    nudges.push('Já conhece o botão "Copiar dia anterior"? Economiza muito tempo!');
+
+  return nudges.length ? nudges[Math.floor(Math.random() * nudges.length)] : null;
+}
+
+function _initNudgeElV7() {
+  if (document.getElementById('diario-nudge')) return;
+  const el = document.createElement('div');
+  el.id = 'diario-nudge';
+  el.className = 'diario-nudge';
+  el.setAttribute('role', 'status');
+  el.hidden = true;
+  document.querySelector('.diario-hero')?.after(el);
+}
+
+function _showDailyNudgeV7() {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    if (localStorage.getItem(_NUDGE_KEY_V7) === today) return;
+    localStorage.setItem(_NUDGE_KEY_V7, today);
+  } catch (_) {}
+  const text = _buildNudgeTextV7();
+  if (!text) return;
+  setTimeout(() => {
+    const nudge = document.getElementById('diario-nudge');
+    if (!nudge) return;
+    nudge.textContent = text;
+    nudge.hidden = false;
+    nudge.setAttribute('aria-live', 'polite');
+    setTimeout(() => { nudge.hidden = true; }, 9000);
+  }, 3000);
+}
+
+// ── T8. Food frequency map (word tokenizer) ───────────────────────────────────
+const _FOOD_FREQ_KEY_V7 = 'erg_food_freq_v7';
+const _STOPWORDS_V7 = new Set([
+  'com', 'sem', 'uma', 'uns', 'umas', 'para', 'por', 'que',
+  'mais', 'sal', 'mel', 'pao', 'pão', 'ate', 'aos', 'das',
+]);
+
+function _tokenizeFoodV7(text) {
+  return text.toLowerCase()
+    .replace(/[^a-záàâãéèêíïóôõúüçñ0-9 ]/gi, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !_STOPWORDS_V7.has(w));
+}
+
+function _recordFoodFreqV7() {
+  let freq = {};
+  try { freq = JSON.parse(localStorage.getItem(_FOOD_FREQ_KEY_V7) || '{}'); }
+  catch (_) {}
+  _MEAL_IDS.forEach(id => {
+    const val = document.getElementById(id)?.value || '';
+    _tokenizeFoodV7(val).forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+  });
+  const top200 = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 200);
+  try { localStorage.setItem(_FOOD_FREQ_KEY_V7, JSON.stringify(Object.fromEntries(top200))); }
+  catch (_) {}
+}
+
+function _getTopFoodsV7(n = 5) {
+  try {
+    const freq = JSON.parse(localStorage.getItem(_FOOD_FREQ_KEY_V7) || '{}');
+    return Object.entries(freq)
+      .filter(([w]) => !_STOPWORDS_V7.has(w))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([w]) => w);
+  } catch (_) { return []; }
+}
+
+// ── T9. Painel de insights ────────────────────────────────────────────────────
+function _buildInsightLinesV7() {
+  const lines = [];
+  const record = _getRecordStreakV7();
+  if (record > 0) lines.push(`Recorde de sequência: ${record} dia${record > 1 ? 's' : ''}`);
+  const worst = _getLeastFilledMealV7();
+  if (worst && worst.rate < 0.65)
+    lines.push(`${worst.name.charAt(0).toUpperCase() + worst.name.slice(1)}: ${Math.round(worst.rate * 100)}% de preenchimento`);
+  const topFoods = _getTopFoodsV7(3);
+  if (topFoods.length) lines.push(`Alimentos frequentes: ${topFoods.join(', ')}`);
+  const timing = _getMealTimingV7();
+  const almocoH = timing['d-almoco'];
+  if (almocoH?.length >= 3) {
+    const h = _getMostCommonHourV7(almocoH);
+    if (h != null) lines.push(`Costuma registrar o almoço às ${h}h`);
+  }
+  const t = _getTelemetryV7();
+  const saves = t.features?.save || 0;
+  if (saves > 0) lines.push(`Diário salvo ${saves} vez${saves > 1 ? 'es' : ''} nesta sessão`);
+  const avgFill = _getAvgFillTimeV7();
+  if (avgFill) lines.push(`Tempo médio de preenchimento: ${avgFill}s`);
+  return lines;
+}
+
+function _initInsightsPanelV7() {
+  if (document.getElementById('diario-insights-panel')) return;
+  const panel = document.createElement('details');
+  panel.id = 'diario-insights-panel';
+  panel.className = 'diario-insights-panel';
+  panel.setAttribute('aria-label', 'Painel de insights de uso');
+
+  const summary = document.createElement('summary');
+  summary.className = 'diario-insights-summary';
+  summary.textContent = 'Seus insights';
+
+  const body = document.createElement('div');
+  body.className = 'diario-insights-body';
+
+  const hmSection = document.createElement('div');
+  hmSection.className = 'diario-hm-section';
+  hmSection.innerHTML =
+    '<p class="diario-hm-label">Últimos 30 dias</p>' +
+    '<div class="diario-hm-grid" id="diario-heatmap-grid" role="img" aria-label="Mapa de completude dos últimos 30 dias"></div>';
+
+  const ul = document.createElement('ul');
+  ul.className = 'diario-insights-list';
+  ul.id = 'diario-insights-list';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.id = 'diario-telemetry-reset';
+  resetBtn.className = 'diario-telemetry-reset-btn';
+  resetBtn.setAttribute('aria-label', 'Apagar todos os dados de telemetria local');
+  resetBtn.textContent = 'Limpar dados de uso';
+
+  body.appendChild(hmSection);
+  body.appendChild(ul);
+  body.appendChild(resetBtn);
+  panel.appendChild(summary);
+  panel.appendChild(body);
+
+  document.getElementById('diario-form')?.after(panel);
+
+  panel.addEventListener('toggle', () => {
+    if (panel.open) _refreshInsightsPanelV7();
+  });
+}
+
+function _refreshInsightsPanelV7() {
+  _renderHeatmapV7();
+  const ul = document.getElementById('diario-insights-list');
+  if (!ul) return;
+  const lines = _buildInsightLinesV7();
+  ul.innerHTML = lines.length
+    ? lines.map(l => `<li class="diario-insights-item">${l}</li>`).join('')
+    : '<li class="diario-insights-item diario-insights-item--empty">Continue registrando para ver seus insights!</li>';
+}
+
+// ── T10. Reset de telemetria (privacidade) ────────────────────────────────────
+const _ALL_TELEMETRY_KEYS_V7 = [
+  _TELEMETRY_KEY_V7, _HEATMAP_KEY_V7, _TIMING_KEY_V7,
+  _FILLRATE_KEY_V7, _SESSION_KEY_V7, _RECORD_STREAK_KEY_V7,
+  _NUDGE_KEY_V7, _FOOD_FREQ_KEY_V7,
+];
+
+function _initTelemetryResetV7() {
+  document.addEventListener('click', e => {
+    if (e.target?.id !== 'diario-telemetry-reset') return;
+    if (!confirm('Apagar todos os dados de telemetria local? Esta ação não pode ser desfeita.')) return;
+    _ALL_TELEMETRY_KEYS_V7.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+    _showToast('Dados de telemetria apagados', 'success');
+    _refreshInsightsPanelV7();
+  });
+}
+
+// ── V7 INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _initNudgeElV7();
+  _initInsightsPanelV7();
+  _initFeatureTrackingV7();
+  _initMealTimingTrackerV7();
+  _initSessionMetricsV7();
+  _initTelemetryResetV7();
+
+  setTimeout(() => {
+    _recordDailyCompletionV7();
+    _recordMealFillRateV7();
+    _showDailyNudgeV7();
+  }, 2000);
+
+  document.getElementById('diario-form')?.addEventListener('submit', () => {
+    _recordFoodFreqV7();
+    _recordDailyCompletionV7();
+    _recordMealFillRateV7();
+  });
+
+  const list = document.getElementById('diario-historico-list');
+  if (list) {
+    new MutationObserver(() => {
+      const streak = typeof _computeStreak === 'function' ? _computeStreak() : 0;
+      if (streak) _updateRecordStreakV7(streak);
+    }).observe(list, { childList: true, subtree: true });
+  }
+
+  const dateFull = document.getElementById('diario-date-full');
+  if (dateFull) {
+    new MutationObserver(() => {
+      setTimeout(() => {
+        _recordDailyCompletionV7();
+        _recordMealFillRateV7();
+      }, 500);
+    }).observe(dateFull, { childList: true, subtree: true, characterData: true });
+  }
+});
+
+Object.assign(window._diarioExtras, {
+  trackFeatureV7:          _trackFeatureV7,
+  getTelemetryV7:          _getTelemetryV7,
+  getHeatmapV7:            _getHeatmapV7,
+  recordDailyCompletionV7: _recordDailyCompletionV7,
+  getTopFoodsV7:           _getTopFoodsV7,
+  getRecordStreakV7:        _getRecordStreakV7,
+  buildInsightLinesV7:     _buildInsightLinesV7,
+  refreshInsightsPanelV7:  _refreshInsightsPanelV7,
+});
