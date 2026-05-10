@@ -959,3 +959,365 @@
   var _prev = window._sobreExtras || {};
   window._sobreExtras = Object.assign({}, _prev, { version: 5, v5: true });
 })();
+
+// ═══ POLIMENTO V6 ═══
+// 10 micro-melhorias de gamificação: confetti engine reutilizável, streak badge,
+// achievements por tempo de leitura, AudioContext micro-chime, scroll milestone
+// (barra vira gold), visit counter badge, pilar "first-discover" glow dourado,
+// CTA magnetic hover, section progress dots, confetti de boas-vindas (1ª visita).
+
+(function () {
+  'use strict';
+
+  // ── Confetti engine (canvas, zero deps) ────────────────────────────────────
+  function _launchConfetti(opts) {
+    var canvas = document.getElementById('sobre-confetti-canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'sobre-confetti-canvas';
+      canvas.setAttribute('aria-hidden', 'true');
+      Object.assign(canvas.style, {
+        position: 'fixed', top: '0', left: '0',
+        width: '100%', height: '100%',
+        pointerEvents: 'none', zIndex: '9990'
+      });
+      document.body.appendChild(canvas);
+    }
+    var ctx = canvas.getContext('2d');
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    var count     = (opts && opts.count)     ? opts.count     : 60;
+    var intensity = (opts && opts.intensity) ? opts.intensity : 1;
+    var duration  = (opts && opts.duration)  ? opts.duration  : 1400;
+    var originX   = (opts && opts.x != null) ? opts.x         : canvas.width / 2;
+    var originY   = (opts && opts.y != null) ? opts.y         : canvas.height * 0.45;
+    var colors    = ['#4CB8A0', '#2D6A56', '#C9A84C', '#F7F6F2', '#8DD3C7', '#E8C95A'];
+
+    var particles = [];
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: originX, y: originY,
+        vx: (Math.random() - 0.5) * 8 * intensity,
+        vy: (Math.random() - 0.75) * 10 * intensity,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 3 + Math.random() * 5,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 8,
+        alpha: 1,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle'
+      });
+    }
+
+    var startTime = performance.now();
+    function draw(now) {
+      var elapsed = now - startTime;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var alive = false;
+      particles.forEach(function (p) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.26;
+        p.rotation += p.rotSpeed;
+        p.alpha = Math.max(0, 1 - elapsed / duration);
+        if (p.alpha <= 0) return;
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+      if (alive && elapsed < duration + 400) {
+        requestAnimationFrame(draw);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // ── Achievement toast helper ────────────────────────────────────────────────
+  function _showAchievement(def) {
+    var el = document.createElement('div');
+    el.className = 'sobre-achievement';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('aria-label', 'Conquista desbloqueada: ' + def.label + ' — ' + def.desc);
+    el.innerHTML =
+      '<span class="sobre-achievement-icon" aria-hidden="true">' + def.icon + '</span>' +
+      '<div class="sobre-achievement-body">' +
+        '<span class="sobre-achievement-title">Conquista desbloqueada</span>' +
+        '<span class="sobre-achievement-name">' + def.label + '</span>' +
+        '<span class="sobre-achievement-desc">' + def.desc + '</span>' +
+      '</div>';
+    document.body.appendChild(el);
+    setTimeout(function () { el.classList.add('sobre-achievement--visible'); }, 30);
+    setTimeout(function () {
+      el.classList.remove('sobre-achievement--visible');
+      setTimeout(function () { el.remove(); }, 450);
+    }, 3800);
+  }
+
+  // ── Game toast helper (reuses V5 sobre-toast, adds --gold variant) ─────────
+  function _showGameToast(msg, type) {
+    var t = document.createElement('div');
+    t.className = 'sobre-toast sobre-toast--' + (type || 'gold');
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('sobre-toast--visible'); }, 10);
+    setTimeout(function () {
+      t.classList.remove('sobre-toast--visible');
+      setTimeout(function () { t.remove(); }, 350);
+    }, 3200);
+  }
+
+  // 1. Streak badge — lê erg360_checkin_streak do localStorage
+  function initStreakBadge() {
+    var streak = 0;
+    try { streak = parseInt(localStorage.getItem('erg360_checkin_streak') || '0', 10) || 0; } catch (e) {}
+    if (streak < 2) return;
+    var heroInner = document.querySelector('.sobre-hero-inner');
+    if (!heroInner || document.getElementById('sobre-streak-badge')) return;
+    var badge = document.createElement('div');
+    badge.id = 'sobre-streak-badge';
+    badge.className = 'sobre-streak-badge';
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-label', 'Sequência de ' + streak + ' dias de check-in');
+    badge.innerHTML =
+      '<span class="sobre-streak-flame" aria-hidden="true">🔥</span>' +
+      '<span class="sobre-streak-count">' + streak + '</span>' +
+      '<span class="sobre-streak-label">dias seguidos</span>';
+    heroInner.appendChild(badge);
+  }
+
+  // 2. Confetti burst on CTA click
+  function initCTAConfetti() {
+    var btn = document.querySelector('.sobre-cta-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var rect = btn.getBoundingClientRect();
+      _launchConfetti({ count: 55, intensity: 1.1,
+        x: rect.left + rect.width / 2, y: rect.top, duration: 1200 });
+    });
+  }
+
+  // 3. Achievement unlocks — based on accumulated reading time (V5 key)
+  function initAchievements() {
+    var KEY_MS  = 'erg360_sobre_read_total_ms';
+    var KEY_ACH = 'erg360_sobre_achievements';
+    var defs = [
+      { id: 'explorador', ms:  120000, icon: '📖', label: 'Explorador',  desc: '2 min lidos'  },
+      { id: 'dedicado',   ms:  480000, icon: '🎯', label: 'Dedicado',    desc: '8 min lidos'  },
+      { id: 'mestre',     ms: 1200000, icon: '🏆', label: 'Mestre ERG',  desc: '20 min lidos' }
+    ];
+    setTimeout(function () {
+      var totalMs = 0;
+      var unlocked = {};
+      try {
+        totalMs  = parseInt(localStorage.getItem(KEY_MS) || '0', 10) || 0;
+        unlocked = JSON.parse(localStorage.getItem(KEY_ACH) || '{}');
+      } catch (e) {}
+      defs.forEach(function (def, i) {
+        if (totalMs >= def.ms && !unlocked[def.id]) {
+          unlocked[def.id] = Date.now();
+          try { localStorage.setItem(KEY_ACH, JSON.stringify(unlocked)); } catch (e) {}
+          setTimeout(function () { _showAchievement(def); }, i * 900);
+        }
+      });
+    }, 2500);
+  }
+
+  // 4. AudioContext micro-chime on CTA click (one-shot, graceful degradation)
+  function initAudioFeedback() {
+    var btn = document.querySelector('.sobre-cta-btn');
+    if (!btn) return;
+    var played = false;
+    btn.addEventListener('pointerdown', function () {
+      if (played) return;
+      played = true;
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        var ac  = new AC();
+        var osc = ac.createOscillator();
+        var gain = ac.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ac.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.07, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start();
+        osc.stop(ac.currentTime + 0.25);
+        osc.onended = function () { ac.close(); };
+      } catch (e) {}
+    });
+  }
+
+  // 5. Scroll completion milestone — progress bar vira gold a 88%+, toast único
+  function initScrollMilestone() {
+    var bar     = document.getElementById('sobre-scroll-progress');
+    var toasted = false;
+    window.addEventListener('scroll', function () {
+      if (toasted) return;
+      var h   = document.documentElement;
+      var pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+      if (pct >= 0.88) {
+        toasted = true;
+        if (bar) bar.classList.add('sobre-progress--complete');
+        var shownKey = 'erg360_sobre_completed';
+        var shown = false;
+        try { shown = !!sessionStorage.getItem(shownKey); } catch (e) {}
+        if (!shown) {
+          try { sessionStorage.setItem(shownKey, '1'); } catch (e) {}
+          setTimeout(function () {
+            _showGameToast('Você explorou a página completa! ✨', 'gold');
+          }, 300);
+        }
+      }
+    }, { passive: true });
+  }
+
+  // 6. Visit counter + "Visitante assíduo" badge
+  function initVisitBadge() {
+    var KEY    = 'erg360_sobre_visits';
+    var visits = 1;
+    try {
+      visits = (parseInt(localStorage.getItem(KEY) || '0', 10) || 0) + 1;
+      localStorage.setItem(KEY, String(visits));
+    } catch (e) {}
+    if (visits < 3) return;
+    var heroInner = document.querySelector('.sobre-hero-inner');
+    if (!heroInner || document.getElementById('sobre-visit-badge')) return;
+    var badge = document.createElement('div');
+    badge.id = 'sobre-visit-badge';
+    badge.className = 'sobre-visit-badge';
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-label', 'Visitante assíduo — visita número ' + visits);
+    badge.innerHTML = '<span aria-hidden="true">⭐</span> Visitante assíduo';
+    heroInner.appendChild(badge);
+  }
+
+  // 7. Pilar card "first-discover" glow dourado
+  function initPilarDiscoverGlow() {
+    var KEY  = 'erg360_pilares_seen';
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+    var cards = document.querySelectorAll('.pilar-card');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var idx = Array.prototype.indexOf.call(cards, e.target);
+        if (idx < 0 || seen[idx]) { io.unobserve(e.target); return; }
+        seen[idx] = 1;
+        try { localStorage.setItem(KEY, JSON.stringify(seen)); } catch (ex) {}
+        e.target.classList.add('pilar-card--first-discover');
+        setTimeout(function () { e.target.classList.remove('pilar-card--first-discover'); }, 1400);
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.5 });
+    cards.forEach(function (c) { io.observe(c); });
+  }
+
+  // 8. CTA magnetic hover (desktop only)
+  function initCTAMagnetic() {
+    var btn = document.querySelector('.sobre-cta-btn');
+    if (!btn || !window.matchMedia('(hover:hover)').matches) return;
+    var active = false;
+    btn.addEventListener('mouseenter', function () { active = true; });
+    btn.addEventListener('mouseleave', function () {
+      active = false;
+      btn.style.transform = '';
+    });
+    btn.addEventListener('mousemove', function (e) {
+      if (!active) return;
+      var r  = btn.getBoundingClientRect();
+      var dx = (e.clientX - (r.left + r.width  / 2)) * 0.22;
+      var dy = (e.clientY - (r.top  + r.height / 2)) * 0.22;
+      btn.style.transform = 'translate(' + dx + 'px,' + dy + 'px) translateY(-1px)';
+    });
+  }
+
+  // 9. Section progress dots — navegação lateral rápida
+  function initProgressDots() {
+    if (document.getElementById('sobre-progress-dots')) return;
+    var sections = Array.from(document.querySelectorAll('.sobre-hero, .sobre-section, .sobre-cta'));
+    if (sections.length < 2) return;
+
+    var nav = document.createElement('nav');
+    nav.id = 'sobre-progress-dots';
+    nav.className = 'sobre-progress-dots';
+    nav.setAttribute('aria-label', 'Navegação rápida por seção');
+
+    var dots = sections.map(function (sec, i) {
+      var btn    = document.createElement('button');
+      btn.type   = 'button';
+      btn.className = 'sobre-dot';
+      var heading = sec.querySelector('h1, h2');
+      btn.setAttribute('aria-label', heading ? heading.textContent.trim() : 'Seção ' + (i + 1));
+      btn.setAttribute('aria-current', 'false');
+      btn.addEventListener('click', function () {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      nav.appendChild(btn);
+      return btn;
+    });
+    document.body.appendChild(nav);
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        var idx = sections.indexOf(e.target);
+        if (idx < 0) return;
+        dots[idx].classList.toggle('sobre-dot--active', e.isIntersecting);
+        dots[idx].setAttribute('aria-current', e.isIntersecting ? 'true' : 'false');
+      });
+    }, { threshold: 0.45 });
+    sections.forEach(function (sec) { io.observe(sec); });
+  }
+
+  // 10. Welcome confetti — dispara uma vez por dispositivo
+  function initWelcomeConfetti() {
+    var KEY  = 'erg360_sobre_welcomed';
+    var done = false;
+    try { done = !!localStorage.getItem(KEY); } catch (e) {}
+    if (done) return;
+    try { localStorage.setItem(KEY, '1'); } catch (e) {}
+    setTimeout(function () {
+      _launchConfetti({ count: 35, intensity: 0.7, duration: 1600 });
+    }, 1200);
+  }
+
+  function initV6() {
+    initStreakBadge();
+    initVisitBadge();
+    initCTAConfetti();
+    initAudioFeedback();
+    initAchievements();
+    initScrollMilestone();
+    initPilarDiscoverGlow();
+    initCTAMagnetic();
+    initProgressDots();
+    initWelcomeConfetti();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV6);
+  } else {
+    initV6();
+  }
+
+  var _prev = window._sobreExtras || {};
+  window._sobreExtras = Object.assign({}, _prev, { version: 6, v6: true });
+})();
