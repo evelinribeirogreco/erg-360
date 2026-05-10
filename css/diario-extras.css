@@ -697,3 +697,206 @@
     opacity: 0;
   }
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+
+/* ── T2. Heatmap 30 dias ── */
+.diario-hm-section {
+  margin-bottom: 14px;
+}
+
+.diario-hm-label {
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin: 0 0 6px;
+}
+
+.diario-hm-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.diario-hm-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: rgba(201, 168, 130, 0.1);
+  display: inline-block;
+  cursor: default;
+  transition: transform 0.12s ease;
+}
+
+.diario-hm-cell[data-level="0"] { background: rgba(201, 168, 130, 0.10); }
+.diario-hm-cell[data-level="1"] { background: rgba(201, 168, 130, 0.28); }
+.diario-hm-cell[data-level="2"] { background: rgba(76, 184, 160, 0.35); }
+.diario-hm-cell[data-level="3"] { background: rgba(76, 184, 160, 0.65); }
+.diario-hm-cell[data-level="4"] { background: var(--detail, #4CB8A0); }
+
+.diario-hm-cell:hover {
+  transform: scale(1.4);
+}
+
+/* ── T9. Painel de insights ── */
+.diario-insights-panel {
+  margin: 0 24px 16px;
+  border: 1px solid rgba(201, 168, 130, 0.2);
+  border-radius: var(--radius-md, 0.4rem);
+  overflow: hidden;
+}
+
+.diario-insights-summary {
+  padding: 10px 16px;
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  transition: color 0.18s, background 0.18s;
+}
+
+.diario-insights-summary::-webkit-details-marker {
+  display: none;
+}
+
+.diario-insights-summary::before {
+  content: '▸';
+  font-size: 0.5rem;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+details[open].diario-insights-panel > .diario-insights-summary::before {
+  transform: rotate(90deg);
+}
+
+.diario-insights-summary:hover,
+.diario-insights-summary:focus-visible {
+  color: var(--detail, #4CB8A0);
+  background: rgba(76, 184, 160, 0.05);
+  outline: none;
+}
+
+.diario-insights-body {
+  padding: 14px 16px;
+  background: var(--bg-secondary, var(--bg-primary));
+  border-top: 1px solid rgba(201, 168, 130, 0.15);
+}
+
+.diario-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.diario-insights-item {
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.78rem;
+  color: var(--text);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(201, 168, 130, 0.1);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.diario-insights-item::before {
+  content: '—';
+  color: var(--detail, #4CB8A0);
+  flex-shrink: 0;
+}
+
+.diario-insights-item:last-child {
+  border-bottom: none;
+}
+
+.diario-insights-item--empty {
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.diario-insights-item--empty::before {
+  display: none;
+}
+
+/* ── T7. Nudge contextual ── */
+.diario-nudge {
+  margin: 0 24px 10px;
+  padding: 9px 16px;
+  background: rgba(76, 184, 160, 0.08);
+  border-left: 2px solid var(--detail, #4CB8A0);
+  border-radius: 0 var(--radius-sm, 0.25rem) var(--radius-sm, 0.25rem) 0;
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.76rem;
+  color: var(--detail, #4CB8A0);
+  line-height: 1.5;
+  animation: _diarioNudgeFadeIn 0.4s ease-out both;
+}
+
+@keyframes _diarioNudgeFadeIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── T10. Botão reset de telemetria ── */
+.diario-telemetry-reset-btn {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  color: var(--error, #c0392b);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+
+.diario-telemetry-reset-btn:hover,
+.diario-telemetry-reset-btn:focus-visible {
+  background: var(--error, #c0392b);
+  border-color: var(--error, #c0392b);
+  color: #fff;
+  outline: none;
+}
+
+/* ── V7 reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .diario-nudge {
+    animation: none;
+  }
+  .diario-hm-cell {
+    transition: none;
+  }
+}
+
+/* ── V7 forced colors ── */
+@media (forced-colors: active) {
+  .diario-hm-cell[data-level="4"] {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .diario-insights-item::before {
+    color: Highlight;
+  }
+  .diario-nudge {
+    border-left-color: Highlight;
+    color: CanvasText;
+  }
+}
