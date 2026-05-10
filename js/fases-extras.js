@@ -1042,3 +1042,355 @@
     waitForContentV5();
   }
 })();
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamification:
+// V6.1  Streak diário via localStorage + badges de 3 e 7 dias
+// V6.2  Badge "Primeira fase" — desbloqueado ao abrir 1ª fase
+// V6.3  Badge "Metade do caminho" — 50% de fases concluídas
+// V6.4  Badge "Plano completo" — 100% das fases concluídas
+// V6.5  Confetti micro via Canvas ao detectar nova .concluida (MutationObserver)
+// V6.6  AudioContext: 'pop' sutil ao expandir fase (user-gesture-safe)
+// V6.7  AudioContext: chime de 3 notas ao desbloquear badge
+// V6.8  Toast de marco de progresso: 25%, 50%, 75%, 100% (não repete)
+// V6.9  XP counter (+10 fase única aberta, +20 fase concluída, +50 badge)
+// V6.10 Badge container no hero com entrada animada (scale+rotate)
+
+(function initFasesExtrasV6() {
+  'use strict';
+
+  var E = window._fasesExtras = window._fasesExtras || {};
+  var LS_BADGES     = 'fases_badges_v6';
+  var LS_STREAK     = 'fases_streak_v6';
+  var LS_LAST_DAY   = 'fases_last_day_v6';
+  var LS_XP         = 'fases_xp_v6';
+  var LS_MILESTONES = 'fases_milestones_v6';
+  var SS_OPENED     = 'fases_opened_v6';
+
+  var _audioCtx   = null;
+  var _audioReady = false;
+
+  // ── V6.6 + V6.7: AudioContext helpers ────────────────────────────────────
+  function ensureAudioCtx() {
+    if (_audioCtx) return;
+    try {
+      _audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+      _audioReady = true;
+    } catch (_) { _audioReady = false; }
+  }
+
+  function playTone(freq, type, duration, gainVal) {
+    if (!_audioReady || !_audioCtx) return;
+    try {
+      var osc  = _audioCtx.createOscillator();
+      var gain = _audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, _audioCtx.currentTime);
+      gain.gain.setValueAtTime(gainVal || 0.06, _audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.start(_audioCtx.currentTime);
+      osc.stop(_audioCtx.currentTime + duration);
+    } catch (_) {}
+  }
+
+  E.playPop = function () {
+    ensureAudioCtx();
+    playTone(320, 'sine', 0.11, 0.05);
+  };
+
+  E.playChime = function () {
+    ensureAudioCtx();
+    [523, 659, 784].forEach(function (freq, i) {
+      setTimeout(function () { playTone(freq, 'sine', 0.22, 0.07); }, i * 100);
+    });
+  };
+
+  // Activa AudioCtx no primeiro gesto do usuário
+  document.addEventListener('click', function onFirstClick() {
+    ensureAudioCtx();
+    document.removeEventListener('click', onFirstClick);
+  }, { once: true });
+
+  // ── V6.1: Streak diário ───────────────────────────────────────────────────
+  function updateStreak() {
+    var today     = new Date().toISOString().slice(0, 10);
+    var lastDay   = localStorage.getItem(LS_LAST_DAY) || '';
+    var streak    = parseInt(localStorage.getItem(LS_STREAK) || '0', 10);
+    if (lastDay === today) return streak;
+    var yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    streak = (lastDay === yesterday) ? streak + 1 : 1;
+    try {
+      localStorage.setItem(LS_STREAK,   String(streak));
+      localStorage.setItem(LS_LAST_DAY, today);
+    } catch (_) {}
+    return streak;
+  }
+
+  // ── V6.9: XP system ──────────────────────────────────────────────────────
+  E.addXP = function (pts) {
+    var current  = parseInt(localStorage.getItem(LS_XP) || '0', 10);
+    var newTotal = current + pts;
+    try { localStorage.setItem(LS_XP, String(newTotal)); } catch (_) {}
+    _renderXP(newTotal);
+    return newTotal;
+  };
+
+  function _getXP() {
+    return parseInt(localStorage.getItem(LS_XP) || '0', 10);
+  }
+
+  function _renderXP(xp) {
+    var el = document.querySelector('.fases-xp-display');
+    if (!el) return;
+    el.textContent = xp + ' XP';
+    el.classList.add('fases-xp-pulse');
+    setTimeout(function () { el.classList.remove('fases-xp-pulse'); }, 500);
+  }
+
+  // ── V6.10: Definições de badges + container no hero ──────────────────────
+  var BADGE_DEFS = [
+    { id: 'primeira-fase',  emoji: '🌱', label: 'Primeira fase',    desc: 'Abriu a primeira fase do plano' },
+    { id: 'metade-caminho', emoji: '🏃', label: 'Metade do caminho', desc: '50% das fases concluídas' },
+    { id: 'plano-completo', emoji: '🏆', label: 'Plano completo',    desc: 'Todas as fases concluídas!' },
+    { id: 'streak-3',       emoji: '🔥', label: '3 dias seguidos',   desc: 'Visitou 3 dias consecutivos' },
+    { id: 'streak-7',       emoji: '⚡', label: '7 dias seguidos',   desc: 'Visitou 7 dias consecutivos' },
+  ];
+
+  function _getUnlockedBadges() {
+    try { return JSON.parse(localStorage.getItem(LS_BADGES) || '[]'); } catch (_) { return []; }
+  }
+
+  function _unlockBadge(id) {
+    var unlocked = _getUnlockedBadges();
+    if (unlocked.indexOf(id) !== -1) return false;
+    unlocked.push(id);
+    try { localStorage.setItem(LS_BADGES, JSON.stringify(unlocked)); } catch (_) {}
+    return true;
+  }
+
+  E.checkAndUnlockBadge = function (id) {
+    if (!_unlockBadge(id)) return;
+    var def = BADGE_DEFS.filter(function (b) { return b.id === id; })[0];
+    if (!def) return;
+    _renderBadge(def, true);
+    E.addXP(50);
+    if (E.toast)     E.toast(def.emoji + ' Badge desbloqueado: ' + def.label + '!');
+    if (E.announce)  E.announce('Badge desbloqueado: ' + def.label + '. ' + def.desc);
+    E.launchConfetti();
+    setTimeout(function () { E.playChime(); }, 80);
+  };
+
+  function _injectBadgeContainer() {
+    var hero = document.querySelector('.fases-hero');
+    if (!hero || hero.querySelector('.fases-badges-container')) return;
+
+    var container = document.createElement('div');
+    container.className = 'fases-badges-container';
+    container.setAttribute('role', 'region');
+    container.setAttribute('aria-label', 'Conquistas desbloqueadas');
+
+    var heading = document.createElement('p');
+    heading.className = 'fases-badges-heading';
+    heading.textContent = 'Conquistas';
+    container.appendChild(heading);
+
+    var grid = document.createElement('div');
+    grid.className = 'fases-badges-grid';
+    container.appendChild(grid);
+
+    var xpEl = document.createElement('span');
+    xpEl.className = 'fases-xp-display';
+    xpEl.setAttribute('aria-label', 'Pontos de experiência acumulados');
+    xpEl.textContent = _getXP() + ' XP';
+    container.appendChild(xpEl);
+
+    hero.appendChild(container);
+
+    _getUnlockedBadges().forEach(function (id) {
+      var def = BADGE_DEFS.filter(function (b) { return b.id === id; })[0];
+      if (def) _renderBadge(def, false);
+    });
+  }
+
+  function _renderBadge(def, isNew) {
+    var grid = document.querySelector('.fases-badges-grid');
+    if (!grid) return;
+    if (grid.querySelector('[data-badge-id="' + def.id + '"]')) return;
+    var badge = document.createElement('span');
+    badge.className = 'fases-badge' + (isNew ? ' fases-badge-new' : '');
+    badge.setAttribute('data-badge-id', def.id);
+    badge.setAttribute('title', def.desc);
+    badge.setAttribute('role', 'img');
+    badge.setAttribute('aria-label', def.label + ': ' + def.desc);
+    badge.innerHTML =
+      '<span class="fases-badge-emoji" aria-hidden="true">' + def.emoji + '</span>' +
+      '<span class="fases-badge-label">' + def.label + '</span>';
+    grid.appendChild(badge);
+  }
+
+  // ── V6.5: Confetti via Canvas ─────────────────────────────────────────────
+  E.launchConfetti = function (originEl) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var canvas = document.getElementById('fases-confetti-canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'fases-confetti-canvas';
+      canvas.className = 'fases-confetti-canvas';
+      canvas.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(canvas);
+    }
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    var ctx    = canvas.getContext('2d');
+    var COLORS = ['#4CB8A0', '#2D6A56', '#C9A84C', '#a8eddb', '#F7F6F2'];
+    var originX = window.innerWidth  / 2;
+    var originY = window.innerHeight * 0.35;
+    if (originEl) {
+      var rect = originEl.getBoundingClientRect();
+      originX  = rect.left + rect.width  / 2;
+      originY  = rect.top  + rect.height / 2;
+    }
+    var particles = [];
+    for (var i = 0; i < 52; i++) {
+      particles.push({
+        x:    originX,
+        y:    originY,
+        vx:   (Math.random() - 0.5) * 8,
+        vy:   (Math.random() - 0.82) * 10,
+        r:    Math.random() * 5 + 3,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        alpha: 1,
+        rot:  Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.2,
+      });
+    }
+    var startTime = null;
+    var DURATION  = 1500;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var elapsed = ts - startTime;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(function (p) {
+        p.x   += p.vx;
+        p.y   += p.vy;
+        p.vy  += 0.24;
+        p.rot += p.rotV;
+        p.alpha = Math.max(0, 1 - elapsed / DURATION);
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r);
+        ctx.restore();
+      });
+      if (elapsed < DURATION) {
+        requestAnimationFrame(step);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    requestAnimationFrame(step);
+  };
+
+  // ── V6.5: MutationObserver para nova .concluida ───────────────────────────
+  function _observeConcluidaChanges() {
+    var timeline = document.querySelector('.fases-timeline');
+    if (!timeline) return;
+    var previous = new Set(
+      Array.from(document.querySelectorAll('.fase-item.concluida'))
+        .map(function (el) { return el.id || el.getAttribute('data-fase-id') || el.textContent.slice(0, 24); })
+    );
+    var obs = new MutationObserver(function () {
+      Array.from(document.querySelectorAll('.fase-item.concluida')).forEach(function (el) {
+        var key = el.id || el.getAttribute('data-fase-id') || el.textContent.slice(0, 24);
+        if (previous.has(key)) return;
+        previous.add(key);
+        E.launchConfetti(el);
+        E.addXP(20);
+        var nome = el.querySelector('.fase-nome');
+        if (E.toast) E.toast('Fase concluída! ' + (nome ? nome.textContent.trim() : '') + ' ✓');
+        _checkProgressMilestones();
+      });
+    });
+    obs.observe(timeline, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  }
+
+  // ── V6.8: Toasts de marco de progresso ───────────────────────────────────
+  function _checkProgressMilestones() {
+    var items     = Array.from(document.querySelectorAll('.fase-item'));
+    var total     = items.length;
+    if (total === 0) return;
+    var concluidas = items.filter(function (i) { return i.classList.contains('concluida'); }).length;
+    var pct        = Math.round((concluidas / total) * 100);
+    var reached;
+    try { reached = JSON.parse(localStorage.getItem(LS_MILESTONES) || '[]'); } catch (_) { reached = []; }
+    [25, 50, 75, 100].forEach(function (m) {
+      if (pct < m || reached.indexOf(m) !== -1) return;
+      reached.push(m);
+      try { localStorage.setItem(LS_MILESTONES, JSON.stringify(reached)); } catch (_) {}
+      if (m === 100) {
+        E.checkAndUnlockBadge('plano-completo');
+      } else if (m === 50) {
+        E.checkAndUnlockBadge('metade-caminho');
+      } else {
+        if (E.toast) E.toast(m + '% do plano concluído! Continue assim 💪');
+      }
+    });
+  }
+
+  // ── V6.6: Som ao expandir + XP por fase única + badge 1ª abertura ─────────
+  function _setupFaseOpenSound() {
+    var orig = window.toggleFase;
+    if (!orig || orig._v6sound) return;
+    var wrapped = function (id) {
+      var detalhe = document.getElementById(id);
+      var wasOpen = detalhe && detalhe.classList.contains('open');
+      orig(id);
+      if (wasOpen) return;
+      E.playPop();
+      E.checkAndUnlockBadge('primeira-fase');
+      try {
+        var opened = JSON.parse(sessionStorage.getItem(SS_OPENED) || '[]');
+        if (id && opened.indexOf(id) === -1) {
+          opened.push(id);
+          sessionStorage.setItem(SS_OPENED, JSON.stringify(opened));
+          E.addXP(10);
+        }
+      } catch (_) {}
+    };
+    wrapped._v6sound = true;
+    window.toggleFase = wrapped;
+  }
+
+  // ── Init V6 ───────────────────────────────────────────────────────────────
+  function initV6() {
+    var streak = updateStreak();
+    if      (streak >= 7) E.checkAndUnlockBadge('streak-7');
+    else if (streak >= 3) E.checkAndUnlockBadge('streak-3');
+
+    _injectBadgeContainer();
+    _renderXP(_getXP());
+    _setupFaseOpenSound();
+    _observeConcluidaChanges();
+    _checkProgressMilestones();
+  }
+
+  function waitForContentV6() {
+    var content = document.getElementById('fases-content');
+    if (!content) { setTimeout(waitForContentV6, 180); return; }
+    if (content.children.length > 0) { initV6(); return; }
+    var obs = new MutationObserver(function () {
+      if (content.children.length > 0) { obs.disconnect(); setTimeout(initV6, 110); }
+    });
+    obs.observe(content, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContentV6);
+  } else {
+    waitForContentV6();
+  }
+})();
