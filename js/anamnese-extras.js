@@ -1999,3 +1999,370 @@ if (document.readyState === 'loading') {
 } else {
   _initV5();
 }
+
+// ═══ POLIMENTO V6 ═══
+// 10 gamification features: completude score, streak diário, mini-heatmap
+// 7 dias, AudioContext (sons sutis), mensagens encorajadoras, badge
+// velocidade "Especialista", confetti ao salvar, qualidade clínica
+// (Bronze→Diamante), toast troféu de conclusão, ring de 100% preenchido.
+
+// V6-1 — Completude Score: % de campos preenchidos exibida na toolbar
+function _v6ComputeCompleteness() {
+  const inputs = Array.from(document.querySelectorAll(
+    '#anamnese-form input:not([type=hidden]):not([type=submit]),' +
+    '#anamnese-form select,#anamnese-form textarea'
+  ));
+  if (!inputs.length) return 0;
+  const filled = inputs.filter(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
+    return (el.value || '').trim().length > 0;
+  }).length;
+  const toggleGroups = new Set(
+    Array.from(document.querySelectorAll('.toggle-btn')).map(b => b.dataset.field).filter(Boolean)
+  );
+  const activatedGroups = new Set(
+    Array.from(document.querySelectorAll('.toggle-btn.active')).map(b => b.dataset.field).filter(Boolean)
+  );
+  const activePat = document.querySelectorAll('.patologia-btn.active').length;
+  const totalExtra = toggleGroups.size + (activePat > 0 ? 1 : 0);
+  const filledExtra = activatedGroups.size + (activePat > 0 ? 1 : 0);
+  const total = inputs.length + totalExtra;
+  return total > 0 ? Math.round(((filled + filledExtra) / total) * 100) : 0;
+}
+
+function _v6UpdateCompletenessUI(pct) {
+  const el = document.getElementById('v6-completeness-badge');
+  if (!el) return;
+  const prev = parseInt(el.dataset.pct || '0');
+  el.dataset.pct = pct;
+  el.textContent = `${pct}% preenchido`;
+  el.className = 'v6-completeness-badge' + (
+    pct >= 90 ? ' v6-comp-gold' :
+    pct >= 60 ? ' v6-comp-good' :
+    pct >= 30 ? ' v6-comp-mid' : ''
+  );
+  if (pct >= 100 && prev < 100) _v6OnFullCompletion();
+}
+
+function _v6InjectCompletenessBadge() {
+  if (document.getElementById('v6-completeness-badge')) return;
+  const left = document.querySelector('.anamnese-toolbar-left');
+  if (!left) return;
+  const span = document.createElement('span');
+  span.id = 'v6-completeness-badge';
+  span.className = 'v6-completeness-badge';
+  span.dataset.pct = '0';
+  span.setAttribute('aria-live', 'polite');
+  span.setAttribute('role', 'status');
+  span.textContent = '0% preenchido';
+  left.appendChild(span);
+  const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const update = debounce(() => _v6UpdateCompletenessUI(_v6ComputeCompleteness()), 500);
+  document.getElementById('anamnese-form')?.addEventListener('change', update);
+  document.getElementById('anamnese-form')?.addEventListener('input', update);
+  document.querySelectorAll('.toggle-btn, .patologia-btn').forEach(b =>
+    b.addEventListener('click', () => setTimeout(() => _v6UpdateCompletenessUI(_v6ComputeCompleteness()), 60))
+  );
+  _v6UpdateCompletenessUI(_v6ComputeCompleteness());
+}
+
+// V6-2 — Streak diário: dias consecutivos de acesso registrados em localStorage
+function _v6UpdateStreak() {
+  const KEY = 'erg_anamnese_streak';
+  const today = new Date().toISOString().slice(0, 10);
+  let data;
+  try { data = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (_) { data = {}; }
+  const lastDate = data.last || '';
+  const streak = data.streak || 0;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const newStreak = lastDate === today ? streak :
+                    lastDate === yesterday ? streak + 1 : 1;
+  const history = Object.assign({}, data.history || {});
+  history[today] = true;
+  const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  Object.keys(history).forEach(d => { if (d < cutoff) delete history[d]; });
+  try { localStorage.setItem(KEY, JSON.stringify({ last: today, streak: newStreak, history })); } catch (_) {}
+  return { streak: newStreak, history };
+}
+
+function _v6InjectStreakBadge() {
+  if (document.getElementById('v6-streak-badge')) return;
+  const { streak, history } = _v6UpdateStreak();
+  if (streak < 1) return;
+  const right = document.querySelector('.anamnese-toolbar-right');
+  if (!right) return;
+  const span = document.createElement('span');
+  span.id = 'v6-streak-badge';
+  span.className = 'v6-streak-badge';
+  const label = `${streak} dia${streak > 1 ? 's' : ''} consecutivo${streak > 1 ? 's' : ''} de atividade`;
+  span.title = label;
+  span.setAttribute('aria-label', label);
+  span.innerHTML = `<span class="v6-streak-icon" aria-hidden="true">${streak >= 7 ? '🔥' : '⚡'}</span><span>${streak}d</span>`;
+  right.insertBefore(span, right.firstChild);
+  _v6InjectMiniHeatmap(history, span);
+}
+
+// V6-3 — Mini-heatmap 7 dias de atividade
+function _v6InjectMiniHeatmap(history, anchor) {
+  if (document.getElementById('v6-heatmap')) return;
+  const wrap = document.createElement('span');
+  wrap.id = 'v6-heatmap';
+  wrap.className = 'v6-heatmap';
+  wrap.setAttribute('aria-hidden', 'true');
+  wrap.title = 'Últimos 7 dias de atividade';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const dot = document.createElement('span');
+    dot.className = 'v6-heat-dot' + (history[d] ? ' v6-heat-active' : '');
+    wrap.appendChild(dot);
+  }
+  if (anchor?.parentElement) anchor.parentElement.insertBefore(wrap, anchor.nextSibling);
+}
+
+// V6-4 — AudioContext: tons sutis de feedback (passo, sucesso, erro)
+let _v6AudioCtx = null;
+function _v6GetAudioCtx() {
+  if (!_v6AudioCtx) {
+    try { _v6AudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  return _v6AudioCtx;
+}
+function _v6PlayTone(freq, dur, type = 'sine', gain = 0.10) {
+  const ctx = _v6GetAudioCtx();
+  if (!ctx) return;
+  try {
+    ctx.resume();
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(gain, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur + 0.05);
+  } catch (_) {}
+}
+function _v6SoundStep()    { _v6PlayTone(523.25, 0.10); }
+function _v6SoundSuccess() { _v6PlayTone(659.25, 0.09); setTimeout(() => _v6PlayTone(783.99, 0.16), 110); }
+function _v6SoundError()   { _v6PlayTone(220, 0.18, 'sawtooth', 0.07); }
+function _v6AudioEnabled() {
+  try { return localStorage.getItem('erg_anamnese_sound') !== '0'; } catch (_) { return true; }
+}
+
+function _v6InjectSoundToggle() {
+  if (document.getElementById('v6-sound-btn')) return;
+  const right = document.querySelector('.anamnese-toolbar-right');
+  if (!right) return;
+  const mk = (on) => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>${on ? '<path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>' : '<line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'}</svg>`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'v6-sound-btn';
+  const on0 = _v6AudioEnabled();
+  btn.className = 'tb-btn' + (on0 ? '' : ' v6-sound-off');
+  btn.setAttribute('aria-pressed', on0 ? 'true' : 'false');
+  btn.title = on0 ? 'Desativar sons' : 'Ativar sons';
+  btn.setAttribute('aria-label', btn.title);
+  btn.innerHTML = mk(on0);
+  btn.addEventListener('click', () => {
+    const wasOn = _v6AudioEnabled();
+    try { localStorage.setItem('erg_anamnese_sound', wasOn ? '0' : '1'); } catch (_) {}
+    const nowOn = !wasOn;
+    btn.classList.toggle('v6-sound-off', !nowOn);
+    btn.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
+    btn.title = nowOn ? 'Desativar sons' : 'Ativar sons';
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = mk(nowOn);
+    if (nowOn) _v6SoundSuccess();
+  });
+  right.appendChild(btn);
+}
+
+// V6-5 — Mensagens encorajadoras ao avançar de step
+const _v6MSGS = [
+  'Ótimo progresso! Continue assim.',
+  'Cada detalhe importa para o cuidado da paciente.',
+  'Você está indo muito bem!',
+  'Quase lá! O próximo passo revela ainda mais.',
+  'Informação completa = cuidado mais preciso.',
+  'Excelente atenção aos detalhes!',
+];
+function _v6ShowEncouragement(stepIdx) {
+  if (stepIdx === 0) return;
+  const msg = _v6MSGS[stepIdx % _v6MSGS.length];
+  const toast = document.createElement('div');
+  toast.className = 'v6-encourage-toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('v6-encourage-show'));
+  setTimeout(() => {
+    toast.classList.remove('v6-encourage-show');
+    setTimeout(() => toast.remove(), 350);
+  }, 2600);
+}
+
+// V6-6 — Badge velocidade: "Especialista" se preencher ≥80% em menos de 5min
+const _v6StartTime = Date.now();
+function _v6CheckSpeedBadge() {
+  const elapsed = Date.now() - _v6StartTime;
+  if (elapsed > 5 * 60 * 1000) return;
+  if (_v6ComputeCompleteness() < 80) return;
+  const KEY = 'erg_anamnese_speed_badges';
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const data = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (data[today]) return;
+    data[today] = { elapsed, at: Date.now() };
+    localStorage.setItem(KEY, JSON.stringify(data));
+  } catch (_) {}
+  const min = Math.floor(elapsed / 60000);
+  const sec = Math.floor((elapsed % 60000) / 1000);
+  const time = min > 0 ? `${min}m${sec}s` : `${sec}s`;
+  const el = document.createElement('div');
+  el.className = 'v6-speed-badge';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'assertive');
+  el.innerHTML = `<span class="v6-speed-icon" aria-hidden="true">⚡</span><div><strong>Especialista!</strong><br>Concluído em ${time}</div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('v6-speed-show'));
+  setTimeout(() => { el.classList.remove('v6-speed-show'); setTimeout(() => el.remove(), 400); }, 4000);
+}
+
+// V6-7 — Confetti ao salvar (DOM particles, zero dependências)
+function _v6Confetti() {
+  const colors = ['#4CB8A0', '#2D6A56', '#C9A84C', '#7EC8B8', '#E8D5A0', '#A8D8CF'];
+  const N = 40;
+  const container = document.createElement('div');
+  container.className = 'v6-confetti-container';
+  container.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < N; i++) {
+    const p = document.createElement('span');
+    p.className = 'v6-confetti-piece';
+    const left  = 28 + Math.random() * 44;
+    const size  = 5 + Math.random() * 5;
+    const delay = (Math.random() * 400).toFixed(0);
+    const dur   = (800 + Math.random() * 500).toFixed(0);
+    const rot   = (Math.random() * 720 - 360).toFixed(0);
+    p.style.cssText =
+      `left:${left}%;width:${size}px;height:${size}px;background:${colors[i % colors.length]};` +
+      `animation-delay:${delay}ms;animation-duration:${dur}ms;--v6rot:${rot}deg`;
+    container.appendChild(p);
+  }
+  document.body.appendChild(container);
+  setTimeout(() => container.remove(), 2200);
+}
+
+// V6-8 — Qualidade clínica: nível baseado em volume de texto nas textareas
+function _v6ComputeTextQuality() {
+  let chars = 0;
+  document.querySelectorAll('#anamnese-form textarea').forEach(ta => {
+    chars += (ta.value || '').trim().length;
+  });
+  if (chars >= 800) return { level: 'Diamante', cls: 'v6-q-diamond', icon: '💎' };
+  if (chars >= 400) return { level: 'Ouro',     cls: 'v6-q-gold',    icon: '🥇' };
+  if (chars >= 150) return { level: 'Prata',    cls: 'v6-q-silver',  icon: '🥈' };
+  if (chars >= 50)  return { level: 'Bronze',   cls: 'v6-q-bronze',  icon: '🥉' };
+  return null;
+}
+
+function _v6UpdateQualityBadge() {
+  let badge = document.getElementById('v6-quality-badge');
+  const q = _v6ComputeTextQuality();
+  if (!q) { if (badge) badge.style.display = 'none'; return; }
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'v6-quality-badge';
+    badge.className = 'v6-quality-badge';
+    badge.setAttribute('aria-live', 'polite');
+    badge.title = 'Nível de detalhe clínico — baseado no volume de notas preenchidas';
+    document.querySelector('.anamnese-toolbar-left')?.appendChild(badge);
+  }
+  badge.className = 'v6-quality-badge ' + q.cls;
+  badge.innerHTML = `<span aria-hidden="true">${q.icon}</span> ${q.level}`;
+  badge.style.display = '';
+}
+
+// V6-9 — Toast troféu especial ao concluir a anamnese
+function _v6TrophyToast() {
+  const el = document.createElement('div');
+  el.className = 'v6-trophy-toast';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'assertive');
+  el.innerHTML =
+    `<span class="v6-trophy-icon" aria-hidden="true">🏆</span>` +
+    `<div><strong>Anamnese concluída!</strong><small>Parabéns pela dedicação ao cuidado da paciente.</small></div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('v6-trophy-show'));
+  setTimeout(() => { el.classList.remove('v6-trophy-show'); setTimeout(() => el.remove(), 500); }, 4500);
+}
+
+// V6-10 — Ring de conclusão: animação no botão Salvar ao atingir 100%
+function _v6OnFullCompletion() {
+  const btn = document.getElementById('btn-save') || document.getElementById('btn-next');
+  if (!btn) return;
+  btn.classList.add('v6-completion-ring');
+  setTimeout(() => btn.classList.remove('v6-completion-ring'), 1200);
+}
+
+// V6 — Patch nos callbacks existentes
+function _v6PatchCallbacks() {
+  const api = window._anamneseExtras;
+  if (!api) return;
+  if (api.onStepChange && !api.onStepChange._v6p) {
+    const orig = api.onStepChange;
+    api.onStepChange = function _v6StepCb(idx, total, stepId) {
+      if (_v6AudioEnabled()) _v6SoundStep();
+      _v6ShowEncouragement(idx);
+      _v6UpdateCompletenessUI(_v6ComputeCompleteness());
+      _v6UpdateQualityBadge();
+      return orig.apply(this, arguments);
+    };
+    api.onStepChange._v6p = true;
+  }
+  const saveBtn = document.getElementById('btn-save');
+  if (saveBtn && !saveBtn._v6p) {
+    saveBtn._v6p = true;
+    saveBtn.addEventListener('click', () => {
+      const pct = _v6ComputeCompleteness();
+      if (pct >= 80) {
+        _v6Confetti();
+        setTimeout(_v6TrophyToast, 220);
+        if (_v6AudioEnabled()) _v6SoundSuccess();
+        _v6CheckSpeedBadge();
+      }
+    }, { capture: true });
+  }
+}
+
+// V6 — Listeners de formulário para qualidade e erros sonoros
+function _v6AttachFormListeners() {
+  const form = document.getElementById('anamnese-form');
+  if (!form) return;
+  let qualTimer;
+  form.addEventListener('input', () => { clearTimeout(qualTimer); qualTimer = setTimeout(_v6UpdateQualityBadge, 800); });
+  form.addEventListener('change', _v6UpdateQualityBadge);
+  new MutationObserver(mutations => {
+    mutations.forEach(m => m.addedNodes.forEach(n => {
+      if (n.nodeType === 1 && n.classList?.contains('inline-error') && _v6AudioEnabled()) _v6SoundError();
+    }));
+  }).observe(form, { childList: true, subtree: true });
+}
+
+// ── Init V6 ──
+function _initV6() {
+  _v6InjectCompletenessBadge();
+  _v6InjectStreakBadge();
+  _v6InjectSoundToggle();
+  _v6AttachFormListeners();
+  _v6UpdateQualityBadge();
+  setTimeout(_v6PatchCallbacks, 400);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV6);
+} else {
+  _initV6();
+}
