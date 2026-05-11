@@ -1246,3 +1246,108 @@ body.ded-fonts-ready .dos-capa-nome {
     will-change: auto;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* Web APIs: Page Visibility · Web Share · Wake Lock · Online/Offline · beforeunload · Storage Events · Color-scheme · Vibration · Network Info · Clipboard paste hint */
+
+/* V5.4 Offline banner */
+.ded-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  background: #B33030;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: 0.03em;
+  box-shadow: 0 2px 8px rgba(179, 48, 48, 0.35);
+  animation: ded-offline-in 0.28s ease both;
+}
+.ded-offline-banner.ded-offline-banner-out {
+  animation: ded-offline-out 0.36s ease both;
+}
+@keyframes ded-offline-in {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+@keyframes ded-offline-out {
+  0%   { transform: translateY(0);     opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
+/* V5.3 Wake Lock: ponto pulsante no toolbar indica tela sempre ligada */
+body.ded-wakelock-active .ded-toolbar::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--detail, #4CB8A0);
+  margin-left: 4px;
+  opacity: 0.75;
+  align-self: center;
+  flex-shrink: 0;
+  animation: ded-wakelock-pulse 2.4s ease-in-out infinite;
+}
+@keyframes ded-wakelock-pulse {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 0.2;  }
+}
+
+/* V5.10 Clipboard paste hint */
+.ded-paste-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  font-size: 0.6rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--subtitle, #6B6659);
+  background: rgba(76, 184, 160, 0.07);
+  border: 1px dashed rgba(76, 184, 160, 0.5);
+  border-radius: 2px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  animation: ded-paste-hint-in 0.22s ease both;
+}
+@keyframes ded-paste-hint-in {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ded-paste-hint:hover {
+  background: rgba(76, 184, 160, 0.14);
+  color: var(--accent, #2D6A56);
+  border-color: var(--detail, #4CB8A0);
+}
+.ded-paste-hint:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+
+/* V5 Print: offline banner não deve aparecer na impressão */
+@media print {
+  .ded-offline-banner { display: none !important; }
+}
+
+/* V5 Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ded-offline-banner,
+  .ded-offline-banner.ded-offline-banner-out,
+  .ded-paste-hint {
+    animation: none !important;
+  }
+  body.ded-wakelock-active .ded-toolbar::after {
+    animation: none !important;
+  }
+}
