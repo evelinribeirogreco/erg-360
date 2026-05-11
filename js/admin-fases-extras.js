@@ -1161,3 +1161,329 @@
     initV4();
   }
 })();
+
+// ═══ POLIMENTO V6 ═══
+// 10 melhorias de gamification — XP, streaks, levels, achievements, confetti, sons AudioContext,
+//   fase-done visual, plano 100% badge, floating XP gain, hook form submit.
+// Não duplica: ripple (V2), toast slide (V2), count-up KPI (V2), aria-live (V1),
+//              sessionStorage cache (V4), page visibility (V4).
+
+(function () {
+  'use strict';
+
+  const XP_KEY     = 'v6_xp';
+  const STREAK_KEY = 'v6_streak';
+  const ACH_KEY    = 'v6_ach';
+  const TODAY      = new Date().toISOString().slice(0, 10);
+
+  // ── Helpers de persistência ───────────────────────────────────────────────
+  function getXP()       { return parseInt(localStorage.getItem(XP_KEY) || '0', 10); }
+  function setXP(n)      { try { localStorage.setItem(XP_KEY, String(n)); } catch(_){} }
+  function getAchSet()   { try { return new Set(JSON.parse(localStorage.getItem(ACH_KEY) || '[]')); } catch(_){ return new Set(); } }
+  function saveAchSet(s) { try { localStorage.setItem(ACH_KEY, JSON.stringify([...s])); } catch(_){} }
+
+  function getStreak() {
+    try { return JSON.parse(localStorage.getItem(STREAK_KEY) || 'null') || { count: 0, last: '' }; }
+    catch(_) { return { count: 0, last: '' }; }
+  }
+
+  function bumpStreak() {
+    const s = getStreak();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (s.last === TODAY) return s.count;
+    const count = s.last === yesterday ? s.count + 1 : 1;
+    try { localStorage.setItem(STREAK_KEY, JSON.stringify({ count, last: TODAY })); } catch(_){}
+    return count;
+  }
+
+  function xpLevel(xp) {
+    if (xp < 30)  return { label: 'Bronze',   color: '#8B5E3C' };
+    if (xp < 80)  return { label: 'Prata',    color: '#7D8A9A' };
+    if (xp < 180) return { label: 'Ouro',     color: '#C9A84C' };
+    if (xp < 350) return { label: 'Platina',  color: '#4CB8A0' };
+    return              { label: 'Diamante',  color: '#2D6A56' };
+  }
+
+  // ── V6-1. Injetar elementos DOM de gamification ───────────────────────────
+  function injectGamificationDOM() {
+    if (!document.getElementById('v6-streak-badge')) {
+      const badge = document.createElement('div');
+      badge.id = 'v6-streak-badge';
+      badge.setAttribute('aria-hidden', 'true');
+      badge.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5" aria-hidden="true">
+          <path d="M12 2c0 0-7 8-7 12a7 7 0 0 0 14 0c0-4-7-12-7-12z"/>
+        </svg>
+        <span id="v6-streak-val">0</span>
+        <span style="font-size:0.52rem;font-weight:400;opacity:0.8"> dias</span>`;
+      document.body.appendChild(badge);
+    }
+
+    if (!document.getElementById('v6-xp-display')) {
+      const xpEl = document.createElement('div');
+      xpEl.id = 'v6-xp-display';
+      xpEl.setAttribute('aria-hidden', 'true');
+      xpEl.innerHTML = `<span class="v6-xp-total" id="v6-xp-val">0 XP</span>`;
+      document.body.appendChild(xpEl);
+    }
+
+    if (!document.getElementById('v6-level-badge')) {
+      const lvl = document.createElement('div');
+      lvl.id = 'v6-level-badge';
+      lvl.setAttribute('aria-hidden', 'true');
+      lvl.textContent = 'Bronze';
+      document.body.appendChild(lvl);
+    }
+  }
+
+  // ── V6-2. Atualizar UI de XP + level ─────────────────────────────────────
+  function refreshGamificationUI(xp) {
+    const lvl = xpLevel(xp);
+    const valEl = document.getElementById('v6-xp-val');
+    if (valEl) valEl.textContent = `${xp} XP`;
+    const badge = document.getElementById('v6-level-badge');
+    if (badge) {
+      badge.textContent = lvl.label;
+      badge.style.setProperty('--v6-lc', lvl.color);
+    }
+  }
+
+  // ── V6-3. Streak badge ────────────────────────────────────────────────────
+  function showStreakBadge(count) {
+    if (count < 2) return;
+    const badge  = document.getElementById('v6-streak-badge');
+    const valEl  = document.getElementById('v6-streak-val');
+    if (!badge || !valEl) return;
+    valEl.textContent = count;
+    badge.classList.add('v6-streak-in');
+    setTimeout(() => badge.classList.remove('v6-streak-in'), 4500);
+  }
+
+  // ── V6-4. Ganho de XP com float animado ──────────────────────────────────
+  function gainXP(amount, label) {
+    const xp = getXP() + amount;
+    setXP(xp);
+    refreshGamificationUI(xp);
+    checkAchievements(xp);
+
+    const display = document.getElementById('v6-xp-display');
+    if (!display) return;
+    const gain = document.createElement('div');
+    gain.className = 'v6-xp-gain';
+    gain.setAttribute('aria-hidden', 'true');
+    gain.textContent = `+${amount} XP${label ? ' · ' + label : ''}`;
+    display.appendChild(gain);
+    display.classList.add('v6-xp-pop');
+    gain.addEventListener('animationend', () => {
+      gain.remove();
+      display.classList.remove('v6-xp-pop');
+    }, { once: true });
+  }
+
+  // ── V6-5. Achievements ────────────────────────────────────────────────────
+  const ACHIEVEMENTS = [
+    { id: 'first_save', label: 'Primeira fase!',     desc: 'Criou ou editou uma fase pela primeira vez', cond: (xp) => xp >= 10  },
+    { id: 'xp_30',      label: 'Prata desbloqueada', desc: 'Atingiu 30 XP — nível Prata',                cond: (xp) => xp >= 30  },
+    { id: 'xp_80',      label: 'Ouro desbloqueado',  desc: 'Atingiu 80 XP — nível Ouro',                 cond: (xp) => xp >= 80  },
+    { id: 'xp_180',     label: 'Platina!',            desc: 'Atingiu 180 XP — parabéns!',                 cond: (xp) => xp >= 180 },
+  ];
+
+  function checkAchievements(xp) {
+    const unlocked = getAchSet();
+    ACHIEVEMENTS.forEach(ach => {
+      if (!unlocked.has(ach.id) && ach.cond(xp)) {
+        unlocked.add(ach.id);
+        saveAchSet(unlocked);
+        showAchievement(ach);
+      }
+    });
+  }
+
+  function showAchievement({ label, desc }) {
+    const el = document.createElement('div');
+    el.className = 'v6-achievement';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = `
+      <div class="v6-ach-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)"
+          stroke-width="1.5" aria-hidden="true">
+          <circle cx="12" cy="8" r="5"/>
+          <path d="M9 21l3-8 3 8M7.5 17h9"/>
+        </svg>
+      </div>
+      <div>
+        <p class="v6-ach-title">${label}</p>
+        <p class="v6-ach-desc">${desc}</p>
+      </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('v6-ach-in'));
+    setTimeout(() => {
+      el.classList.remove('v6-ach-in');
+      el.addEventListener('transitionend', () => el.remove(), { once: true });
+    }, 4200);
+    playTone(880, 0.06, 0.18);
+  }
+
+  // ── V6-6. Som sutil via AudioContext ─────────────────────────────────────
+  function playTone(freq, gain, dur) {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.connect(env); env.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      env.gain.setValueAtTime(0, ctx.currentTime);
+      env.gain.linearRampToValueAtTime(gain, ctx.currentTime + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur + 0.05);
+      osc.addEventListener('ended', () => ctx.close());
+    } catch(_) {}
+  }
+
+  // ── V6-7. Confetti ao completar plano ────────────────────────────────────
+  function launchConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'v6-confetti-canvas';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    const COLORS = ['#4CB8A0', '#2D6A56', '#C9A84C', '#F7F6F2', '#FFFFFF'];
+    const pieces = Array.from({ length: 55 }, () => ({
+      x:    Math.random() * canvas.width,
+      y:   -Math.random() * canvas.height * 0.5,
+      w:    4 + Math.random() * 5,
+      h:    7 + Math.random() * 7,
+      vy:   2.5 + Math.random() * 3,
+      vx:   (Math.random() - 0.5) * 2,
+      rot:  Math.random() * Math.PI * 2,
+      drot: (Math.random() - 0.5) * 0.12,
+      col:  COLORS[Math.floor(Math.random() * COLORS.length)],
+      op:   1,
+    }));
+
+    let af;
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = 0;
+      pieces.forEach(p => {
+        p.y += p.vy; p.x += p.vx; p.rot += p.drot;
+        if (p.y > canvas.height * 0.85) p.op -= 0.04;
+        if (p.op <= 0) return;
+        alive++;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.op);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.col;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (alive > 0) { af = requestAnimationFrame(draw); }
+      else { cancelAnimationFrame(af); canvas.remove(); }
+    })();
+
+    playTone(523, 0.09, 0.14);
+    setTimeout(() => playTone(659, 0.09, 0.14), 120);
+    setTimeout(() => playTone(784, 0.09, 0.20), 240);
+  }
+
+  // ── V6-8. Detectar conclusão do plano + marcar fases concluídas ──────────
+  function checkPlanCompletion(fases) {
+    if (!Array.isArray(fases) || !fases.length) return;
+
+    const wrapper = document.getElementById('fases-lista-wrapper');
+    if (wrapper) {
+      fases.forEach(f => {
+        if (f.status !== 'concluida') return;
+        const btn  = wrapper.querySelector(`button[onclick*="${f.id}"]`);
+        const card = btn?.closest('[style*="border:1px solid"]') || btn?.closest('[data-v3-card]');
+        if (card && !card.hasAttribute('data-v6-done')) card.setAttribute('data-v6-done', '');
+      });
+    }
+
+    const allDone = fases.every(f => f.status === 'concluida');
+    if (allDone && fases.length >= 2) {
+      if (!document.getElementById('v6-plan-done')) {
+        const el = document.createElement('div');
+        el.id = 'v6-plan-done';
+        el.setAttribute('role', 'status');
+        el.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Plano concluído com sucesso!`;
+        const kpis = document.getElementById('kpis-fases');
+        kpis?.parentElement?.insertBefore(el, kpis.nextSibling);
+        gainXP(20, 'Plano concluído!');
+        launchConfetti();
+      }
+    } else {
+      document.getElementById('v6-plan-done')?.remove();
+    }
+  }
+
+  // ── V6-9. Patch loadFasesExtras para integrar gamification ───────────────
+  function patchLoadFasesExtras() {
+    const ext = window._adminFasesExtras;
+    if (!ext) return;
+    const orig = ext.loadFasesExtras;
+    if (!orig || orig._v6patched) return;
+
+    const patched = async function (...args) {
+      await orig.apply(this, args);
+      const cache = window._adminFasesExtrasCache;
+      if (Array.isArray(cache)) checkPlanCompletion(cache);
+    };
+    patched._v6patched = true;
+    ext.loadFasesExtras = patched;
+    window._adminFasesExtras.loadFasesExtras = patched;
+  }
+
+  // ── V6-10. Hook no form submit para XP + streak ───────────────────────────
+  function hookFormSubmitForXP() {
+    const form = document.getElementById('fase-form');
+    if (!form || form._v6xpHooked) return;
+    form._v6xpHooked = true;
+    form.addEventListener('submit', () => {
+      setTimeout(() => {
+        const hasError = !!form.querySelector('.field-error-msg.visible');
+        if (hasError) return;
+        const streak = bumpStreak();
+        gainXP(10, 'Fase salva');
+        if (streak >= 2) showStreakBadge(streak);
+        playTone(440, 0.06, 0.12);
+      }, 800);
+    });
+  }
+
+  // ── Init V6 ───────────────────────────────────────────────────────────────
+  function initV6() {
+    injectGamificationDOM();
+    refreshGamificationUI(getXP());
+    checkAchievements(getXP());
+    hookFormSubmitForXP();
+    patchLoadFasesExtras();
+
+    const streak = bumpStreak();
+    if (streak >= 3) setTimeout(() => showStreakBadge(streak), 2500);
+
+    const cache = window._adminFasesExtrasCache;
+    if (Array.isArray(cache) && cache.length) checkPlanCompletion(cache);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(initV6, 650));
+  } else {
+    setTimeout(initV6, 650);
+  }
+})();
