@@ -764,3 +764,101 @@ body.erg-dark-mode .erg-sticky-bar {
     transition: none !important;
   }
 }
+
+/* ═══ POLIMENTO V5 ═══ */
+
+/* V5-4. Battery saver mode — suprime animações em bateria crítica */
+body.erg-battery-saver .erg-card-anim,
+body.erg-battery-saver .erg-rel-toast,
+body.erg-battery-saver .erg-back-top,
+body.erg-battery-saver .erg-notes-panel,
+body.erg-battery-saver .erg-sticky-bar {
+  transition: none !important;
+  animation: none !important;
+}
+body.erg-battery-saver .erg-card-anim {
+  opacity: 1 !important;
+  transform: none !important;
+}
+body.erg-battery-saver .erg-toast-dot {
+  animation: none !important;
+  opacity: 0.7;
+}
+body.erg-battery-saver .rel-comp-bar-fill {
+  transition: none !important;
+}
+
+/* V5-6. Banner offline */
+.erg-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 20px;
+  background: #B33030;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.erg-offline-banner.erg-offline-banner-hide {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+body.erg-dark-mode .erg-offline-banner {
+  background: #7A1C1C;
+}
+
+/* V5-10. PWA install button — destaque sutil */
+.erg-pwa-install-btn {
+  color: var(--detail, #4CB8A0) !important;
+  font-weight: 600;
+  border-left: 2px solid var(--detail, #4CB8A0);
+  padding-left: 10px !important;
+}
+.erg-pwa-install-btn:hover {
+  color: var(--accent, #2D6A56) !important;
+  border-left-color: var(--accent, #2D6A56);
+}
+
+/* V5-2. Web Share — destaque mobile (aparece primeiro na sidebar) */
+@media (max-width: 768px) {
+  #btn-web-share {
+    font-weight: 600;
+    color: var(--detail, #4CB8A0);
+  }
+}
+
+/* V5-7. Clipboard paste btn — integração visual no painel de notas */
+#btn-notes-paste:hover {
+  color: var(--detail, #4CB8A0);
+}
+
+/* V5-6. Print — oculta banner offline */
+@media print {
+  .erg-offline-banner,
+  .erg-pwa-install-btn {
+    display: none !important;
+  }
+}
+
+/* V5. Sem movimento */
+@media (prefers-reduced-motion: reduce) {
+  .erg-offline-banner {
+    transition: none !important;
+  }
+  body.erg-battery-saver .erg-card-anim,
+  body.erg-battery-saver .erg-rel-toast {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1080,3 +1080,341 @@ window._adminRelatorioExtras = (() => {
     initV4();
   }
 })();
+
+// ═══ POLIMENTO V5 ═══
+// V5: Web APIs modernas — Wake Lock, Web Share, Notifications, Battery, Vibration,
+//     Offline detection, Clipboard Read, Screen Orientation, Auto Color Scheme, PWA install
+
+(function _adminRelatorioV5() {
+  'use strict';
+
+  const _rIC = window.requestIdleCallback
+    ? (cb) => window.requestIdleCallback(cb, { timeout: 2000 })
+    : (cb) => setTimeout(cb, 300);
+
+  function _announce(msg) {
+    if (window._adminRelatorioExtras && window._adminRelatorioExtras.announce) {
+      window._adminRelatorioExtras.announce(msg);
+    }
+  }
+
+  // V5-1. Wake Lock API — mantém tela acesa durante modo apresentação
+  var _wakeLock = null;
+
+  function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function(lock) {
+      _wakeLock = lock;
+      _wakeLock.addEventListener('release', function() { _wakeLock = null; });
+    }).catch(function() { /* permissão negada ou tab em background */ });
+  }
+
+  function releaseWakeLock() {
+    if (_wakeLock) { _wakeLock.release(); _wakeLock = null; }
+  }
+
+  new MutationObserver(function() {
+    if (document.body.classList.contains('erg-presentation-mode')) {
+      acquireWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && document.body.classList.contains('erg-presentation-mode')) {
+      acquireWakeLock();
+    }
+  });
+
+  // V5-2. Web Share API — compartilha relatório via share sheet nativo
+  function injectWebShareBtn() {
+    if (!navigator.share) return;
+    var nav = document.querySelector('.sidebar-nav');
+    if (!nav || document.getElementById('btn-web-share')) return;
+
+    var btn = document.createElement('a');
+    btn.id        = 'btn-web-share';
+    btn.href      = 'javascript:void(0)';
+    btn.className = 'nav-item';
+    btn.setAttribute('aria-label', 'Compartilhar relatório via share sheet nativo');
+    btn.setAttribute('tabindex', '0');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar';
+
+    btn.addEventListener('click', function() {
+      var nomeEl = document.querySelector('.rel-nome') || document.getElementById('rel-nome-sidebar');
+      var nome   = nomeEl ? nomeEl.textContent.trim() : 'Paciente';
+      navigator.share({
+        title: 'Relatório ERG — ' + nome,
+        text:  'Relatório de consulta nutricional de ' + nome,
+        url:   window.location.href,
+      }).then(function() {
+        _announce('Compartilhamento iniciado');
+      }).catch(function(err) {
+        if (err.name !== 'AbortError') { /* usuário cancelou — silencioso */ }
+      });
+    });
+
+    nav.appendChild(btn);
+  }
+
+  // V5-3. Notifications API — avisa quando relatório carrega em aba em background
+  function setupNotification() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'denied') return;
+
+    var mount = document.getElementById('rel-mount');
+    if (!mount) return;
+
+    var obs = new MutationObserver(function(_, ob) {
+      if (!mount.querySelector('.rel-container')) return;
+      ob.disconnect();
+
+      if (document.visibilityState === 'visible') return;
+
+      function tryNotify() {
+        if (Notification.permission !== 'granted') return;
+        var nomeEl = mount.querySelector('.rel-nome');
+        var nome   = nomeEl ? nomeEl.textContent.trim() : 'Paciente';
+        var n = new Notification('Relatório ERG pronto', {
+          body: 'O relatório de ' + nome + ' foi gerado.',
+          icon: 'favicon.ico',
+          tag:  'erg-relatorio-pronto',
+        });
+        n.onclick = function() { window.focus(); n.close(); };
+      }
+
+      if (Notification.permission === 'granted') {
+        tryNotify();
+      } else {
+        Notification.requestPermission().then(function(perm) {
+          if (perm === 'granted') tryNotify();
+        }).catch(function() { /* permissão negada */ });
+      }
+    });
+
+    obs.observe(mount, { childList: true, subtree: false });
+  }
+
+  // V5-4. Battery Status API — modo economia automático em bateria < 20%
+  function setupBatteryMode() {
+    if (!navigator.getBattery) return;
+    navigator.getBattery().then(function(battery) {
+      function check() {
+        var isLow = !battery.charging && battery.level < 0.20;
+        var wasLow = document.body.classList.contains('erg-battery-saver');
+        document.body.classList.toggle('erg-battery-saver', isLow);
+        if (isLow && !wasLow) {
+          _announce('Bateria baixa — animações reduzidas para economizar energia');
+        }
+      }
+      battery.addEventListener('levelchange', check);
+      battery.addEventListener('chargingchange', check);
+      check();
+    }).catch(function() { /* API indisponível ou negada */ });
+  }
+
+  // V5-5. Vibration API — feedback háptico ao copiar/salvar (mobile)
+  function setupVibrationFeedback() {
+    if (!navigator.vibrate) return;
+
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('#btn-copiar-link, #btn-copiar-relatorio, #btn-web-share')) {
+        navigator.vibrate(30);
+      }
+    }, true);
+
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if (document.getElementById('erg-notes-ta')) {
+          navigator.vibrate([20, 40, 20]);
+        }
+      }
+    }, true);
+  }
+
+  // V5-6. Offline/Online detection — banner ao perder conexão
+  function setupOfflineDetection() {
+    var banner = null;
+
+    function showBanner() {
+      if (banner) return;
+      banner = document.createElement('div');
+      banner.id        = 'erg-offline-banner';
+      banner.className = 'erg-offline-banner';
+      banner.setAttribute('role', 'alert');
+      banner.setAttribute('aria-live', 'assertive');
+      banner.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<line x1="1" y1="1" x2="23" y2="23"/>' +
+        '<path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>' +
+        '</svg> Sem conexão — relatório em modo offline';
+      document.body.appendChild(banner);
+      _announce('Conexão perdida. Trabalhando em modo offline.');
+    }
+
+    function hideBanner() {
+      if (!banner) return;
+      banner.classList.add('erg-offline-banner-hide');
+      var b = banner;
+      banner = null;
+      setTimeout(function() { if (b.parentNode) b.parentNode.removeChild(b); }, 400);
+      _announce('Conexão restaurada.');
+    }
+
+    if (!navigator.onLine) showBanner();
+    window.addEventListener('offline', showBanner);
+    window.addEventListener('online', hideBanner);
+  }
+
+  // V5-7. Clipboard Read API — colar da área de transferência nas notas
+  function setupClipboardPaste() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+    var panel = document.getElementById('erg-notes-panel');
+    if (!panel) return;
+    var toolbar = panel.querySelector('.erg-notes-toolbar');
+    if (!toolbar || document.getElementById('btn-notes-paste')) return;
+
+    var pasteBtn = document.createElement('button');
+    pasteBtn.id        = 'btn-notes-paste';
+    pasteBtn.className = 'erg-notes-action-btn';
+    pasteBtn.setAttribute('aria-label', 'Colar da área de transferência nas notas');
+    pasteBtn.setAttribute('title', 'Colar (Clipboard)');
+    pasteBtn.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+      '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>' +
+      '<rect x="8" y="2" width="8" height="4" rx="1"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>' +
+      '</svg>';
+
+    pasteBtn.addEventListener('click', function() {
+      var ta = document.getElementById('erg-notes-ta');
+      if (!ta) return;
+      navigator.clipboard.readText().then(function(text) {
+        var start = ta.selectionStart;
+        var end   = ta.selectionEnd;
+        ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + text.length;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        _announce('Texto colado nas notas clínicas');
+      }).catch(function() {
+        _announce('Permissão de leitura da área de transferência necessária');
+      });
+    });
+
+    var closeBtn = toolbar.querySelector('#erg-notes-close');
+    toolbar.insertBefore(pasteBtn, closeBtn);
+  }
+
+  // V5-8. Screen Orientation Lock — trava landscape no modo apresentação (mobile)
+  function setupOrientationLock() {
+    var scr = window.screen;
+    if (!scr || !scr.orientation || !scr.orientation.lock) return;
+
+    new MutationObserver(function() {
+      if (document.body.classList.contains('erg-presentation-mode')) {
+        scr.orientation.lock('landscape').catch(function() { /* negado em desktop */ });
+      } else {
+        try { scr.orientation.unlock(); } catch (_) {}
+      }
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // V5-9. System Color Scheme — auto-dark sincroniza com OS em tempo real
+  function setupAutoColorScheme() {
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function syncScheme(dark) {
+      var manual = null;
+      try { manual = localStorage.getItem('erg_dark_mode'); } catch (_) {}
+      if (manual !== null) return;
+      document.body.classList.toggle('erg-dark-mode', dark);
+    }
+
+    syncScheme(mq.matches);
+
+    var handler = function(e) { syncScheme(e.matches); };
+    if (mq.addEventListener) {
+      mq.addEventListener('change', handler);
+    } else if (mq.addListener) {
+      mq.addListener(handler);
+    }
+  }
+
+  // V5-10. PWA BeforeInstallPrompt — botão "Instalar app" na sidebar
+  function setupPwaInstallPrompt() {
+    var deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+
+      var nav = document.querySelector('.sidebar-nav');
+      if (!nav || document.getElementById('btn-pwa-install')) return;
+
+      var btn = document.createElement('a');
+      btn.id        = 'btn-pwa-install';
+      btn.href      = 'javascript:void(0)';
+      btn.className = 'nav-item erg-pwa-install-btn';
+      btn.setAttribute('aria-label', 'Instalar ERG 360 como aplicativo');
+      btn.setAttribute('tabindex', '0');
+      btn.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<path d="M12 2v13m0 0l-4-4m4 4l4-4M3 18h18"/>' +
+        '</svg> Instalar app';
+
+      btn.addEventListener('click', function() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(result) {
+          if (result.outcome === 'accepted') {
+            btn.remove();
+            _announce('ERG 360 instalado com sucesso');
+          }
+          deferredPrompt = null;
+        });
+      });
+
+      nav.appendChild(btn);
+    });
+
+    window.addEventListener('appinstalled', function() {
+      var btn = document.getElementById('btn-pwa-install');
+      if (btn) btn.remove();
+      deferredPrompt = null;
+    });
+  }
+
+  // ── Init V5 ──────────────────────────────────────────────
+  function initV5() {
+    injectWebShareBtn();
+    setupOfflineDetection();
+    setupVibrationFeedback();
+    setupOrientationLock();
+    setupPwaInstallPrompt();
+    setupAutoColorScheme();
+
+    _rIC(function() {
+      setupBatteryMode();
+      setupNotification();
+    });
+
+    // Clipboard paste — aguarda painel de notas ser injetado no body
+    if (document.getElementById('erg-notes-panel')) {
+      setupClipboardPaste();
+    } else {
+      var notesObs = new MutationObserver(function(_, ob) {
+        if (!document.getElementById('erg-notes-panel')) return;
+        ob.disconnect();
+        setupClipboardPaste();
+      });
+      notesObs.observe(document.body, { childList: true, subtree: false });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV5);
+  } else {
+    initV5();
+  }
+})();
