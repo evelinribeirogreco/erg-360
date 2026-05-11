@@ -919,3 +919,158 @@ body.aci-reduced-motion .info-card.aci-card-flash { animation: none; }
   .aci-hist-bar { transition: none; }
 }
 body.aci-reduced-motion .aci-hist-bar { transition: none; }
+
+/* ═══ POLIMENTO V5 ═══ */
+/* 10 Web APIs modernas                                                       */
+/* V5: Wake Lock, Web Share, Clipboard API, Notification API,                 */
+/*     Page Visibility (tempo ativo), Battery API (econômico),               */
+/*     Vibration API (haptics mobile), Online/Offline, Storage Estimate,     */
+/*     Intl API (formatação localizada)                                       */
+
+/* V5-2. Web Share button ─────────────────────────────────────────────────── */
+.aci-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  margin-left: 6px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.aci-share-btn:hover         { color: var(--detail); border-color: var(--detail); background: var(--accent-dim); }
+.aci-share-btn:focus-visible { outline: 2px solid var(--detail); outline-offset: 2px; }
+
+/* V5-3. Clipboard copy button ───────────────────────────────────────────── */
+.aci-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  margin-left: 6px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.aci-copy-btn:hover          { color: var(--detail); border-color: var(--detail); background: var(--accent-dim); }
+.aci-copy-btn:focus-visible  { outline: 2px solid var(--detail); outline-offset: 2px; }
+.aci-copy-btn.aci-copy-success {
+  color: var(--success);
+  border-color: var(--success);
+  background: rgba(45, 106, 86, 0.08);
+}
+
+/* V5-4. Notification permission prompt ──────────────────────────────────── */
+.aci-notif-prompt {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 9100;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  max-width: 340px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.aci-notif-prompt.show { opacity: 1; transform: translateY(0); }
+.aci-notif-allow,
+.aci-notif-deny {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.aci-notif-allow         { background: var(--accent); color: #fff; }
+.aci-notif-allow:hover   { opacity: 0.88; }
+.aci-notif-deny          { background: transparent; color: var(--text-light); border-color: var(--border); }
+.aci-notif-deny:hover    { background: var(--bg-secondary); }
+@media (max-width: 480px) {
+  .aci-notif-prompt { right: 12px; left: 12px; bottom: 70px; max-width: 100%; }
+}
+
+/* V5-5. Active time badge in sidebar footer ─────────────────────────────── */
+.aci-active-time {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-top: 8px;
+  opacity: 0.65;
+  letter-spacing: 0.04em;
+}
+
+/* V5-6. Battery saver — desativa todas as animações/transições ──────────── */
+body.aci-battery-saver .aci-ripple,
+body.aci-battery-saver .aci-section-visible,
+body.aci-battery-saver .info-card.aci-card-flash { animation: none !important; }
+body.aci-battery-saver .aci-scroll-progress,
+body.aci-battery-saver .aci-back-top,
+body.aci-battery-saver .aci-comp-bar-fill,
+body.aci-battery-saver .aci-hist-bar,
+body.aci-battery-saver .aci-hm-cell,
+body.aci-battery-saver .aci-toast              { transition: none !important; }
+body.aci-battery-saver .aci-section-pre        { opacity: 1 !important; transform: none !important; }
+
+/* V5-8. Offline banner ──────────────────────────────────────────────────── */
+.aci-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9990;
+  background: #c07a2e;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(-100%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.aci-offline-banner.show { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .aci-notif-prompt,
+  .aci-offline-banner { transition-duration: 0.01ms !important; }
+}
+body.aci-reduced-motion .aci-notif-prompt,
+body.aci-reduced-motion .aci-offline-banner { transition-duration: 0.01ms !important; }
+body.aci-battery-saver  .aci-offline-banner { transition: none !important; }

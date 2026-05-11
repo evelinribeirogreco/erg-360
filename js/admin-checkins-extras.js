@@ -1387,3 +1387,328 @@ function v4Measure(label, start, end) {
     if (g) attach(g);
   });
 })();
+
+// ═══ POLIMENTO V5 ═══
+// 10 Web APIs modernas
+// V5: Wake Lock (tela acesa em apresentação), Web Share, Clipboard API,
+//     Notification API (alertas críticos), Page Visibility (tempo ativo),
+//     Battery API (modo econômico), Vibration API (haptics mobile),
+//     Online/Offline detection, Storage Estimate API, Intl API (locale format)
+
+window._adminCheckinsExtras.version = 5;
+
+document.addEventListener('DOMContentLoaded', () => {
+  v5WakeLock();       // 1
+  v5WebShare();       // 2
+  v5Clipboard();      // 3
+  v5Notifications();  // 4
+  v5Vibration();      // 7
+  v5IntlFormat();     // 10
+});
+
+// ── V5-1. Wake Lock — mantém tela acesa durante modo apresentação ──────────
+function v5WakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  let _wl = null;
+
+  const acquire = async () => {
+    if (_wl) return;
+    try {
+      _wl = await navigator.wakeLock.request('screen');
+      _wl.addEventListener('release', () => { _wl = null; }, { once: true });
+    } catch (_) {}
+  };
+
+  const release = () => { _wl?.release().catch(() => {}); _wl = null; };
+
+  new MutationObserver(() => {
+    document.body.classList.contains('aci-apresentacao') ? acquire() : release();
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' &&
+        document.body.classList.contains('aci-apresentacao')) acquire();
+  });
+
+  if (document.body.classList.contains('aci-apresentacao')) acquire();
+}
+
+// ── V5-2. Web Share API — share nativo do resumo do período ───────────────
+function v5WebShare() {
+  if (!navigator.share) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'aci-share-btn';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Compartilhar resumo do período');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar`;
+
+  const attach = () => {
+    if (document.querySelector('.aci-share-btn')) return;
+    const ref = document.querySelector('.aci-export-btn');
+    if (ref) ref.after(btn);
+  };
+
+  const grid = document.getElementById('resumo-grid');
+  if (grid) {
+    new MutationObserver(() => {
+      if (grid.children.length) setTimeout(attach, 600);
+    }).observe(grid, { childList: true });
+  }
+
+  btn.addEventListener('click', async () => {
+    const cards = Array.from(document.querySelectorAll('#resumo-grid .info-card'));
+    const lines = cards.map(c => {
+      const l = c.querySelector('.info-card-label')?.textContent.trim() || '';
+      const v = c.querySelector('.info-card-value')?.textContent.trim() || '';
+      return l && v ? `• ${l}: ${v}` : '';
+    }).filter(Boolean);
+    const period = document.querySelector('[id^="per-"].active')?.id.replace('per-', '') || '7';
+    const text = [`📊 ERG 360 — Resumo (últimos ${period} dias)`, '', ...lines].join('\n');
+    try {
+      await navigator.share({ title: 'ERG 360', text });
+      showToast('Resumo compartilhado!', 'success', 2500);
+    } catch (e) {
+      if (e.name !== 'AbortError') showToast('Compartilhamento não disponível.', 'warning');
+    }
+  });
+}
+
+// ── V5-3. Clipboard API — copia resumo estruturado para área de transferência
+function v5Clipboard() {
+  if (!navigator.clipboard?.writeText) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'aci-copy-btn';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Copiar resumo para área de transferência');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar`;
+
+  const attach = () => {
+    if (document.querySelector('.aci-copy-btn')) return;
+    const ref = document.querySelector('.aci-share-btn') || document.querySelector('.aci-export-btn');
+    if (ref) ref.after(btn);
+  };
+
+  const grid = document.getElementById('resumo-grid');
+  if (grid) {
+    new MutationObserver(() => {
+      if (grid.children.length) setTimeout(attach, 700);
+    }).observe(grid, { childList: true });
+  }
+
+  btn.addEventListener('click', async () => {
+    const cards = Array.from(document.querySelectorAll('#resumo-grid .info-card'));
+    const lines = cards.map(c => {
+      const l = c.querySelector('.info-card-label')?.textContent.trim() || '';
+      const v = c.querySelector('.info-card-value')?.textContent.trim() || '';
+      return l && v ? `• ${l}: ${v}` : '';
+    }).filter(Boolean);
+    const period = document.querySelector('[id^="per-"].active')?.id.replace('per-', '') || '7';
+    const alertEls = document.querySelectorAll('.aci-sa-item .aci-sa-item-label');
+    const alertLines = alertEls.length
+      ? ['\n🔔 Alertas:', ...Array.from(alertEls).map(el => `  - ${el.textContent.trim()}`)]
+      : [];
+    const text = [
+      `ERG 360 — Resumo (últimos ${period} dias)`,
+      `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+      '',
+      ...lines,
+      ...alertLines,
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.classList.add('aci-copy-success');
+      btn.setAttribute('aria-label', 'Copiado!');
+      showToast('Resumo copiado!', 'success', 2500);
+      setTimeout(() => {
+        btn.classList.remove('aci-copy-success');
+        btn.setAttribute('aria-label', 'Copiar resumo para área de transferência');
+      }, 2200);
+    } catch (_) {
+      showToast('Não foi possível copiar.', 'warning');
+    }
+  });
+}
+
+// ── V5-4. Notification API — alerta proativo de riscos críticos ───────────
+function v5Notifications() {
+  if (!('Notification' in window)) return;
+  const grid = document.getElementById('resumo-grid');
+  if (!grid) return;
+  let _sent = false;
+
+  new MutationObserver(() => {
+    if (_sent || !grid.children.length) return;
+    setTimeout(() => {
+      const highRisk = document.querySelectorAll('.aci-sa-high').length;
+      if (!highRisk) return;
+      _sent = true;
+      if (Notification.permission === 'granted') {
+        _v5SendNotif(highRisk);
+      } else if (Notification.permission === 'default') {
+        _v5ShowNotifPrompt(highRisk);
+      }
+    }, 1500);
+  }).observe(grid, { childList: true });
+}
+
+function _v5ShowNotifPrompt(count) {
+  if (document.querySelector('.aci-notif-prompt')) return;
+  const el = document.createElement('div');
+  el.className = 'aci-notif-prompt';
+  el.setAttribute('role', 'alertdialog');
+  el.setAttribute('aria-label', 'Permitir notificações de alertas clínicos');
+  el.innerHTML = `
+    <span>🔔 ${count} alerta${count > 1 ? 's' : ''} crítico${count > 1 ? 's' : ''}. Ativar notificações?</span>
+    <button class="aci-notif-allow" type="button">Sim</button>
+    <button class="aci-notif-deny"  type="button">Não</button>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  el.querySelector('.aci-notif-allow').addEventListener('click', async () => {
+    el.remove();
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') _v5SendNotif(count);
+  });
+  el.querySelector('.aci-notif-deny').addEventListener('click', () => el.remove());
+  setTimeout(() => { if (el.isConnected) el.remove(); }, 12000);
+}
+
+function _v5SendNotif(count) {
+  try {
+    new Notification('ERG 360 — Alerta Clínico', {
+      body: `${count} alerta${count > 1 ? 's' : ''} de alto risco detectado${count > 1 ? 's' : ''} no período.`,
+      icon: '/favicon.ico',
+      tag:  'erg-alerta',
+      renotify: false,
+    });
+  } catch (_) {}
+}
+
+// ── V5-5. Page Visibility — acumula tempo ativo e exibe no rodapé ─────────
+(function v5PageVisibility() {
+  const KEY = 'erg_acheckins_active_ms';
+  let _ts = document.visibilityState === 'visible' ? Date.now() : null;
+
+  const flush = () => {
+    if (!_ts) return;
+    const saved = parseInt(localStorage.getItem(KEY) || '0', 10);
+    localStorage.setItem(KEY, String(saved + Date.now() - _ts));
+    _ts = null;
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { flush(); }
+    else { _ts = Date.now(); }
+  });
+  window.addEventListener('pagehide', flush, { once: true });
+
+  const injectTime = () => {
+    const footer = document.querySelector('.sidebar-footer');
+    if (!footer || footer.querySelector('.aci-active-time')) return;
+    const total   = parseInt(localStorage.getItem(KEY) || '0', 10);
+    const minutes = Math.round(total / 60000);
+    if (minutes < 1) return;
+    const span = document.createElement('span');
+    span.className = 'aci-active-time';
+    span.setAttribute('aria-label', `Tempo ativo nesta página: ${minutes} minuto${minutes !== 1 ? 's' : ''}`);
+    span.textContent = `⏱ ${minutes}min ativos`;
+    footer.appendChild(span);
+  };
+  setTimeout(injectTime, 2500);
+})();
+
+// ── V5-6. Battery API — reduz animações em bateria crítica (< 15%) ─────────
+(function v5Battery() {
+  if (!('getBattery' in navigator)) return;
+  const applyEco = on => {
+    document.body.classList.toggle('aci-battery-saver', on);
+    if (on) showToast('Modo econômico ativo (bateria < 15%)', 'warning', 4000);
+  };
+  navigator.getBattery().then(b => {
+    const check = () => applyEco(!b.charging && b.level < 0.15);
+    check();
+    b.addEventListener('levelchange',    check);
+    b.addEventListener('chargingchange', check);
+  }).catch(() => {});
+})();
+
+// ── V5-7. Vibration API — feedback háptico mobile em ações ────────────────
+function v5Vibration() {
+  if (!('vibrate' in navigator)) return;
+  document.addEventListener('click', e => {
+    if      (e.target.closest('.aci-export-btn'))  navigator.vibrate(40);
+    else if (e.target.closest('.aci-copy-btn'))    navigator.vibrate([20, 10, 20]);
+    else if (e.target.closest('.aci-share-btn'))   navigator.vibrate(30);
+    else if (e.target.closest('.aci-pill'))        navigator.vibrate(15);
+    else if (e.target.closest('.aci-notif-allow, .aci-notif-deny')) navigator.vibrate(25);
+  });
+}
+
+// ── V5-8. Online/Offline API — detecta e sinaliza ausência de conexão ──────
+(function v5OnlineStatus() {
+  let _banner = null;
+
+  const setBanner = offline => {
+    if (offline) {
+      if (_banner) return;
+      _banner = document.createElement('div');
+      _banner.className = 'aci-offline-banner';
+      _banner.setAttribute('role', 'status');
+      _banner.setAttribute('aria-live', 'assertive');
+      _banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Sem conexão — dados exibidos do cache`;
+      document.body.appendChild(_banner);
+      requestAnimationFrame(() => _banner.classList.add('show'));
+    } else {
+      if (!_banner) return;
+      _banner.classList.remove('show');
+      setTimeout(() => { _banner?.remove(); _banner = null; }, 320);
+      if (typeof showToast === 'function') showToast('Conexão restaurada', 'success', 2500);
+    }
+  };
+
+  setBanner(!navigator.onLine);
+  window.addEventListener('online',  () => setBanner(false));
+  window.addEventListener('offline', () => setBanner(true));
+})();
+
+// ── V5-9. Storage Estimate — avisa se localStorage próximo do limite ───────
+(function v5StorageQuota() {
+  if (!navigator.storage?.estimate) return;
+  navigator.storage.estimate().then(({ usage, quota }) => {
+    const pct = usage / quota;
+    if (pct < 0.8) return;
+    const label = pct >= 0.95 ? 'Armazenamento quase cheio' : 'Armazenamento em 80%+';
+    showToast(`⚠️ ${label} (${Math.round(pct * 100)}% usado)`, 'warning', 6000);
+  }).catch(() => {});
+})();
+
+// ── V5-10. Intl API — normaliza formato de números para locale do browser ──
+function v5IntlFormat() {
+  const locale = navigator.language || 'pt-BR';
+  if (locale.startsWith('pt')) return;
+  const numFmt = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
+  const reformat = () => {
+    document.querySelectorAll('#tabela-checkins tbody tr:not([data-v5-fmt])').forEach(row => {
+      row.dataset.v5Fmt = '1';
+      const cells = row.querySelectorAll('td');
+      [1, 3, 4, 5].forEach(i => {
+        const cell = cells[i];
+        if (!cell) return;
+        const n = parseFloat(cell.textContent.replace(',', '.'));
+        if (!isNaN(n)) cell.textContent = numFmt.format(n);
+      });
+    });
+  };
+
+  const grid = document.getElementById('resumo-grid');
+  if (grid) {
+    new MutationObserver(() => {
+      if (grid.children.length) setTimeout(reformat, 500);
+    }).observe(grid, { childList: true });
+  }
+}
