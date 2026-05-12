@@ -730,3 +730,217 @@ body.erg-offline .form-input:not(:focus) {
   animation: none;
   opacity: 0.45;
 }
+
+/* ═══ POLIMENTO V6 ═══ */
+/* Gamification: confetti, badges, streaks, AudioContext, counter-up, celebrations */
+
+/* V6.1 — Confetti canvas overlay */
+.erg-confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9000;
+}
+
+/* V6.2 — Streak badge */
+#erg-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px 4px 8px;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.28);
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  margin-bottom: 12px;
+}
+.erg-streak-flame {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.erg-streak-count {
+  font-weight: 700;
+  color: #8a6d00;
+}
+.erg-streak-label {
+  color: var(--subtitle);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* V6.3 — Badge toast (slide-in from right) */
+.erg-badge-toast {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--detail);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+  z-index: 802;
+  transform: translateX(130%);
+  opacity: 0;
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  max-width: 260px;
+}
+.erg-badge-toast--visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+.erg-badge-toast-icon {
+  font-size: 1.55rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.erg-badge-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.erg-badge-toast-text strong {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--subtitle);
+}
+.erg-badge-toast-text em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+/* V6.4 — Milestone toast (drops from top center) */
+.erg-milestone-toast {
+  position: fixed;
+  top: 68px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(45,106,86,0.28);
+  z-index: 803;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+.erg-milestone-toast--visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* V6.5 — Sound mute toggle button */
+#erg-sound-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--subtitle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 191;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+#erg-sound-toggle:hover {
+  border-color: var(--detail);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+#erg-sound-toggle:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+@keyframes ergSoundPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.22); }
+}
+.erg-sound-pulse {
+  animation: ergSoundPulse 0.25s ease;
+}
+
+/* V6.6 — Completion pct smooth update */
+#erg-completion-pct {
+  transition: color 0.3s ease;
+}
+
+/* V6.7 — Step done check mark pop animation */
+@keyframes ergCheckPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.55); }
+  70%  { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+.erg-step-check.erg-check-pop {
+  animation: ergCheckPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* V6.8 — Rank label above completion pct */
+#erg-rank-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 2px;
+  opacity: 0.85;
+}
+
+/* V6.9 — Mobile adjustments */
+@media (max-width: 768px) {
+  #erg-sound-toggle {
+    top: auto;
+    bottom: 168px;
+    right: 12px;
+  }
+  .erg-badge-toast {
+    right: 12px;
+    left: 12px;
+    bottom: 72px;
+    max-width: unset;
+  }
+  .erg-milestone-toast {
+    top: auto;
+    bottom: 130px;
+    font-size: 0.76rem;
+  }
+}
+
+/* V6.10 — Reduced motion: disable gamification transitions */
+.erg-reduced-motion .erg-badge-toast,
+.erg-reduced-motion .erg-milestone-toast {
+  transition: opacity 0.01ms !important;
+}
+.erg-reduced-motion .erg-step-check.erg-check-pop {
+  animation: none;
+}
+.erg-reduced-motion #erg-sound-toggle {
+  animation: none;
+}
