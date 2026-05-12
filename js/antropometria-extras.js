@@ -1328,3 +1328,399 @@ if (document.readyState === 'loading') {
 } else {
   _initV5();
 }
+
+// ═══ POLIMENTO V6 ═══
+// Gamification: confetti canvas, achievement badges, streaks, AudioContext,
+// counter-up animation, step celebrations, milestone toasts
+
+const _STREAK_KEY         = 'erg_antro_streak';
+const _SESSIONS_KEY       = 'erg_antro_session_log';
+const _STORAGE_KEY_BADGES = 'erg_antro_badges';
+const _STORAGE_KEY_SOUND  = 'erg_antro_sound_muted';
+
+// ── V6.1 — CANVAS CONFETTI ao atingir 100% ───────────────────
+function _spawnConfetti(targetEl) {
+  if (document.documentElement.classList.contains('erg-reduced-motion')) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'erg-confetti-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(canvas);
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#4CB8A0', '#2D6A56', '#C9A84C', '#F0A070', '#6EB5FF', '#FF8FAE'];
+  const rect = targetEl?.getBoundingClientRect();
+  const originX = rect ? rect.left + rect.width  / 2 : canvas.width  / 2;
+  const originY = rect ? rect.top  + rect.height / 4 : canvas.height / 3;
+  const particles = Array.from({ length: 90 }, () => ({
+    x: originX + (Math.random() - 0.5) * 120,
+    y: originY + (Math.random() - 0.5) * 40,
+    r: 4 + Math.random() * 5,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vx: (Math.random() - 0.5) * 7,
+    vy: -3 - Math.random() * 5,
+    g: 0.18 + Math.random() * 0.12,
+    rot: Math.random() * 360,
+    rotV: (Math.random() - 0.5) * 8,
+    alpha: 1,
+    shape: Math.random() > 0.4 ? 'rect' : 'circle',
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.alpha <= 0) return;
+      alive = true;
+      p.vy += p.g; p.x += p.vx; p.y += p.vy;
+      p.rot += p.rotV; p.alpha -= 0.008;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      if (p.shape === 'rect') ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+      else { ctx.beginPath(); ctx.arc(0, 0, p.r / 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    });
+    frame++;
+    if (alive && frame < 240) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+
+// ── V6.2 — STREAK DE AVALIAÇÕES CONSECUTIVAS ─────────────────
+function _getStreak() {
+  try { return JSON.parse(localStorage.getItem(_STREAK_KEY) || '{"count":0,"lastDate":""}'); }
+  catch (_) { return { count: 0, lastDate: '' }; }
+}
+
+function _recordStreak() {
+  const today     = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const s = _getStreak();
+  if (s.lastDate === today) return s.count;
+  const count = s.lastDate === yesterday ? s.count + 1 : 1;
+  try { localStorage.setItem(_STREAK_KEY, JSON.stringify({ count, lastDate: today })); } catch (_) {}
+  return count;
+}
+
+function _initStreakBadge() {
+  const s = _getStreak();
+  if (s.count < 1) return;
+  const badge = document.createElement('div');
+  badge.id = 'erg-streak-badge';
+  badge.setAttribute('aria-label', `${s.count} dia${s.count !== 1 ? 's' : ''} consecutivos de avaliação`);
+  badge.innerHTML = `<span class="erg-streak-flame" aria-hidden="true">🔥</span><span class="erg-streak-count">${s.count}</span><span class="erg-streak-label">streak</span>`;
+  document.querySelector('.main-content')?.prepend(badge);
+}
+
+function _updateStreakBadge(count) {
+  const el = document.getElementById('erg-streak-badge');
+  if (!el) return;
+  const c = el.querySelector('.erg-streak-count');
+  if (c) c.textContent = count;
+  el.setAttribute('aria-label', `${count} dia${count !== 1 ? 's' : ''} consecutivos de avaliação`);
+}
+
+// ── V6.3 — ACHIEVEMENT BADGES ─────────────────────────────────
+const BADGE_DEFS = [
+  { id: 'first',    label: 'Primeira Avaliação', icon: '⭐', test: s => s.sessions >= 1  },
+  { id: 'complete', label: 'Formulário Completo', icon: '✅', test: s => s.completedOnce  },
+  { id: 'streak3',  label: '3 Dias Seguidos',     icon: '🔥', test: s => s.streak >= 3   },
+  { id: 'streak7',  label: 'Semana Perfeita',      icon: '💎', test: s => s.streak >= 7   },
+  { id: 'imc_ok',   label: 'IMC Saudável',         icon: '💚', test: s => s.imcOk         },
+  { id: 'pro',      label: 'Avaliador Pro',         icon: '🏆', test: s => s.sessions >= 10 },
+];
+
+function _getUnlockedBadges() {
+  try { return JSON.parse(localStorage.getItem(_STORAGE_KEY_BADGES) || '[]'); } catch (_) { return []; }
+}
+
+function _saveBadge(id) {
+  const arr = _getUnlockedBadges();
+  if (arr.includes(id)) return false;
+  arr.push(id);
+  try { localStorage.setItem(_STORAGE_KEY_BADGES, JSON.stringify(arr)); } catch (_) {}
+  return true;
+}
+
+function _getCurrentCompletionPct() {
+  let filled = 0;
+  ALL_FIELDS.forEach(id => { if (document.getElementById(id)?.value) filled++; });
+  return Math.round((filled / ALL_FIELDS.length) * 100);
+}
+
+function _buildStats() {
+  const sessions = _getSessions().length;
+  const streak   = _getStreak().count;
+  const imcVal   = parseFloat(document.getElementById('imc')?.value);
+  return {
+    sessions,
+    streak,
+    completedOnce: _getCurrentCompletionPct() === 100,
+    imcOk: !isNaN(imcVal) && imcVal >= 18.5 && imcVal < 25,
+  };
+}
+
+function _checkAndUnlockBadges(stats) {
+  const unlocked = _getUnlockedBadges();
+  BADGE_DEFS.forEach(def => {
+    if (unlocked.includes(def.id)) return;
+    if (def.test(stats)) {
+      if (_saveBadge(def.id)) _showBadgeToast(def);
+    }
+  });
+}
+
+// ── V6.4 — AudioContext: SONS SUTIS ──────────────────────────
+let _audioCtx  = null;
+let _soundMuted = false;
+
+function _getAudioCtx() {
+  if (_soundMuted) return null;
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  return _audioCtx;
+}
+
+function _playTone(freq, duration, type, gain) {
+  type = type || 'sine'; gain = gain || 0.07;
+  const ctx = _getAudioCtx();
+  if (!ctx || document.documentElement.classList.contains('erg-reduced-motion')) return;
+  try {
+    const osc  = ctx.createOscillator();
+    const gn   = ctx.createGain();
+    osc.connect(gn); gn.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gn.gain.setValueAtTime(0, ctx.currentTime);
+    gn.gain.linearRampToValueAtTime(gain, ctx.currentTime + 0.01);
+    gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch (_) {}
+}
+
+function _playStepAdvance() {
+  _playTone(440, 0.12);
+  setTimeout(() => _playTone(554, 0.12), 80);
+}
+
+function _playCompletion() {
+  [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => _playTone(f, 0.35, 'sine', 0.055), i * 65));
+}
+
+function _playBadgeUnlock() {
+  [660, 880].forEach((f, i) => setTimeout(() => _playTone(f, 0.2, 'triangle', 0.05), i * 110));
+}
+
+// ── V6.5 — SOUND MUTE TOGGLE ──────────────────────────────────
+function _soundOnSVG()  { return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>'; }
+function _soundOffSVG() { return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'; }
+
+function _initSoundMuteFromStorage() {
+  _soundMuted = localStorage.getItem(_STORAGE_KEY_SOUND) === '1';
+}
+
+function _initSoundToggle() {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'erg-sound-toggle';
+  const label = () => _soundMuted ? 'Ativar sons' : 'Silenciar sons';
+  btn.setAttribute('aria-label', label());
+  btn.title = label();
+  btn.innerHTML = _soundMuted ? _soundOffSVG() : _soundOnSVG();
+  document.body.appendChild(btn);
+  btn.addEventListener('click', () => {
+    _soundMuted = !_soundMuted;
+    try { localStorage.setItem(_STORAGE_KEY_SOUND, _soundMuted ? '1' : '0'); } catch (_) {}
+    btn.innerHTML = _soundMuted ? _soundOffSVG() : _soundOnSVG();
+    btn.setAttribute('aria-label', label());
+    btn.title = label();
+    btn.classList.add('erg-sound-pulse');
+    btn.addEventListener('animationend', () => btn.classList.remove('erg-sound-pulse'), { once: true });
+  });
+}
+
+// ── V6.6 — COUNTER-UP ANIMATION no % de conclusão ────────────
+let _completionPctPrev = 0;
+
+function _counterUp(el, from, to, duration) {
+  duration = duration || 600;
+  if (document.documentElement.classList.contains('erg-reduced-motion')) {
+    el.textContent = to + '% preenchido'; return;
+  }
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(from + (to - from) * ease) + '% preenchido';
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function _initCompletionCounterUp() {
+  const pctEl = document.getElementById('erg-completion-pct');
+  if (!pctEl) return;
+  new MutationObserver(() => {
+    const m = pctEl.textContent.match(/(\d+)/);
+    if (!m) return;
+    const next = parseInt(m[1], 10);
+    if (next !== _completionPctPrev) {
+      _counterUp(pctEl, _completionPctPrev, next);
+      _completionPctPrev = next;
+    }
+  }).observe(pctEl, { childList: true, characterData: true, subtree: true });
+}
+
+// ── V6.7 — STEP DONE MINI-CELEBRATION ────────────────────────
+function _initStepDoneCelebration() {
+  new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      const item = m.target;
+      if (m.attributeName !== 'class') return;
+      if (!item.classList.contains('erg-step-done') || item.dataset.v6celebrated) return;
+      item.dataset.v6celebrated = '1';
+      const check = item.querySelector('.erg-step-check');
+      if (check) {
+        check.classList.add('erg-check-pop');
+        check.addEventListener('animationend', () => check.classList.remove('erg-check-pop'), { once: true });
+      }
+      _playStepAdvance();
+    });
+  }).observe(
+    document.querySelector('.sidebar-nav') || document.body,
+    { attributes: true, attributeFilter: ['class'], subtree: true }
+  );
+}
+
+// ── V6.8 — MILESTONE BADGE TOAST + CONFETTI ──────────────────
+function _showBadgeToast(def) {
+  const toast = document.createElement('div');
+  toast.className = 'erg-badge-toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.innerHTML = `
+    <span class="erg-badge-toast-icon" aria-hidden="true">${def.icon}</span>
+    <span class="erg-badge-toast-text">
+      <strong>Badge desbloqueado!</strong>
+      <em>${def.label}</em>
+    </span>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('erg-badge-toast--visible'));
+  _playBadgeUnlock();
+  setTimeout(() => {
+    toast.classList.remove('erg-badge-toast--visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, 4200);
+}
+
+const _celebratedMilestones = new Set();
+
+function _showMilestoneToast(pct) {
+  const cfg = {
+    25:  { icon: '🌱', msg: 'Boa largada!' },
+    50:  { icon: '⚡', msg: 'Metade completa!' },
+    75:  { icon: '🎯', msg: 'Quase lá!' },
+    100: { icon: '🎉', msg: 'Perfeito!' },
+  };
+  const c = cfg[pct];
+  if (!c) return;
+  const toast = document.createElement('div');
+  toast.className = 'erg-milestone-toast';
+  toast.setAttribute('aria-live', 'polite');
+  toast.innerHTML = `<span aria-hidden="true">${c.icon}</span><span>${c.msg}</span>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('erg-milestone-toast--visible'));
+  if (pct === 100) {
+    _playCompletion();
+    _spawnConfetti(document.getElementById('erg-completion-bar'));
+    _recordSessionComplete();
+  }
+  setTimeout(() => {
+    toast.classList.remove('erg-milestone-toast--visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, 3200);
+}
+
+function _gamifiedMilestoneCheck() {
+  const pct = _getCurrentCompletionPct();
+  [25, 50, 75, 100].forEach(m => {
+    if (pct >= m && !_celebratedMilestones.has(m)) {
+      _celebratedMilestones.add(m);
+      _showMilestoneToast(m);
+    }
+  });
+}
+
+// ── V6.9 — SESSION COUNTER (log de sessões completas) ─────────
+function _getSessions() {
+  try { return JSON.parse(localStorage.getItem(_SESSIONS_KEY) || '[]'); } catch (_) { return []; }
+}
+
+function _recordSessionComplete() {
+  const today    = new Date().toISOString().slice(0, 10);
+  const sessions = _getSessions();
+  if (!sessions.includes(today)) {
+    sessions.push(today);
+    try { localStorage.setItem(_SESSIONS_KEY, JSON.stringify(sessions)); } catch (_) {}
+  }
+  const streakCount = _recordStreak();
+  _updateStreakBadge(streakCount);
+  _scheduleIdle(() => _checkAndUnlockBadges(_buildStats()));
+}
+
+// ── V6.10 — RANK LABEL por total de sessões ──────────────────
+const RANK_TABLE = [
+  { min: 30, label: 'Mestre',       color: '#2D6A56' },
+  { min: 15, label: 'Especialista', color: 'var(--accent)' },
+  { min: 7,  label: 'Praticante',   color: '#C9A84C' },
+  { min: 3,  label: 'Aprendiz',     color: 'var(--detail)' },
+  { min: 0,  label: 'Iniciante',    color: 'var(--subtitle)' },
+];
+
+function _initRankLabel() {
+  const total = _getSessions().length;
+  const rank  = RANK_TABLE.find(r => total >= r.min) || RANK_TABLE[RANK_TABLE.length - 1];
+  const el = document.createElement('span');
+  el.id = 'erg-rank-label';
+  el.textContent = rank.label;
+  el.style.color  = rank.color;
+  el.setAttribute('aria-label', `Nível: ${rank.label}`);
+  const pctEl = document.getElementById('erg-completion-pct');
+  if (pctEl) pctEl.insertAdjacentElement('beforebegin', el);
+}
+
+// ── V6 — INIT ─────────────────────────────────────────────────
+function _initV6() {
+  _initSoundMuteFromStorage();
+  _initSoundToggle();
+  _initStreakBadge();
+  _initCompletionCounterUp();
+  _initStepDoneCelebration();
+  _initRankLabel();
+
+  document.getElementById('antro-form')?.addEventListener(
+    'input', _debounce(_gamifiedMilestoneCheck, 900), { passive: true }
+  );
+
+  _scheduleIdle(() => _checkAndUnlockBadges(_buildStats()));
+}
+
+Object.assign(window._antropometriaExtras, {
+  spawnConfetti:  _spawnConfetti,
+  showBadgeToast: _showBadgeToast,
+  playTone:       _playTone,
+  recordSession:  _recordSessionComplete,
+  getCurrentPct:  _getCurrentCompletionPct,
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initV6);
+} else {
+  _initV6();
+}
