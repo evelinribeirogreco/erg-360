@@ -1894,3 +1894,179 @@ Object.assign(window._diarioExtras, {
   buildInsightLinesV7:     _buildInsightLinesV7,
   refreshInsightsPanelV7:  _refreshInsightsPanelV7,
 });
+
+// ═══ POLIMENTO V8 ═══
+// 10 features de modos especiais: foco profundo, leitura, sleep noturno,
+// alto contraste manual, compacto, toolbar de modos, timer de foco,
+// persistência via localStorage, atalhos de teclado, print otimizado (CSS).
+
+// ── M8. Persistência de modos ─────────────────────────────────────────────────
+const _MODES_KEY_V8 = 'erg_modes_v8';
+const _MODES_ALL_V8 = ['focus', 'reading', 'sleep', 'contrast', 'compact'];
+
+function _loadModesV8() {
+  try { return JSON.parse(localStorage.getItem(_MODES_KEY_V8) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function _saveModesV8(modes) {
+  try { localStorage.setItem(_MODES_KEY_V8, JSON.stringify(modes)); } catch (_) {}
+}
+
+function _setModeV8(mode, active) {
+  document.body.classList.toggle('diario-mode-' + mode, active);
+  const modes = _loadModesV8();
+  modes[mode] = active;
+  _saveModesV8(modes);
+  _updateToolbarV8();
+  _announceModeV8(mode, active);
+  if (mode === 'focus') _handleFocusTimerV8(active);
+}
+
+function _toggleModeV8(mode) {
+  _setModeV8(mode, !document.body.classList.contains('diario-mode-' + mode));
+}
+
+function _restoreModesV8() {
+  const modes = _loadModesV8();
+  _MODES_ALL_V8.forEach(m => {
+    if (modes[m]) document.body.classList.add('diario-mode-' + m);
+  });
+}
+
+// ── M3. Sleep mode: auto-ativa às 21h–06h (só se nunca definido manualmente) ──
+function _initSleepAutoV8() {
+  const modes = _loadModesV8();
+  if (Object.prototype.hasOwnProperty.call(modes, 'sleep')) return;
+  const h = new Date().getHours();
+  if (h >= 21 || h < 6) document.body.classList.add('diario-mode-sleep');
+}
+
+// ── M2. ARIA: anuncia mudança de modo via live region ─────────────────────────
+const _MODE_LABELS_V8 = {
+  focus:    ['Modo foco ativado — histórico e ações ocultados',    'Modo foco desativado'],
+  reading:  ['Modo leitura ativado — fonte ampliada',               'Modo leitura desativado'],
+  sleep:    ['Modo noturno ativado — tela escurecida',              'Modo noturno desativado'],
+  contrast: ['Alto contraste ativado',                              'Alto contraste desativado'],
+  compact:  ['Modo compacto ativado — espaçamento reduzido',       'Modo compacto desativado'],
+};
+
+function _announceModeV8(mode, active) {
+  const labels = _MODE_LABELS_V8[mode];
+  if (!labels) return;
+  const msg = active ? labels[0] : labels[1];
+  const el = document.getElementById('diario-sr-date');
+  if (!el) return;
+  el.textContent = '';
+  requestAnimationFrame(() => { el.textContent = msg; });
+}
+
+// ── M7. Timer de sessão no modo foco ──────────────────────────────────────────
+let _focusRafV8 = null;
+let _focusStartV8 = null;
+
+function _handleFocusTimerV8(active) {
+  const el = document.getElementById('diario-focus-timer');
+  if (!el) return;
+  if (active) {
+    _focusStartV8 = Date.now();
+    el.hidden = false;
+    const tick = () => {
+      if (!document.body.classList.contains('diario-mode-focus')) return;
+      const s = Math.floor((Date.now() - _focusStartV8) / 1000);
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      el.textContent = mm + ':' + ss;
+      _focusRafV8 = requestAnimationFrame(tick);
+    };
+    tick();
+  } else {
+    cancelAnimationFrame(_focusRafV8);
+    el.hidden = true;
+    el.textContent = '00:00';
+    _focusStartV8 = null;
+  }
+}
+
+// ── M6. Toolbar de modos ──────────────────────────────────────────────────────
+const _TOOLBAR_DEFS_V8 = [
+  { mode: 'focus',    icon: '⊙', label: 'Foco profundo',  keys: 'Ctrl+Shift+F' },
+  { mode: 'reading',  icon: '≡', label: 'Leitura',        keys: 'Ctrl+Shift+R' },
+  { mode: 'sleep',    icon: '◑', label: 'Noturno',        keys: 'Ctrl+Shift+N' },
+  { mode: 'contrast', icon: '◐', label: 'Contraste',      keys: 'Ctrl+Shift+C' },
+  { mode: 'compact',  icon: '⊟', label: 'Compacto',       keys: null            },
+];
+
+function _initModesToolbarV8() {
+  if (document.getElementById('diario-modes-toolbar')) return;
+  const toolbar = document.createElement('div');
+  toolbar.id = 'diario-modes-toolbar';
+  toolbar.className = 'diario-modes-toolbar';
+  toolbar.setAttribute('role', 'toolbar');
+  toolbar.setAttribute('aria-label', 'Modos de visualização');
+
+  const timer = document.createElement('span');
+  timer.id = 'diario-focus-timer';
+  timer.className = 'diario-focus-timer';
+  timer.setAttribute('aria-live', 'off');
+  timer.setAttribute('aria-label', 'Tempo em modo foco');
+  timer.textContent = '00:00';
+  timer.hidden = true;
+  toolbar.appendChild(timer);
+
+  _TOOLBAR_DEFS_V8.forEach(({ mode, icon, label, keys }) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'diario-mode-btn';
+    btn.dataset.mode = mode;
+    const ariaLabel = keys ? label + ' (' + keys + ')' : label;
+    btn.setAttribute('aria-label', ariaLabel);
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('title', label + (keys ? ' — ' + keys : ''));
+    btn.textContent = icon;
+    btn.addEventListener('click', () => _toggleModeV8(mode));
+    toolbar.appendChild(btn);
+  });
+
+  document.body.appendChild(toolbar);
+}
+
+function _updateToolbarV8() {
+  document.querySelectorAll('.diario-mode-btn[data-mode]').forEach(btn => {
+    const active = document.body.classList.contains('diario-mode-' + btn.dataset.mode);
+    btn.setAttribute('aria-pressed', String(active));
+    btn.classList.toggle('diario-mode-btn--active', active);
+  });
+}
+
+// ── M9. Atalhos de teclado para modos ─────────────────────────────────────────
+function _initModeShortcutsV8() {
+  const KEY_MAP = { f: 'focus', r: 'reading', n: 'sleep', c: 'contrast' };
+  document.addEventListener('keydown', e => {
+    if (!e.ctrlKey || !e.shiftKey) return;
+    if (e.target && e.target.matches('input, textarea, select')) return;
+    const mode = KEY_MAP[e.key.toLowerCase()];
+    if (!mode) return;
+    e.preventDefault();
+    _toggleModeV8(mode);
+  });
+}
+
+// ── V8 INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _restoreModesV8();
+  _initSleepAutoV8();
+  _initModesToolbarV8();
+  _initModeShortcutsV8();
+  _updateToolbarV8();
+
+  if (document.body.classList.contains('diario-mode-focus')) {
+    _handleFocusTimerV8(true);
+  }
+});
+
+Object.assign(window._diarioExtras, {
+  toggleModeV8: _toggleModeV8,
+  setModeV8:    _setModeV8,
+  loadModesV8:  _loadModesV8,
+});
