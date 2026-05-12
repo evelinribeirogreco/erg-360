@@ -1909,3 +1909,252 @@ function _showDiagPanel() {
 if (window._checkinExtras) {
   window._checkinExtras.version = 'V7';
 }
+
+// ═══ POLIMENTO V8 ═══
+// 10 modos especiais: toolbar flutuante, foco profundo, alto contraste, leitura,
+//   sleep/noturno (auto 22h–06h), persistência, ARIA announcer,
+//   temporizador em foco, atalhos Alt+*, help overlay com `?`
+
+const MODES_KEY = 'erg_checkin_modes';
+
+const _MODES = {
+  focus:    { label: 'Foco',      icon: '◎', shortcut: 'Alt+F', cls: 'ci-mode-focus'    },
+  contrast: { label: 'Contraste', icon: '◑', shortcut: 'Alt+C', cls: 'ci-mode-contrast' },
+  reading:  { label: 'Leitura',   icon: 'A', shortcut: 'Alt+R', cls: 'ci-mode-reading'  },
+  sleep:    { label: 'Noturno',   icon: '☽', shortcut: 'Alt+N', cls: 'ci-mode-sleep'    },
+};
+
+let _activeModes  = {};
+let _focusTimer   = null;
+let _focusTimerEl = null;
+let _focusStart   = null;
+let _helpOpen     = false;
+let _v8Announcer  = null;
+let _v8ToolbarPanel = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  v8AriaAnnouncer();
+  v8LoadModes();
+  v8AutoSleepMode();
+  v8SystemContrastWatcher();
+  v8ModeToolbar();
+  v8KeyboardShortcuts();
+});
+
+// ── V8-1. ARIA announcer para mudanças de modo ────────────────────────────────
+function v8AriaAnnouncer() {
+  _v8Announcer = document.createElement('div');
+  _v8Announcer.setAttribute('aria-live', 'polite');
+  _v8Announcer.setAttribute('aria-atomic', 'true');
+  _v8Announcer.className = 'ci-sr-only';
+  document.body.appendChild(_v8Announcer);
+}
+
+function _v8Announce(msg) {
+  if (!_v8Announcer) return;
+  _v8Announcer.textContent = '';
+  requestAnimationFrame(() => { _v8Announcer.textContent = msg; });
+}
+
+// ── V8-2. Persistência: carrega modos salvos ──────────────────────────────────
+function v8LoadModes() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MODES_KEY) || '{}');
+    Object.keys(saved).forEach(mode => {
+      if (saved[mode] && _MODES[mode]) _applyMode(mode, true, false);
+    });
+  } catch (_) {}
+}
+
+function _saveModes() {
+  try { localStorage.setItem(MODES_KEY, JSON.stringify(_activeModes)); } catch (_) {}
+}
+
+// ── V8-3. Aplica / remove um modo ────────────────────────────────────────────
+function _applyMode(mode, on, announce = true) {
+  const def = _MODES[mode];
+  if (!def) return;
+  _activeModes[mode] = on;
+  document.body.classList.toggle(def.cls, on);
+  if (mode === 'focus') { on ? _startFocusTimer() : _stopFocusTimer(); }
+  _saveModes();
+  _updateToolbarButtons();
+  if (announce) _v8Announce(`Modo ${def.label}: ${on ? 'ativado' : 'desativado'}`);
+}
+
+function _toggleMode(mode) { _applyMode(mode, !_activeModes[mode]); }
+
+// ── V8-4. Auto Sleep Mode (22h–06h horário local) ────────────────────────────
+function v8AutoSleepMode() {
+  const hour = new Date().getHours();
+  if ((hour >= 22 || hour < 6) && !_activeModes.sleep) {
+    _applyMode('sleep', true, false);
+    _v8Announce('Modo noturno ativado automaticamente');
+  }
+}
+
+// ── V8-5. Observa prefers-contrast do sistema ─────────────────────────────────
+function v8SystemContrastWatcher() {
+  try {
+    const mq = window.matchMedia('(prefers-contrast: more)');
+    if (mq.matches && !_activeModes.contrast) _applyMode('contrast', true, false);
+    mq.addEventListener('change', e => {
+      if (e.matches && !_activeModes.contrast) _applyMode('contrast', true);
+      else if (!e.matches && _activeModes.contrast) _applyMode('contrast', false);
+    });
+  } catch (_) {}
+}
+
+// ── V8-6. Toolbar flutuante de modos ─────────────────────────────────────────
+function v8ModeToolbar() {
+  const bar = document.createElement('div');
+  bar.className = 'ci-mode-bar';
+  bar.setAttribute('role', 'toolbar');
+  bar.setAttribute('aria-label', 'Modos de exibição');
+
+  const trigger = document.createElement('button');
+  trigger.className = 'ci-mode-trigger';
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.setAttribute('aria-label', 'Alternar modos de exibição');
+  trigger.setAttribute('title', 'Modos especiais (? para atalhos)');
+  trigger.innerHTML = '<span aria-hidden="true">⊕</span>';
+  bar.appendChild(trigger);
+
+  const panel = document.createElement('div');
+  panel.className = 'ci-mode-panel';
+  panel.setAttribute('aria-label', 'Painel de modos');
+  panel.hidden = true;
+
+  Object.entries(_MODES).forEach(([mode, def]) => {
+    const btn = document.createElement('button');
+    btn.className = 'ci-mode-btn';
+    btn.dataset.mode = mode;
+    btn.setAttribute('aria-pressed', String(!!_activeModes[mode]));
+    btn.setAttribute('title', `${def.label} (${def.shortcut})`);
+    btn.setAttribute('aria-label', `${def.label} — ${def.shortcut}`);
+    btn.innerHTML = `<span class="ci-mode-icon" aria-hidden="true">${def.icon}</span><span class="ci-mode-lbl">${def.label}</span>`;
+    btn.addEventListener('click', () => _toggleMode(mode));
+    panel.appendChild(btn);
+  });
+
+  bar.appendChild(panel);
+  document.body.appendChild(bar);
+  _v8ToolbarPanel = panel;
+
+  let _open = false;
+  const toggleBar = () => {
+    _open = !_open;
+    panel.hidden = !_open;
+    trigger.setAttribute('aria-expanded', String(_open));
+    trigger.innerHTML = `<span aria-hidden="true">${_open ? '⊗' : '⊕'}</span>`;
+    if (_open) panel.querySelector('.ci-mode-btn')?.focus();
+  };
+  trigger.addEventListener('click', toggleBar);
+  document.addEventListener('click', e => { if (_open && !bar.contains(e.target)) toggleBar(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _open) toggleBar(); });
+}
+
+function _updateToolbarButtons() {
+  if (!_v8ToolbarPanel) return;
+  _v8ToolbarPanel.querySelectorAll('.ci-mode-btn').forEach(btn => {
+    const on = !!_activeModes[btn.dataset.mode];
+    btn.setAttribute('aria-pressed', String(on));
+    btn.classList.toggle('ci-mode-btn--on', on);
+  });
+}
+
+// ── V8-7. Temporizador de sessão em modo foco ─────────────────────────────────
+function _startFocusTimer() {
+  _focusStart = Date.now();
+  if (_focusTimerEl) return;
+  _focusTimerEl = document.createElement('div');
+  _focusTimerEl.className = 'ci-focus-timer';
+  _focusTimerEl.setAttribute('aria-label', 'Tempo em modo foco');
+  _focusTimerEl.setAttribute('aria-live', 'off');
+  document.body.appendChild(_focusTimerEl);
+  _focusTimer = setInterval(() => {
+    if (!_focusTimerEl) return;
+    const elapsed = Math.floor((Date.now() - _focusStart) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    _focusTimerEl.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function _stopFocusTimer() {
+  clearInterval(_focusTimer);
+  _focusTimer = null;
+  _focusTimerEl?.remove();
+  _focusTimerEl = null;
+  _focusStart = null;
+}
+
+// ── V8-8. Atalhos de teclado Alt+F/C/R/N + ? ─────────────────────────────────
+function v8KeyboardShortcuts() {
+  const modeKeys = { f: 'focus', c: 'contrast', r: 'reading', n: 'sleep' };
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea, select')) return;
+    if (e.altKey && !e.ctrlKey && !e.metaKey) {
+      const mode = modeKeys[e.key.toLowerCase()];
+      if (mode) { e.preventDefault(); _toggleMode(mode); }
+    }
+    if (e.key === '?' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      _toggleHelp();
+    }
+  });
+}
+
+// ── V8-9. Help overlay (tecla ?) ─────────────────────────────────────────────
+function _toggleHelp() {
+  if (_helpOpen) {
+    document.querySelector('.ci-help-overlay')?.remove();
+    _helpOpen = false;
+    return;
+  }
+  _helpOpen = true;
+  const overlay = document.createElement('div');
+  overlay.className = 'ci-help-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', 'Atalhos de teclado');
+  overlay.setAttribute('aria-modal', 'true');
+
+  const shortcuts = [
+    ['Alt+F', 'Modo Foco Profundo'],
+    ['Alt+C', 'Modo Alto Contraste'],
+    ['Alt+R', 'Modo Leitura'],
+    ['Alt+N', 'Modo Noturno (Sleep)'],
+    ['← →',  'Navegar entre telas'],
+    ['Enter', 'Avançar tela'],
+    ['?',     'Abrir/fechar esta ajuda'],
+    ['Esc',   'Fechar painéis'],
+  ];
+
+  overlay.innerHTML = `
+    <div class="ci-help-inner">
+      <button class="ci-help-close" aria-label="Fechar ajuda">×</button>
+      <h3 class="ci-help-title">Atalhos de Teclado</h3>
+      <dl class="ci-help-dl">
+        ${shortcuts.map(([k, v]) => `<dt><kbd>${k}</kbd></dt><dd>${v}</dd>`).join('')}
+      </dl>
+      <p class="ci-help-note">Modos são salvos automaticamente neste dispositivo.</p>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('ci-help-show')));
+
+  const close = overlay.querySelector('.ci-help-close');
+  close?.addEventListener('click', _toggleHelp);
+  overlay.addEventListener('click', e => { if (e.target === overlay) _toggleHelp(); });
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') _toggleHelp(); });
+  setTimeout(() => close?.focus(), 80);
+}
+
+// ── V8-10. Expõe API pública no hook existente ────────────────────────────────
+if (window._checkinExtras) {
+  window._checkinExtras.version = 'V8';
+  window._checkinExtras.modes = {
+    toggle: _toggleMode,
+    active: () => ({ ..._activeModes }),
+  };
+}
