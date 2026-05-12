@@ -2,7 +2,7 @@
 /* ═══ POLIMENTO V1 ═══ */
 /* 18 melhorias: animação, acessibilidade, teclado, progresso, share, feedback */
 
-/* ── 1. Skip link ────────────────────────────────────────────────────────── */
+/* ── 1. Skip link ───────────────────────────────────────────────────────────────── */
 .fases-skip-link {
   position: absolute;
   top: -100%;
@@ -20,7 +20,7 @@
 }
 .fases-skip-link:focus { top: 0; }
 
-/* ── 2. Smooth expand/collapse — override display:none de fases.css ──────── */
+/* ── 2. Smooth expand/collapse — override display:none de fases.css ──────────── */
 .fase-detalhe {
   display: block !important;
   max-height: 0;
@@ -51,7 +51,7 @@
     border-width 0s 0s;
 }
 
-/* ── 3. Chevron indicador ────────────────────────────────────────────────── */
+/* ── 3. Chevron indicador ────────────────────────────────────────────────────────────── */
 .fase-chevron {
   flex-shrink: 0;
   margin-top: 10px;
@@ -64,7 +64,7 @@
   color: var(--detail);
 }
 
-/* ── 4. Focus-visible aprimorado ─────────────────────────────────────────── */
+/* ── 4. Focus-visible aprimorado ──────────────────────────────────────────────── */
 .fase-item:focus {
   outline: none;
 }
@@ -74,14 +74,14 @@
   border-radius: var(--radius-sm);
 }
 
-/* ── 5. Hover glow no círculo ────────────────────────────────────────────── */
+/* ── 5. Hover glow no círculo ────────────────────────────────────────────────────── */
 .fase-item:hover .fase-dot,
 .fase-item:focus-visible .fase-dot {
   box-shadow: 0 0 0 6px var(--accent-dim);
   transition: box-shadow 0.25s ease;
 }
 
-/* ── 6. Pulse ring na fase ativa ─────────────────────────────────────────── */
+/* ── 6. Pulse ring na fase ativa ──────────────────────────────────────────────────── */
 @keyframes fases-pulse-ring {
   0%   { box-shadow: 0 0 0 0   rgba(76, 184, 160, 0.55); }
   70%  { box-shadow: 0 0 0 10px rgba(76, 184, 160, 0); }
@@ -91,7 +91,7 @@
   animation: fases-pulse-ring 2.2s ease-out infinite;
 }
 
-/* ── 7. Highlight flash ao clicar ────────────────────────────────────────── */
+/* ── 7. Highlight flash ao clicar ───────────────────────────────────────────────── */
 .fase-item::before {
   content: '';
   position: absolute;
@@ -107,7 +107,7 @@
   transition: opacity 0s;
 }
 
-/* ── 8. Stagger fade-in (ativado quando extras carrega) ──────────────────── */
+/* ── 8. Stagger fade-in (ativado quando extras carrega) ──────────────────────── */
 .fases-extras-loaded .fase-item {
   opacity: 0;
   transform: translateX(-10px);
@@ -119,7 +119,7 @@
   transform: translateX(0);
 }
 
-/* ── 9. Barra de progresso no hero ───────────────────────────────────────── */
+/* ── 9. Barra de progresso no hero ─────────────────────────────────────────────── */
 .fases-progress-bar {
   margin-top: 18px;
   display: flex;
@@ -150,7 +150,7 @@
   transition: width 0.85s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── 10. Botão compartilhar fase ─────────────────────────────────────────── */
+/* ── 10. Botão compartilhar fase ─────────────────────────────────────────────────── */
 .fase-share-btn {
   display: inline-flex;
   align-items: center;
@@ -178,7 +178,7 @@
   outline-offset: 2px;
 }
 
-/* ── 11. Toast de feedback ───────────────────────────────────────────────── */
+/* ── 11. Toast de feedback ────────────────────────────────────────────────────────── */
 .fases-toast {
   position: fixed;
   bottom: calc(28px + env(safe-area-inset-bottom));
@@ -203,7 +203,7 @@
   opacity: 1;
 }
 
-/* ── 12. Região ARIA live (oculta visualmente) ───────────────────────────── */
+/* ── 12. Região ARIA live (oculta visualmente) ───────────────────────────────── */
 .fases-sr-live {
   position: absolute;
   width: 1px;
@@ -214,7 +214,7 @@
   pointer-events: none;
 }
 
-/* ── 13. Redução de movimento ────────────────────────────────────────────── */
+/* ── 13. Redução de movimento ────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .fase-item.ativa .fase-dot { animation: none; }
   .fases-extras-loaded .fase-item {
@@ -228,7 +228,7 @@
   .fases-progress-fill { transition: none !important; }
 }
 
-/* ── 14. Mobile: progresso mais compacto ─────────────────────────────────── */
+/* ── 14. Mobile: progresso mais compacto ─────────────────────────────────────────── */
 @media (max-width: 480px) {
   .fases-progress-bar { margin-top: 14px; }
   .fases-toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
@@ -238,7 +238,7 @@
 /* 10 melhorias acessibilidade avançada: list roles, aria-setsize, focus return,
    help overlay (?), recolher todos (/), aria-busy, role region, alto contraste, print */
 
-/* ── V3.5: Help overlay de atalhos ───────────────────────────────────────── */
+/* ── V3.5: Help overlay de atalhos ─────────────────────────────────────────────── */
 #fases-help-overlay {
   position: fixed;
   inset: 0;
@@ -336,7 +336,7 @@ kbd {
   white-space: nowrap;
 }
 
-/* ── V3.9: Alto contraste ─────────────────────────────────────────────────── */
+/* ── V3.9: Alto contraste ─────────────────────────────────────────────────────────── */
 .fases-high-contrast .fase-item {
   border: 2px solid currentColor !important;
 }
@@ -355,7 +355,7 @@ kbd {
   color: currentColor !important;
 }
 
-/* ── V3.10: Print — garante todas as fases expandidas ────────────────────── */
+/* ── V3.10: Print — garante todas as fases expandidas ────────────────────────── */
 @media print {
   .fase-detalhe,
   .fase-detalhe.fases-print-open {
@@ -388,12 +388,12 @@ kbd {
 /* 10 melhorias de performance: CSS containment, will-change, prefers-reduced-data,
    overscroll, fase-dot paint hint */
 
-/* ── V4.9: CSS containment — isola layout/estilo de cada item ───────────── */
+/* ── V4.9: CSS containment — isola layout/estilo de cada item ───────────────── */
 .fase-item {
   contain: layout style;
 }
 
-/* ── V4.10: Conexões lentas — remove animações custosas ─────────────────── */
+/* ── V4.10: Conexões lentas — remove animações custosas ────────────────────── */
 @media (prefers-reduced-data: reduce) {
   .fases-extras-loaded .fase-item {
     opacity: 1 !important;
@@ -422,12 +422,12 @@ kbd {
   }
 }
 
-/* ── V4.11: overscroll-behavior na timeline (sem propagação de scroll) ───── */
+/* ── V4.11: overscroll-behavior na timeline (sem propagação de scroll) ───────── */
 .fases-timeline {
   overscroll-behavior: contain;
 }
 
-/* ── V4.12: Hint de paint no ponto de fase (hover glow custoso) ─────────── */
+/* ── V4.12: Hint de paint no ponto de fase (hover glow custoso) ─────────────── */
 .fase-dot {
   will-change: box-shadow;
 }
@@ -436,7 +436,7 @@ kbd {
 /* 10 Web APIs modernas: Page Visibility, Vibration, Wake Lock, Network Info,
    Clipboard, Web Share progress, sessionStorage, Online/Offline, Battery, scrollY */
 
-/* ── V5.3: Botão Wake Lock ─────────────────────────────────────────────────── */
+/* ── V5.3: Botão Wake Lock ───────────────────────────────────────────────────────── */
 .fases-wakelock-btn {
   display: inline-flex;
   align-items: center;
@@ -471,7 +471,7 @@ kbd {
   outline-offset: 2px;
 }
 
-/* ── V5.5: Botão copiar progresso ─────────────────────────────────────────── */
+/* ── V5.5: Botão copiar progresso ────────────────────────────────────────────────── */
 .fases-copy-btn {
   display: inline-flex;
   align-items: center;
@@ -501,7 +501,7 @@ kbd {
   outline-offset: 2px;
 }
 
-/* ── V5.6: Botão compartilhar progresso geral ─────────────────────────────── */
+/* ── V5.6: Botão compartilhar progresso geral ─────────────────────────────────────── */
 .fases-share-progress-btn {
   display: inline-flex;
   align-items: center;
@@ -530,7 +530,7 @@ kbd {
   outline-offset: 2px;
 }
 
-/* ── V5.4 + V5.8: Estados de rede e offline ──────────────────────────────── */
+/* ── V5.4 + V5.8: Estados de rede e offline ─────────────────────────────────────── */
 .fases-offline .fases-hero::after {
   content: 'Offline';
   display: inline-block;
@@ -554,7 +554,7 @@ kbd {
   transition: opacity 0.1s !important;
 }
 
-/* ── V5.9: Bateria baixa — reduz animações custosas ──────────────────────── */
+/* ── V5.9: Bateria baixa — reduz animações custosas ──────────────────────────── */
 .fases-low-battery .fase-item.ativa .fase-dot {
   animation: none !important;
 }
@@ -568,7 +568,7 @@ kbd {
   transition: opacity 0.15s !important;
 }
 
-/* ── V5: Mobile — botões de ação compactos ────────────────────────────────── */
+/* ── V5: Mobile — botões de ação compactos ───────────────────────────────────────── */
 @media (max-width: 480px) {
   .fases-wakelock-btn,
   .fases-copy-btn,
@@ -578,7 +578,7 @@ kbd {
   }
 }
 
-/* ── V5: Reduced motion — sem transição nos botões V5 ────────────────────── */
+/* ── V5: Reduced motion — sem transição nos botões V5 ─────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .fases-wakelock-btn,
   .fases-copy-btn,
@@ -590,7 +590,7 @@ kbd {
 /* ═══ POLIMENTO V6 ═══ */
 /* Gamification: badges, confetti canvas, XP counter, streaks, sons AudioContext */
 
-/* ── V6.10: Badge container no hero ─────────────────────────────────────── */
+/* ── V6.10: Badge container no hero ─────────────────────────────────────────────── */
 .fases-badges-container {
   margin-top: 18px;
   display: flex;
@@ -615,7 +615,7 @@ kbd {
   min-height: 28px;
 }
 
-/* ── V6.10: Badge individual ────────────────────────────────────────────── */
+/* ── V6.10: Badge individual ──────────────────────────────────────────────────── */
 .fases-badge {
   display: inline-flex;
   align-items: center;
@@ -654,7 +654,7 @@ kbd {
   color: var(--text);
 }
 
-/* ── V6.9: XP display ───────────────────────────────────────────────────── */
+/* ── V6.9: XP display ──────────────────────────────────────────────────────────── */
 .fases-xp-display {
   display: inline-block;
   font-family: var(--font-sans);
@@ -673,7 +673,7 @@ kbd {
   animation: fases-xp-pulse-anim 0.42s ease;
 }
 
-/* ── V6.5: Confetti canvas ──────────────────────────────────────────────── */
+/* ── V6.5: Confetti canvas ──────────────────────────────────────────────────────── */
 .fases-confetti-canvas {
   position: fixed;
   inset: 0;
@@ -683,7 +683,7 @@ kbd {
   z-index: 9997;
 }
 
-/* ── V6: Reduced motion — sem confetti pop e xp pulse ─────────────────── */
+/* ── V6: Reduced motion — sem confetti pop e xp pulse ─────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .fases-badge.fases-badge-new {
     animation: none !important;
@@ -696,7 +696,7 @@ kbd {
   }
 }
 
-/* ── V6: Mobile — badges mais compactos ────────────────────────────────── */
+/* ── V6: Mobile — badges mais compactos ────────────────────────────────────────── */
 @media (max-width: 480px) {
   .fases-badges-grid {
     gap: 5px;
@@ -709,5 +709,217 @@ kbd {
   }
   .fases-xp-display {
     font-size: 0.65rem;
+  }
+}
+
+/* ═══ POLIMENTO V7 ═══ */
+/* Telemetria local: heatmap visual, "última vez vista", insights panel, exportar dados */
+
+/* ── V7.3: Heatmap — glow no dot proporcional a aberturas ──────────────────────── */
+.fases-heat-1 .fase-dot { box-shadow: 0 0 0 3px rgba(76, 184, 160, 0.12); }
+.fases-heat-2 .fase-dot { box-shadow: 0 0 0 4px rgba(76, 184, 160, 0.22); }
+.fases-heat-3 .fase-dot { box-shadow: 0 0 0 6px rgba(76, 184, 160, 0.32); }
+.fases-heat-4 .fase-dot { box-shadow: 0 0 0 8px rgba(76, 184, 160, 0.42); }
+.fases-heat-5 .fase-dot { box-shadow: 0 0 0 10px rgba(76, 184, 160, 0.52); }
+
+/* ── V7.9: Badge "última vez vista" inline ─────────────────────────────────────── */
+.fases-last-seen {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.fase-item:hover .fases-last-seen {
+  opacity: 0.7;
+}
+
+/* ── V7.7: Botão "Meus dados" no hero ─────────────────────────────────────────── */
+.fases-insights-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 8px;
+  margin-right: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.fases-insights-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--detail);
+  color: var(--detail);
+}
+.fases-insights-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* ── V7.7: Overlay do painel de insights ───────────────────────────────────────── */
+#fases-insights-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#fases-insights-overlay[hidden] {
+  display: none;
+}
+
+.fases-insights-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 28px 28px 24px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  outline: none;
+  animation: fases-insights-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fases-insights-in {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+.fases-insights-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-light);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.fases-insights-close:hover {
+  color: var(--text);
+  background: var(--bg-primary);
+}
+.fases-insights-close:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+.fases-insights-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--text);
+  margin: 0 0 18px;
+  font-weight: 500;
+}
+
+.fases-insights-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  margin: 0 0 20px;
+}
+.fases-insights-list dt {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+}
+.fases-insights-list dd {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.fases-insights-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, opacity 0.2s;
+}
+.fases-insights-export:hover {
+  background: #2D6A56;
+  opacity: 0.92;
+}
+.fases-insights-export:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── V7: Mobile ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .fases-insights-btn {
+    font-size: 0.62rem;
+    padding: 5px 10px;
+  }
+  .fases-insights-panel {
+    padding: 22px 18px 18px;
+  }
+  .fases-last-seen {
+    font-size: 0.54rem;
+    padding: 1px 5px;
+  }
+}
+
+/* ── V7: Reduced motion ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fases-insights-panel {
+    animation: none !important;
+  }
+  .fases-insights-btn,
+  .fases-insights-close,
+  .fases-insights-export,
+  .fases-last-seen {
+    transition: none !important;
+  }
+}
+
+/* ── V7: Print ──────────────────────────────────────────────────────────────────────── */
+@media print {
+  .fases-insights-btn,
+  #fases-insights-overlay,
+  .fases-last-seen {
+    display: none !important;
   }
 }
