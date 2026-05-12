@@ -900,3 +900,306 @@ details[open].diario-insights-panel > .diario-insights-summary::before {
     color: CanvasText;
   }
 }
+
+/* ═══ POLIMENTO V8 ═══ */
+
+/* ── M6. Toolbar de modos (fixa, canto inferior direito) ── */
+.diario-modes-toolbar {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  right: 18px;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 8px;
+  background: var(--bg-card, #fff);
+  border: 1px solid rgba(201, 168, 130, 0.22);
+  border-radius: 40px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.09);
+  opacity: 0.55;
+  transition: opacity 0.22s ease;
+}
+
+.diario-modes-toolbar:hover,
+.diario-modes-toolbar:focus-within {
+  opacity: 1;
+}
+
+.diario-mode-btn {
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 0.76rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.diario-mode-btn:hover {
+  background: var(--bg-secondary, #f4f2ed);
+  color: var(--text);
+}
+
+.diario-mode-btn:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+.diario-mode-btn--active {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border-color: var(--detail, #4CB8A0);
+}
+
+.diario-mode-btn--active:hover {
+  background: var(--accent, #2D6A56);
+  border-color: var(--accent, #2D6A56);
+}
+
+/* ── M7. Timer de foco ── */
+.diario-focus-timer {
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--detail, #4CB8A0);
+  padding: 0 6px 0 3px;
+  min-width: 2.6rem;
+  text-align: center;
+}
+
+/* ── M1. Modo Foco: oculta o que não importa agora ── */
+body.diario-mode-focus #diario-water-tracker,
+body.diario-mode-focus #diario-copy-prev,
+body.diario-mode-focus #diario-filter-btn,
+body.diario-mode-focus #diario-insights-panel,
+body.diario-mode-focus #diario-nudge,
+body.diario-mode-focus #diario-quote,
+body.diario-mode-focus #diario-reminder-btn,
+body.diario-mode-focus #diario-export-btn,
+body.diario-mode-focus #diario-streak-badge,
+body.diario-mode-focus .diario-skip-link,
+body.diario-mode-focus .diario-historico,
+body.diario-mode-focus .diario-actions {
+  display: none !important;
+}
+
+body.diario-mode-focus #diario-progress-wrap {
+  border-bottom-color: var(--detail, #4CB8A0);
+}
+
+body.diario-mode-focus .diario-refeicao {
+  border-left: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+body.diario-mode-focus .diario-refeicao:focus-within {
+  border-left-color: var(--detail, #4CB8A0);
+}
+
+/* ── M2. Modo Leitura: tipografia confortável ── */
+body.diario-mode-reading .diario-textarea {
+  font-size: 1rem !important;
+  line-height: 1.78 !important;
+  padding: 10px 14px !important;
+}
+
+body.diario-mode-reading .diario-ref-nome {
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+}
+
+body.diario-mode-reading .diario-refeicao {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+body.diario-mode-reading .diario-progress-text {
+  font-size: 0.62rem;
+}
+
+/* ── M3. Modo Noturno: overlay âmbar suave ── */
+body.diario-mode-sleep::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 175, 40, 0.06);
+  pointer-events: none;
+  z-index: 9988;
+  transition: background 0.6s ease;
+}
+
+body.diario-mode-sleep {
+  background-color: #1e1b16 !important;
+}
+
+body.diario-mode-sleep .diario-main,
+body.diario-mode-sleep .diario-hero,
+body.diario-mode-sleep .diario-water-tracker,
+body.diario-mode-sleep .diario-refeicao {
+  background-color: #1e1b16;
+  transition: background-color 0.5s ease;
+}
+
+body.diario-mode-sleep .diario-textarea {
+  background: #252017;
+  color: #e8e0d0;
+  border-color: rgba(201, 168, 76, 0.2);
+}
+
+body.diario-mode-sleep .diario-progress-bar {
+  transition: none;
+}
+
+/* ── M4. Alto Contraste Manual ── */
+body.diario-mode-contrast {
+  --bg-primary:   #000000;
+  --bg-card:      #111111;
+  --bg-secondary: #0a0a0a;
+  --text:         #FFFFFF;
+  --text-light:   #DDDDDD;
+  --detail:       #00FFD0;
+  --accent:       #00BF94;
+  --gold:         #FFD700;
+  --border:       rgba(255, 255, 255, 0.4);
+  --accent-border: rgba(0, 255, 208, 0.5);
+  --gold-border:  rgba(255, 215, 0, 0.5);
+}
+
+body.diario-mode-contrast .diario-textarea {
+  background: #000;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+body.diario-mode-contrast .diario-water-dot {
+  border-color: rgba(0, 255, 208, 0.55);
+}
+
+body.diario-mode-contrast .diario-toast:not(.diario-toast--success):not(.diario-toast--error) {
+  background: #fff;
+  color: #000;
+}
+
+/* ── M5. Modo Compacto ── */
+body.diario-mode-compact .diario-refeicao {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+body.diario-mode-compact .diario-ref-nome {
+  font-size: 0.53rem;
+}
+
+body.diario-mode-compact .diario-textarea {
+  font-size: 0.78rem;
+  min-height: 30px;
+}
+
+body.diario-mode-compact .diario-water-tracker {
+  padding: 8px 16px;
+}
+
+body.diario-mode-compact .diario-progress-wrap {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+body.diario-mode-compact .diario-actions {
+  gap: 5px;
+}
+
+/* ── M10. @media print ── */
+@media print {
+  .diario-modes-toolbar,
+  .diario-skip-link,
+  .diario-offline-banner,
+  .diario-toast,
+  #diario-water-tracker,
+  .diario-actions,
+  #diario-filter-btn,
+  #diario-insights-panel,
+  #diario-nudge,
+  .diario-voice-btn,
+  .diario-nav-btn,
+  #diario-save-btn,
+  #diario-confetti-canvas,
+  .diario-streak-badge {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .diario-textarea {
+    border: 1pt solid #bbb !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    height: auto !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .diario-refeicao {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .diario-ref-nome {
+    font-weight: 600 !important;
+    color: #000 !important;
+  }
+
+  .diario-quote {
+    color: #555 !important;
+    border-top: 1pt solid #ccc;
+  }
+
+  .diario-progress-wrap {
+    display: none !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+  }
+}
+
+/* ── V8 reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .diario-modes-toolbar,
+  .diario-mode-btn {
+    transition: none;
+  }
+
+  body.diario-mode-sleep::after {
+    transition: none;
+  }
+}
+
+/* ── V8 forced colors ── */
+@media (forced-colors: active) {
+  .diario-mode-btn--active {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+    border-color: Highlight;
+  }
+
+  .diario-modes-toolbar {
+    border-color: ButtonText;
+    background: ButtonFace;
+  }
+
+  body.diario-mode-sleep::after {
+    display: none;
+  }
+}
