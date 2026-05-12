@@ -1437,3 +1437,350 @@ html.ci-dark-auto .ci-header {
 .ci-reduced-motion .ci-diag-inner {
   transition: none;
 }
+
+/* ═══ POLIMENTO V8 ═══ */
+/* 10 modos especiais: toolbar flutuante, foco profundo, alto contraste, leitura,
+   sleep/noturno, persistência, ARIA announcer, temporizador, atalhos, help overlay */
+
+/* ── Toolbar flutuante de modos ──────────────────────────────────────────────── */
+.ci-mode-bar {
+  position: fixed;
+  bottom: 72px;
+  right: 16px;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ci-mode-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ci-mode-trigger:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(76, 184, 160, 0.35);
+}
+
+.ci-mode-trigger:focus-visible {
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 3px;
+}
+
+.ci-mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  animation: ci-mode-panel-in 0.18s ease both;
+}
+
+@keyframes ci-mode-panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ci-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(76, 184, 160, 0.3);
+  background: var(--bg-card, #fff);
+  color: var(--text, #1A1A16);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ci-mode-btn:hover {
+  border-color: var(--detail, #4CB8A0);
+  box-shadow: 0 3px 12px rgba(76, 184, 160, 0.2);
+}
+
+.ci-mode-btn--on {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border-color: var(--detail, #4CB8A0);
+}
+
+.ci-mode-btn:focus-visible {
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 2px;
+}
+
+.ci-mode-icon {
+  font-size: 1rem;
+}
+
+.ci-mode-lbl {
+  font-weight: 500;
+}
+
+/* ── Modo Foco Profundo ─────────────────────────────────────────────────────── */
+body.ci-mode-focus .ci-step-dots,
+body.ci-mode-focus .ci-progress-bar,
+body.ci-mode-focus .ci-streak-badge,
+body.ci-mode-focus .ci-sparkline-wrap,
+body.ci-mode-focus .ci-motivo-chip,
+body.ci-mode-focus .ci-weekly-avg,
+body.ci-mode-focus .ci-volatility-badge,
+body.ci-mode-focus .ci-bristol-dist {
+  opacity: 0.2;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+body.ci-mode-focus .ci-card,
+body.ci-mode-focus .ci-screen-inner {
+  box-shadow: none;
+}
+
+/* Temporizador em modo foco */
+.ci-focus-timer {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'DM Sans', monospace;
+  font-size: 0.7rem;
+  color: var(--text-light, #6B6659);
+  background: rgba(247, 246, 242, 0.88);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: 12px;
+  z-index: 8999;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+/* ── Modo Alto Contraste ─────────────────────────────────────────────────────── */
+body.ci-mode-contrast {
+  --text:       #000000;
+  --text-light: #333333;
+  --bg-primary: #ffffff;
+  --bg-card:    #ffffff;
+  --detail:     #005c4a;
+  --accent:     #004a3a;
+  --gold:       #7a5a00;
+  filter: contrast(1.15);
+}
+
+body.ci-mode-contrast .ci-scale-btn {
+  border: 2px solid #000 !important;
+}
+
+body.ci-mode-contrast .ci-scale-btn.active {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+body.ci-mode-contrast .ci-next,
+body.ci-mode-contrast .ci-back {
+  border: 2px solid currentColor !important;
+}
+
+body.ci-mode-contrast a:focus-visible,
+body.ci-mode-contrast button:focus-visible {
+  outline: 3px solid #000 !important;
+  outline-offset: 3px !important;
+}
+
+/* ── Modo Leitura ────────────────────────────────────────────────────────────── */
+body.ci-mode-reading {
+  font-size: 109%;
+}
+
+body.ci-mode-reading .ci-label,
+body.ci-mode-reading .ci-question,
+body.ci-mode-reading h2,
+body.ci-mode-reading h3 {
+  font-size: 1.12em;
+  line-height: 1.65;
+}
+
+body.ci-mode-reading .ci-obs-label,
+body.ci-mode-reading label {
+  font-size: 1.05em;
+  line-height: 1.6;
+}
+
+body.ci-mode-reading p,
+body.ci-mode-reading .ci-hint,
+body.ci-mode-reading .ci-context-hint {
+  font-size: 0.98em;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+body.ci-mode-reading .ci-scale-btn {
+  width: 46px;
+  height: 46px;
+  font-size: 1.05em;
+}
+
+/* ── Modo Sleep / Noturno ────────────────────────────────────────────────────── */
+body.ci-mode-sleep::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(180, 100, 20, 0.06);
+  pointer-events: none;
+  z-index: 8900;
+  mix-blend-mode: multiply;
+}
+
+body.ci-mode-sleep {
+  --bg-primary: #f5f0e8;
+  --bg-card:    #fdf7ec;
+  filter: brightness(0.92) sepia(0.12);
+}
+
+body.ci-mode-sleep .ci-scale-btn {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+body.ci-mode-sleep .ci-scale-btn.active {
+  background: var(--gold, #C9A84C);
+  border-color: var(--gold, #C9A84C);
+  color: #fff;
+}
+
+/* ── Help overlay ────────────────────────────────────────────────────────────── */
+.ci-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ci-help-overlay.ci-help-show {
+  opacity: 1;
+}
+
+.ci-help-inner {
+  background: var(--bg-card, #fff);
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 380px;
+  width: calc(100% - 32px);
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  transform: translateY(12px);
+  transition: transform 0.2s;
+}
+
+.ci-help-overlay.ci-help-show .ci-help-inner {
+  transform: none;
+}
+
+.ci-help-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--text-light, #6B6659);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ci-help-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ci-help-close:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+.ci-help-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text, #1A1A16);
+  margin: 0 0 16px;
+}
+
+.ci-help-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+}
+
+.ci-help-dl dt {
+  display: flex;
+  align-items: center;
+}
+
+.ci-help-dl kbd {
+  font-family: 'DM Sans', monospace;
+  font-size: 0.72rem;
+  background: var(--bg-primary, #F7F6F2);
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 5px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.ci-help-dl dd {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text, #1A1A16);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ci-help-note {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  color: var(--text-light, #6B6659);
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(76, 184, 160, 0.12);
+}
+
+/* ── V8 reduced-motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ci-mode-panel { animation: none; }
+  .ci-help-overlay,
+  .ci-help-inner  { transition: none; }
+}
+
+/* ── Sistema: alto contraste automático ──────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  body:not(.ci-mode-contrast) {
+    --text:       #000;
+    --bg-primary: #fff;
+  }
+}
