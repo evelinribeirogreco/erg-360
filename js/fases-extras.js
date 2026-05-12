@@ -1394,3 +1394,367 @@
     waitForContentV6();
   }
 })();
+
+// ═══ POLIMENTO V7 ═══
+// 10 melhorias de telemetria local:
+// V7.1  Contador de aberturas por fase em localStorage + persistência entre sessões
+// V7.2  Duração de sessão via sessionStorage (início/fim)
+// V7.3  Heatmap visual: glow no dot proporcional ao nº de aberturas (níveis 1-5)
+// V7.4  Badge "Explorador" — ao abrir todas as fases pelo menos 1x
+// V7.5  Feature-discovery hint: detecta se teclado nunca foi usado, sugere atalhos após 35s
+// V7.6  Log de eventos rolling 50 em localStorage para análise pessoal
+// V7.7  Painel de insights pessoais (fase mais visitada, XP, streak, sessão, eventos)
+// V7.8  Detecção de retorno: toast personalizado na 1ª vs. N-ésima visita
+// V7.9  "Última vez vista" badge inline por fase-id (localStorage)
+// V7.10 Exportar todos os dados de uso como download JSON
+
+(function initFasesExtrasV7() {
+  'use strict';
+
+  var E = window._fasesExtras = window._fasesExtras || {};
+
+  var LS_OPENS      = 'fases_opens_v7';
+  var LS_LAST_SEEN  = 'fases_last_seen_v7';
+  var LS_ALL_OPENED = 'fases_all_opened_v7';
+  var LS_VISITS     = 'fases_visit_count_v7';
+  var LS_KB_USED    = 'fases_kb_used_v7';
+  var LS_EVENT_LOG  = 'fases_event_log_v7';
+  var LS_EXPLORADOR = 'fases_explorador_v7';
+  var SS_SESSION    = 'fases_session_start_v7';
+
+  // ── Storage helpers ───────────────────────────────────────────────────────
+  function lsGet(key, def) {
+    try { var v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; }
+    catch (_) { return def; }
+  }
+  function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {} }
+  function ssGet(key, def) {
+    try { var v = sessionStorage.getItem(key); return v !== null ? JSON.parse(v) : def; }
+    catch (_) { return def; }
+  }
+  function ssSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); } catch (_) {} }
+
+  // ── V7.2: Duração de sessão ───────────────────────────────────────────────
+  function setupSessionDuration() {
+    if (!ssGet(SS_SESSION, null)) ssSet(SS_SESSION, Date.now());
+    E.getSessionDuration = function () {
+      return Math.round((Date.now() - ssGet(SS_SESSION, Date.now())) / 1000);
+    };
+  }
+
+  // ── V7.6: Log de eventos rolling 50 ──────────────────────────────────────
+  E.logEvent = function (eventName) {
+    var log = lsGet(LS_EVENT_LOG, []);
+    log.push({ event: eventName, ts: new Date().toISOString() });
+    if (log.length > 50) log = log.slice(log.length - 50);
+    lsSet(LS_EVENT_LOG, log);
+  };
+
+  // ── V7.1: Contador de aberturas + V7.9: última vez vista ─────────────────
+  function patchToggleFaseV7() {
+    var orig = window.toggleFase;
+    if (!orig || orig._v7telemetry) return;
+    var wrapped = function (id) {
+      var detalhe = document.getElementById(id);
+      var wasOpen = detalhe && detalhe.classList.contains('open');
+      orig(id);
+      var isOpen = detalhe && detalhe.classList.contains('open');
+      if (!wasOpen && isOpen) {
+        var opens = lsGet(LS_OPENS, {});
+        opens[id] = (opens[id] || 0) + 1;
+        lsSet(LS_OPENS, opens);
+
+        var lastSeen = lsGet(LS_LAST_SEEN, {});
+        lastSeen[id] = new Date().toISOString();
+        lsSet(LS_LAST_SEEN, lastSeen);
+
+        var allOpened = lsGet(LS_ALL_OPENED, []);
+        if (allOpened.indexOf(id) === -1) {
+          allOpened.push(id);
+          lsSet(LS_ALL_OPENED, allOpened);
+        }
+
+        var item = detalhe && detalhe.closest('.fase-item');
+        _applyHeat(item, opens[id]);
+        _updateLastSeenBadge(id);
+        E.logEvent('fase_open:' + id);
+        _checkExploradorBadge();
+      }
+    };
+    wrapped._v7telemetry = true;
+    window.toggleFase = wrapped;
+  }
+
+  // ── V7.3: Heatmap visual ──────────────────────────────────────────────────
+  function _applyHeat(item, count) {
+    if (!item) return;
+    item.classList.remove('fases-heat-1', 'fases-heat-2', 'fases-heat-3', 'fases-heat-4', 'fases-heat-5');
+    var lvl = count >= 10 ? 5 : count >= 6 ? 4 : count >= 3 ? 3 : count >= 2 ? 2 : 1;
+    item.classList.add('fases-heat-' + lvl);
+    item.setAttribute('data-opens', String(count));
+  }
+
+  function applyAllHeatmaps() {
+    var opens = lsGet(LS_OPENS, {});
+    document.querySelectorAll('.fase-item').forEach(function (item) {
+      var det = item.querySelector('.fase-detalhe');
+      if (det && det.id && opens[det.id]) _applyHeat(item, opens[det.id]);
+    });
+  }
+
+  // ── V7.9: Badge "última vez vista" inline ─────────────────────────────────
+  function _timeAgo(isoStr) {
+    var diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+    if (diff < 60)   return 'há menos de 1 min';
+    if (diff < 3600) return 'há ' + Math.floor(diff / 60) + ' min';
+    var days = Math.floor(diff / 86400);
+    if (days === 0)  return 'hoje';
+    if (days === 1)  return 'ontem';
+    return 'há ' + days + ' dias';
+  }
+
+  function _updateLastSeenBadge(id) {
+    var lastSeen = lsGet(LS_LAST_SEEN, {});
+    var when = lastSeen[id];
+    if (!when) return;
+    var detalhe = document.getElementById(id);
+    if (!detalhe) return;
+    var parent = detalhe.closest('.fase-item');
+    if (!parent) return;
+    var nome = parent.querySelector('.fase-nome');
+    if (!nome) return;
+    var badge = nome.querySelector('.fases-last-seen');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'fases-last-seen';
+      nome.appendChild(badge);
+    }
+    var text = _timeAgo(when);
+    badge.textContent = text;
+    badge.setAttribute('aria-label', 'Visto ' + text);
+  }
+
+  function applyAllLastSeen() {
+    var lastSeen = lsGet(LS_LAST_SEEN, {});
+    Object.keys(lastSeen).forEach(_updateLastSeenBadge);
+  }
+
+  // ── V7.4: Badge "Explorador" ──────────────────────────────────────────────
+  function _checkExploradorBadge() {
+    if (lsGet(LS_EXPLORADOR, false)) return;
+    var allOpened = lsGet(LS_ALL_OPENED, []);
+    var allIds = Array.from(document.querySelectorAll('.fase-item .fase-detalhe'))
+      .map(function (d) { return d.id; }).filter(Boolean);
+    if (allIds.length === 0) return;
+    if (!allIds.every(function (id) { return allOpened.indexOf(id) !== -1; })) return;
+    lsSet(LS_EXPLORADOR, true);
+    var grid = document.querySelector('.fases-badges-grid');
+    if (grid && !grid.querySelector('[data-badge-id="explorador"]')) {
+      var b = document.createElement('span');
+      b.className = 'fases-badge fases-badge-new';
+      b.setAttribute('data-badge-id', 'explorador');
+      b.setAttribute('title', 'Abriu todas as fases do plano pelo menos uma vez');
+      b.setAttribute('role', 'img');
+      b.setAttribute('aria-label', 'Explorador: abriu todas as fases do plano');
+      b.innerHTML =
+        '<span class="fases-badge-emoji" aria-hidden="true">🗺️</span>' +
+        '<span class="fases-badge-label">Explorador</span>';
+      grid.appendChild(b);
+    }
+    if (E.addXP)          E.addXP(50);
+    if (E.toast)          E.toast('🗺️ Badge desbloqueado: Explorador!');
+    if (E.announce)       E.announce('Badge Explorador desbloqueado! Você abriu todas as fases.');
+    if (E.launchConfetti) E.launchConfetti();
+    if (E.playChime)      setTimeout(E.playChime, 80);
+    E.logEvent('badge_unlock:explorador');
+  }
+
+  // ── V7.5: Feature-discovery hint ─────────────────────────────────────────
+  function setupKeyboardDiscovery() {
+    if (lsGet(LS_KB_USED, false)) return;
+    var hintTimer = setTimeout(function () {
+      if (lsGet(LS_KB_USED, false) || document.hidden) return;
+      if (E.toast) E.toast('Dica: pressione ? para ver atalhos de teclado');
+      E.logEvent('kb_hint_shown');
+    }, 35000);
+    document.addEventListener('keydown', function onKbUse() {
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      lsSet(LS_KB_USED, true);
+      clearTimeout(hintTimer);
+      document.removeEventListener('keydown', onKbUse);
+    });
+  }
+
+  // ── V7.8: Detecção de retorno ─────────────────────────────────────────────
+  function setupReturnVisitor() {
+    var count = lsGet(LS_VISITS, 0) + 1;
+    lsSet(LS_VISITS, count);
+    var msg = null;
+    if (count === 1)       msg = 'Bem-vinda ao seu plano de fases! ✨';
+    else if (count <= 3)   msg = 'Bem-vinda de volta! Visita #' + count + ' 👋';
+    else if (count === 10) msg = '10 visitas ao plano! Você é dedicada 🌟';
+    if (msg) {
+      setTimeout(function () {
+        if (E.toast) E.toast(msg);
+        E.logEvent(count === 1 ? 'first_visit' : 'return_visit:' + count);
+      }, 1200);
+    }
+  }
+
+  // ── V7.7: Painel de insights pessoais ─────────────────────────────────────
+  function injectInsightsButton() {
+    var hero = document.querySelector('.fases-hero');
+    if (!hero || hero.querySelector('.fases-insights-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'fases-insights-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Ver meus dados de uso');
+    btn.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>' +
+        '<line x1="6" y1="20" x2="6" y2="14"/>' +
+      '</svg>Meus dados';
+    btn.addEventListener('click', function () {
+      E.openInsightsPanel();
+      E.logEvent('insights_panel_open');
+    });
+    hero.appendChild(btn);
+  }
+
+  E.openInsightsPanel = function () {
+    var overlay = document.getElementById('fases-insights-overlay');
+    if (!overlay) { overlay = _buildInsightsOverlay(); document.body.appendChild(overlay); }
+    _refreshInsightsBody(overlay);
+    overlay.removeAttribute('hidden');
+    var panel = overlay.querySelector('.fases-insights-panel');
+    if (panel) panel.focus();
+    document.body.style.overflow = 'hidden';
+  };
+
+  E.closeInsightsPanel = function () {
+    var overlay = document.getElementById('fases-insights-overlay');
+    if (overlay) overlay.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  };
+
+  function _buildInsightsOverlay() {
+    var overlay = document.createElement('div');
+    overlay.id = 'fases-insights-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Meus dados de uso');
+    overlay.setAttribute('hidden', '');
+    overlay.innerHTML =
+      '<div class="fases-insights-panel" tabindex="-1">' +
+        '<button class="fases-insights-close" type="button" aria-label="Fechar painel">✕</button>' +
+        '<h2 class="fases-insights-title">Meus dados</h2>' +
+        '<div class="fases-insights-body"></div>' +
+        '<button class="fases-insights-export" type="button">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+            '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>' +
+            '<polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' +
+          '</svg>Exportar JSON' +
+        '</button>' +
+      '</div>';
+    overlay.querySelector('.fases-insights-close').addEventListener('click', E.closeInsightsPanel);
+    overlay.addEventListener('click', function (ev) { if (ev.target === overlay) E.closeInsightsPanel(); });
+    overlay.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') { E.closeInsightsPanel(); return; }
+      if (ev.key !== 'Tab') return;
+      var focusable = Array.from(overlay.querySelectorAll('button, [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (ev.shiftKey && document.activeElement === first)  { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+    });
+    overlay.querySelector('.fases-insights-export').addEventListener('click', function () {
+      E.exportUsageData();
+      E.logEvent('data_export');
+    });
+    return overlay;
+  }
+
+  function _refreshInsightsBody(overlay) {
+    var body = overlay.querySelector('.fases-insights-body');
+    if (!body) return;
+    var opens     = lsGet(LS_OPENS, {});
+    var visits    = lsGet(LS_VISITS, 0);
+    var allOpened = lsGet(LS_ALL_OPENED, []);
+    var xp        = parseInt(localStorage.getItem('fases_xp_v6') || '0', 10);
+    var streak    = parseInt(localStorage.getItem('fases_streak_v6') || '0', 10);
+    var eventLog  = lsGet(LS_EVENT_LOG, []);
+    var s         = E.getSessionDuration ? E.getSessionDuration() : 0;
+    var sessionStr = s < 60 ? s + 's' : Math.floor(s / 60) + 'min ' + (s % 60) + 's';
+    var maxId = null, maxCount = 0;
+    Object.keys(opens).forEach(function (id) {
+      if (opens[id] > maxCount) { maxCount = opens[id]; maxId = id; }
+    });
+    var mostName = maxId;
+    if (maxId) {
+      var det = document.getElementById(maxId);
+      var n   = det && det.closest('.fase-item') && det.closest('.fase-item').querySelector('.fase-nome');
+      if (n) mostName = n.textContent.trim();
+    }
+    var rows = [
+      ['Visitas totais à página',    visits],
+      ['Fases distintas abertas',    allOpened.length],
+      ['Fase mais visitada',         mostName ? mostName + ' (' + maxCount + 'x)' : '—'],
+      ['Streak atual',               streak + ' dias'],
+      ['XP acumulado',               xp + ' XP'],
+      ['Duração desta sessão',       sessionStr],
+      ['Eventos registrados',        eventLog.length],
+    ];
+    body.innerHTML = '<dl class="fases-insights-list">' +
+      rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('') +
+    '</dl>';
+  }
+
+  // ── V7.10: Exportar dados como JSON ──────────────────────────────────────
+  E.exportUsageData = function () {
+    var keys = [
+      LS_OPENS, LS_LAST_SEEN, LS_ALL_OPENED, LS_VISITS, LS_EVENT_LOG, LS_KB_USED, LS_EXPLORADOR,
+      'fases_xp_v6', 'fases_streak_v6', 'fases_last_day_v6', 'fases_badges_v6', 'fases_milestones_v6'
+    ];
+    var payload = { exported: new Date().toISOString(), source: 'ERG 360 — fases.html', data: {} };
+    keys.forEach(function (k) {
+      try { payload.data[k] = JSON.parse(localStorage.getItem(k)); } catch (_) {}
+    });
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'erg360-meus-dados.json'; a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    if (E.toast)    E.toast('Dados exportados!');
+    if (E.announce) E.announce('Arquivo de dados exportado com sucesso');
+  };
+
+  // ── Init V7 ───────────────────────────────────────────────────────────────
+  function initV7() {
+    applyAllHeatmaps();
+    applyAllLastSeen();
+    _checkExploradorBadge();
+    injectInsightsButton();
+    patchToggleFaseV7();
+  }
+
+  function waitForContentV7() {
+    var content = document.getElementById('fases-content');
+    if (!content) { setTimeout(waitForContentV7, 200); return; }
+    if (content.children.length > 0) { initV7(); return; }
+    var obs = new MutationObserver(function () {
+      if (content.children.length > 0) { obs.disconnect(); setTimeout(initV7, 120); }
+    });
+    obs.observe(content, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
+  setupSessionDuration();
+  setupReturnVisitor();
+  setupKeyboardDiscovery();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForContentV7);
+  } else {
+    waitForContentV7();
+  }
+})();
