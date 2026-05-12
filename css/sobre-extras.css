@@ -738,3 +738,110 @@ img[data-decoded] {
   .sobre-streak-badge,
   .sobre-visit-badge  { animation: none !important; opacity: 1; }
 }
+
+/* ═══ POLIMENTO V7 ═══ */
+
+/* Debug telemetry panel — ativado por D × 3 */
+.sobre-debug-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(500px, 92vw);
+  max-height: 72vh;
+  background: #14171a;
+  color: #a8e6d0;
+  border: 1px solid rgba(76, 184, 160, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(76,184,160,0.08);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.7rem;
+}
+
+.sobre-debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 10px 18px;
+  background: rgba(76, 184, 160, 0.07);
+  border-bottom: 1px solid rgba(76, 184, 160, 0.15);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--detail, #4CB8A0);
+  flex-shrink: 0;
+}
+
+.sobre-debug-close {
+  background: none;
+  border: none;
+  color: rgba(168, 230, 208, 0.55);
+  font-size: 1.3rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+.sobre-debug-close:hover {
+  color: #a8e6d0;
+  background: rgba(76, 184, 160, 0.12);
+}
+.sobre-debug-close:focus-visible {
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+.sobre-debug-pre {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 16px 20px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #9cdfc8;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(76,184,160,0.3) transparent;
+}
+.sobre-debug-pre::-webkit-scrollbar { width: 5px; }
+.sobre-debug-pre::-webkit-scrollbar-thumb {
+  background: rgba(76,184,160,0.3);
+  border-radius: 3px;
+}
+
+.sobre-debug-clear {
+  flex-shrink: 0;
+  padding: 11px;
+  background: rgba(255, 60, 60, 0.06);
+  border: none;
+  border-top: 1px solid rgba(76, 184, 160, 0.12);
+  color: rgba(255, 140, 140, 0.7);
+  font-family: var(--font-sans, 'DM Sans', sans-serif);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  text-align: center;
+}
+.sobre-debug-clear:hover {
+  background: rgba(255, 60, 60, 0.13);
+  color: #ff9898;
+}
+.sobre-debug-clear:focus-visible {
+  outline: 2px solid rgba(255, 100, 100, 0.55);
+  outline-offset: -2px;
+}
+
+/* Dark mode ajustes para o painel (já é escuro por design, só refinamentos) */
+.sobre-dark-mode .sobre-debug-panel {
+  border-color: rgba(76, 184, 160, 0.4);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+}

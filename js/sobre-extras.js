@@ -1321,3 +1321,330 @@
   var _prev = window._sobreExtras || {};
   window._sobreExtras = Object.assign({}, _prev, { version: 6, v6: true });
 })();
+
+// ═══ POLIMENTO V7 ═══
+// 10 melhorias de telemetria local: section dwell time, pilar engagement map,
+// scroll depth histogram, click zone heatmap, feature usage beacon,
+// CTA funnel step, session quality score, return interval tracker,
+// interaction velocity, debug panel (tecla D × 3).
+
+(function () {
+  'use strict';
+
+  var _PFX = 'erg360_sobre_tlm_';
+
+  function _get(key, fb) {
+    try { var v = localStorage.getItem(_PFX + key); return v !== null ? JSON.parse(v) : fb; } catch (e) { return fb; }
+  }
+  function _set(key, val) {
+    try { localStorage.setItem(_PFX + key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  // 1. Section dwell time — ms visible per section
+  function initDwellTracker() {
+    var sections = document.querySelectorAll('.sobre-hero, .sobre-section, .sobre-cta');
+    var stored = _get('dwell', {});
+    var active = null;
+    var t0 = 0;
+
+    var io = new IntersectionObserver(function (entries) {
+      var now = Date.now();
+      entries.forEach(function (e) {
+        var key = e.target.id || ('s' + Array.prototype.indexOf.call(sections, e.target));
+        if (e.isIntersecting) {
+          if (active && active !== key) {
+            stored[active] = (stored[active] || 0) + (now - t0);
+          }
+          if (!active || active !== key) { active = key; t0 = now; }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    sections.forEach(function (s) { io.observe(s); });
+
+    window.addEventListener('pagehide', function () {
+      if (active) stored[active] = (stored[active] || 0) + (Date.now() - t0);
+      _set('dwell', stored);
+    });
+  }
+
+  // 2. Pilar engagement map — seen + hover/focus counts per card index
+  function initPilarEngagement() {
+    var map = _get('pilares', { seen: {}, interacted: {} });
+    var cards = document.querySelectorAll('.pilar-card');
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var idx = String(Array.prototype.indexOf.call(cards, e.target));
+        map.seen[idx] = (map.seen[idx] || 0) + 1;
+        _set('pilares', map);
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.6 });
+
+    cards.forEach(function (card, idx) {
+      io.observe(card);
+      ['mouseenter', 'focus'].forEach(function (ev) {
+        card.addEventListener(ev, function () {
+          map.interacted[String(idx)] = (map.interacted[String(idx)] || 0) + 1;
+          _set('pilares', map);
+        });
+      });
+    });
+  }
+
+  // 3. Scroll depth histogram — 10 buckets, incremented on first crossing
+  function initScrollHistogram() {
+    var hist    = _get('scroll_hist', new Array(10).fill(0));
+    var reached = new Array(10).fill(false);
+
+    window.addEventListener('scroll', function () {
+      var h   = document.documentElement;
+      var pct = h.scrollTop / (h.scrollHeight - h.clientHeight) || 0;
+      var top = Math.min(9, Math.floor(pct * 10));
+      for (var i = 0; i <= top; i++) {
+        if (!reached[i]) { reached[i] = true; hist[i]++; }
+      }
+      _set('scroll_hist', hist);
+    }, { passive: true });
+  }
+
+  // 4. Click zone heatmap — last 30 normalized (0–1) click positions
+  function initClickHeatmap() {
+    var clicks = _get('clicks', []);
+    document.addEventListener('click', function (e) {
+      clicks.push([
+        +(e.clientX / window.innerWidth).toFixed(3),
+        +(e.clientY / window.innerHeight).toFixed(3),
+        Date.now()
+      ]);
+      if (clicks.length > 30) clicks = clicks.slice(-30);
+      _set('clicks', clicks);
+    });
+  }
+
+  // 5. Feature usage beacon — counts per named interactive feature
+  function initFeatureBeacon() {
+    var feats = _get('features', {});
+    function mark(name) { feats[name] = (feats[name] || 0) + 1; _set('features', feats); }
+
+    function watchId(id, name) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', function () { mark(name); });
+    }
+    function watchSel(sel, name) {
+      var el = document.querySelector(sel);
+      if (el) el.addEventListener('click', function () { mark(name); });
+    }
+
+    watchId('sobre-share-btn', 'share');
+    watchId('sobre-notif-btn', 'notif');
+    watchSel('.sobre-cta-btn',  'cta_btn');
+    watchSel('.sobre-cta-link', 'cta_link');
+    watchSel('.checkin-back',   'back');
+
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('sobre-dot')) mark('dot_nav');
+    });
+  }
+
+  // 6. CTA conversion funnel step — records this page + intent to navigate to checkin
+  function initFunnelStep() {
+    var funnel = _get('funnel', []);
+    funnel.push({ p: 'sobre', ts: Date.now() });
+    if (funnel.length > 20) funnel = funnel.slice(-20);
+    _set('funnel', funnel);
+
+    var ctaBtn = document.querySelector('.sobre-cta-btn');
+    if (ctaBtn) ctaBtn.addEventListener('click', function () {
+      var f = _get('funnel', []);
+      f.push({ p: 'sobre→checkin', ts: Date.now() });
+      if (f.length > 20) f = f.slice(-20);
+      _set('funnel', f);
+    });
+  }
+
+  // 7. Session quality score — 0–100 (scroll 40% + sections 35% + interactions 25%)
+  function initSessionQuality() {
+    var maxPct   = 0;
+    var iacts    = 0;
+    var secsSeen = new Set();
+
+    window.addEventListener('scroll', function () {
+      var h = document.documentElement;
+      var p = h.scrollTop / (h.scrollHeight - h.clientHeight) || 0;
+      if (p > maxPct) maxPct = p;
+    }, { passive: true });
+
+    ['click', 'keydown'].forEach(function (ev) {
+      document.addEventListener(ev, function () { iacts++; });
+    });
+
+    var secs = document.querySelectorAll('.sobre-hero, .sobre-section, .sobre-cta');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { secsSeen.add(e.target); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.4 });
+    secs.forEach(function (s) { io.observe(s); });
+
+    window.addEventListener('pagehide', function () {
+      var score = Math.min(100,
+        Math.round(maxPct * 40) +
+        Math.round((secsSeen.size / Math.max(1, secs.length)) * 35) +
+        Math.min(25, iacts * 5)
+      );
+      var hist = _get('quality', []);
+      hist.push({ score: score, ts: Date.now() });
+      if (hist.length > 30) hist = hist.slice(-30);
+      _set('quality', hist);
+    });
+  }
+
+  // 8. Return interval tracker — categorizes gap since last visit
+  function initReturnInterval() {
+    var KEY  = _PFX + 'last_visit';
+    var now  = Date.now();
+    var last = null;
+    try { last = parseInt(localStorage.getItem(KEY) || '0', 10) || null; } catch (e) {}
+    try { localStorage.setItem(KEY, String(now)); } catch (e) {}
+
+    var cat = 'new';
+    if (last) {
+      var h = (now - last) / 3600000;
+      cat = h < 4 ? 'same_session' : h < 26 ? 'today' : h < 50 ? 'next_day' : h < 170 ? 'weekly' : 'lapsed';
+    }
+
+    var ret = _get('returns', {});
+    ret[cat] = (ret[cat] || 0) + 1;
+    _set('returns', ret);
+    _set('return_cat', cat);
+  }
+
+  // 9. Interaction velocity — running avg ms between user actions (lower = more engaged)
+  function initInteractionVelocity() {
+    var last      = Date.now();
+    var intervals = [];
+
+    function record() {
+      var now  = Date.now();
+      var diff = now - last;
+      last = now;
+      if (diff > 200 && diff < 30000) {
+        intervals.push(diff);
+        if (intervals.length > 20) intervals = intervals.slice(-20);
+      }
+    }
+
+    ['click', 'keydown', 'touchstart'].forEach(function (ev) {
+      document.addEventListener(ev, record, { passive: true });
+    });
+
+    window.addEventListener('pagehide', function () {
+      if (intervals.length < 3) return;
+      var avg = Math.round(intervals.reduce(function (a, b) { return a + b; }, 0) / intervals.length);
+      _set('avg_iact_ms', avg);
+    });
+  }
+
+  // 10. Debug telemetry panel — activated by pressing D × 3 within 1.5 s
+  function initDebugPanel() {
+    var count = 0;
+    var timer = null;
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'd' && e.key !== 'D') return;
+      count++;
+      clearTimeout(timer);
+      timer = setTimeout(function () { count = 0; }, 1500);
+      if (count >= 3) { count = 0; _toggleDebugPanel(); }
+    });
+  }
+
+  function _toggleDebugPanel() {
+    var existing = document.getElementById('sobre-debug-panel');
+    if (existing) { existing.remove(); return; }
+
+    var data = {
+      dwell:       _get('dwell', {}),
+      pilares:     _get('pilares', {}),
+      scroll_hist: _get('scroll_hist', []),
+      clicks:      _get('clicks', []),
+      features:    _get('features', {}),
+      funnel:      _get('funnel', []),
+      quality:     _get('quality', []),
+      returns:     _get('returns', {}),
+      return_cat:  _get('return_cat', 'unknown'),
+      avg_iact_ms: _get('avg_iact_ms', null)
+    };
+
+    var panel = document.createElement('div');
+    panel.id        = 'sobre-debug-panel';
+    panel.className = 'sobre-debug-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Painel de telemetria local ERG 360');
+
+    var header = document.createElement('div');
+    header.className = 'sobre-debug-header';
+    header.textContent = 'ERG 360 — Telemetria Local V7';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'sobre-debug-close';
+    closeBtn.setAttribute('aria-label', 'Fechar painel de telemetria');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', function () { panel.remove(); });
+    header.appendChild(closeBtn);
+
+    var pre = document.createElement('pre');
+    pre.className = 'sobre-debug-pre';
+    pre.textContent =
+      '// Dados armazenados APENAS neste dispositivo.\n' +
+      '// Nenhum dado é enviado a servidores externos.\n\n' +
+      JSON.stringify(data, null, 2);
+
+    var clearBtn = document.createElement('button');
+    clearBtn.className = 'sobre-debug-clear';
+    clearBtn.textContent = 'Limpar telemetria local';
+    clearBtn.addEventListener('click', function () {
+      ['dwell','pilares','scroll_hist','clicks','features','funnel',
+       'quality','returns','return_cat','avg_iact_ms'].forEach(function (k) {
+        try { localStorage.removeItem(_PFX + k); } catch (e) {}
+      });
+      panel.remove();
+    });
+
+    panel.appendChild(header);
+    panel.appendChild(pre);
+    panel.appendChild(clearBtn);
+    document.body.appendChild(panel);
+    closeBtn.focus();
+
+    panel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') panel.remove();
+    });
+  }
+
+  function initV7() {
+    initDwellTracker();
+    initPilarEngagement();
+    initScrollHistogram();
+    initClickHeatmap();
+    initFeatureBeacon();
+    initFunnelStep();
+    initSessionQuality();
+    initReturnInterval();
+    initInteractionVelocity();
+    initDebugPanel();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initV7);
+  } else {
+    initV7();
+  }
+
+  var _prev = window._sobreExtras || {};
+  window._sobreExtras = Object.assign({}, _prev, { version: 7, v7: true });
+})();
