@@ -1203,3 +1203,608 @@ body.diario-mode-compact .diario-actions {
     display: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   css/diario-extras.css — V9 — foto, fome, TACO, macros, PDF,
+   calendário, share, hashtags, sparkline, sugestões, lightbox, resumo
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── N1. Foto da refeição ──────────────────────────────────────────────────── */
+.diario-foto-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+  flex-wrap: wrap;
+}
+
+.diario-foto-input {
+  display: none;
+}
+
+.diario-foto-btn {
+  background: none;
+  border: 1.5px dashed var(--detail, #4CB8A0);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--detail, #4CB8A0);
+  transition: background 0.2s, border-color 0.2s;
+  line-height: 1;
+}
+
+.diario-foto-btn:hover,
+.diario-foto-btn:focus-visible {
+  background: color-mix(in srgb, var(--detail, #4CB8A0) 10%, transparent);
+  border-style: solid;
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+.diario-foto-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid var(--detail, #4CB8A0);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.diario-foto-thumb:hover,
+.diario-foto-thumb:focus-visible {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(76, 184, 160, 0.3);
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 2px;
+}
+
+.diario-foto-remove {
+  background: none;
+  border: none;
+  color: #c0392b;
+  font-size: 1.3rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.diario-foto-remove:hover {
+  background: rgba(192, 57, 43, 0.1);
+}
+
+/* ── N13. Lightbox ────────────────────────────────────────────────────────── */
+.diario-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.85);
+  align-items: center;
+  justify-content: center;
+}
+
+.diario-lightbox--open {
+  display: flex;
+  animation: diario-lb-in 0.2s ease;
+}
+
+@keyframes diario-lb-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.diario-lightbox-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+}
+
+.diario-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.diario-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── N2. Escala fome / saciedade ─────────────────────────────────────────── */
+.diario-fome-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 0 2px;
+}
+
+.diario-fome-widget {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.diario-fome-label {
+  font-size: 0.72rem;
+  color: #888;
+  white-space: nowrap;
+  min-width: 78px;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+}
+
+.diario-fome-btn {
+  background: none;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  opacity: 0.5;
+}
+
+.diario-fome-btn:hover,
+.diario-fome-btn:focus-visible {
+  opacity: 1;
+  transform: scale(1.2);
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 1px;
+}
+
+.diario-fome-btn--active {
+  opacity: 1;
+  border-color: var(--detail, #4CB8A0);
+  background: color-mix(in srgb, var(--detail, #4CB8A0) 12%, transparent);
+  transform: scale(1.15);
+}
+
+/* ── N3. TACO autocomplete dropdown ──────────────────────────────────────── */
+.diario-taco-dropdown {
+  position: absolute;
+  z-index: 8000;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--detail, #4CB8A0);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(45, 106, 86, 0.15);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.diario-taco-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  cursor: pointer;
+  gap: 8px;
+  transition: background 0.15s;
+  border-bottom: 1px solid color-mix(in srgb, var(--detail, #4CB8A0) 10%, transparent);
+}
+
+.diario-taco-option:last-child {
+  border-bottom: none;
+}
+
+.diario-taco-option:hover,
+.diario-taco-option:focus {
+  background: color-mix(in srgb, var(--detail, #4CB8A0) 10%, transparent);
+  outline: none;
+}
+
+.taco-name {
+  font-size: 0.85rem;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  color: var(--text, #333);
+}
+
+.taco-kcal {
+  font-size: 0.75rem;
+  color: var(--detail, #4CB8A0);
+  white-space: nowrap;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+}
+
+/* ── N4. Macros estimados por refeição ───────────────────────────────────── */
+.diario-macro-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.macro-pill {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.macro-kcal {
+  background: color-mix(in srgb, #C9A84C 15%, transparent);
+  color: #7a6100;
+  border: 1px solid color-mix(in srgb, #C9A84C 40%, transparent);
+}
+
+.macro-ptn {
+  background: color-mix(in srgb, #4CB8A0 15%, transparent);
+  color: #1a6b5a;
+  border: 1px solid color-mix(in srgb, #4CB8A0 40%, transparent);
+}
+
+.macro-cho {
+  background: color-mix(in srgb, #e67e22 15%, transparent);
+  color: #7a3a00;
+  border: 1px solid color-mix(in srgb, #e67e22 40%, transparent);
+}
+
+.macro-lip {
+  background: color-mix(in srgb, #9b59b6 15%, transparent);
+  color: #4a1a6e;
+  border: 1px solid color-mix(in srgb, #9b59b6 40%, transparent);
+}
+
+/* ── N6 + N8. PDF e Share buttons ───────────────────────────────────────── */
+.diario-pdf-btn,
+.diario-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--detail, #4CB8A0);
+  background: transparent;
+  color: var(--detail, #4CB8A0);
+  font-size: 0.875rem;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  margin-top: 8px;
+}
+
+.diario-pdf-btn:hover,
+.diario-pdf-btn:focus-visible,
+.diario-share-btn:hover,
+.diario-share-btn:focus-visible {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 2px;
+}
+
+/* ── N7 + N14. Calendário semanal ────────────────────────────────────────── */
+.diario-week-cal {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 10px 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 4px;
+}
+
+.diario-week-cal::-webkit-scrollbar {
+  display: none;
+}
+
+.diario-week-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 8px;
+  min-width: 40px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  position: relative;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  color: var(--text-muted, #666);
+}
+
+.diario-week-pill:hover,
+.diario-week-pill:focus-visible {
+  background: color-mix(in srgb, var(--detail, #4CB8A0) 10%, transparent);
+  border-color: var(--detail, #4CB8A0);
+  outline: 2px solid var(--detail, #4CB8A0);
+  outline-offset: 2px;
+}
+
+.diario-week-pill--today {
+  border-color: var(--detail, #4CB8A0);
+  background: color-mix(in srgb, var(--detail, #4CB8A0) 8%, transparent);
+}
+
+.diario-week-pill--selected {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  border-color: var(--accent, #2D6A56);
+  transform: scale(1.06);
+}
+
+.diario-week-pill--selected .week-pill-day,
+.diario-week-pill--selected .week-pill-num {
+  color: #fff;
+}
+
+.week-pill-day {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: inherit;
+}
+
+.week-pill-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: inherit;
+  line-height: 1;
+}
+
+.week-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold, #C9A84C);
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ── N9. Hashtags rápidas ─────────────────────────────────────────────────── */
+.diario-hashtags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 0 2px;
+}
+
+.diario-hashtag-chip {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--detail, #4CB8A0) 40%, transparent);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  color: var(--detail, #4CB8A0);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+
+.diario-hashtag-chip:hover,
+.diario-hashtag-chip:focus-visible {
+  background: var(--detail, #4CB8A0);
+  color: #fff;
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 2px;
+}
+
+.diario-hashtag-chip--used {
+  background: var(--accent, #2D6A56);
+  color: #fff;
+  border-color: var(--accent, #2D6A56);
+  transform: scale(0.95);
+}
+
+/* ── N10. Sparkline de adesão ─────────────────────────────────────────────── */
+.diario-sparkline-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.diario-sparkline-label {
+  font-size: 0.7rem;
+  color: #aaa;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  white-space: nowrap;
+}
+
+.diario-sparkline {
+  flex-shrink: 0;
+}
+
+/* ── N11. Sugestões inteligentes ──────────────────────────────────────────── */
+.diario-suggest-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 4px 0 2px;
+}
+
+.diario-suggest-chip {
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--accent, #2D6A56) 35%, transparent);
+  border-radius: 14px;
+  padding: 3px 9px;
+  font-size: 0.72rem;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  color: var(--accent, #2D6A56);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+  opacity: 0.8;
+}
+
+.diario-suggest-chip:hover,
+.diario-suggest-chip:focus-visible {
+  background: color-mix(in srgb, var(--accent, #2D6A56) 10%, transparent);
+  opacity: 1;
+  outline: 2px solid var(--accent, #2D6A56);
+  outline-offset: 1px;
+}
+
+.diario-suggest-chip--used,
+.diario-suggest-chip:disabled {
+  opacity: 0.3;
+  cursor: default;
+  border-style: solid;
+}
+
+/* ── N15. Resumo nutricional diário ───────────────────────────────────────── */
+.diario-macro-summary {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--detail, #4CB8A0) 8%, transparent),
+    color-mix(in srgb, var(--gold, #C9A84C) 5%, transparent)
+  );
+  border: 1.5px solid color-mix(in srgb, var(--detail, #4CB8A0) 25%, transparent);
+}
+
+.macro-summary-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent, #2D6A56);
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+}
+
+.macro-summary-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.macro-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 58px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.macro-s-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  line-height: 1;
+}
+
+.macro-s-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  color: #666;
+}
+
+.macro-s-kcal .macro-s-val { color: #7a6100; }
+.macro-s-ptn  .macro-s-val { color: #1a6b5a; }
+.macro-s-cho  .macro-s-val { color: #7a3a00; }
+.macro-s-lip  .macro-s-val { color: #4a1a6e; }
+
+.macro-summary-disclaimer {
+  font-size: 0.62rem;
+  color: #bbb;
+  margin-top: 8px;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  font-style: italic;
+}
+
+/* ── V9 print ────────────────────────────────────────────────────────────── */
+@media print {
+  .diario-taco-dropdown,
+  .diario-lightbox,
+  .diario-pdf-btn,
+  .diario-share-btn,
+  .diario-suggest-chips,
+  .diario-hashtags,
+  .diario-foto-btn,
+  .diario-foto-remove,
+  .diario-week-cal,
+  .diario-fome-row {
+    display: none !important;
+  }
+
+  .diario-macro-summary {
+    border: 1px solid #ccc;
+    background: none;
+    break-inside: avoid;
+  }
+
+  .diario-foto-thumb {
+    max-width: 80px;
+    max-height: 80px;
+  }
+}
+
+/* ── V9 reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .diario-lightbox--open,
+  .diario-week-pill,
+  .diario-foto-thumb,
+  .diario-fome-btn,
+  .diario-hashtag-chip {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ── V9 forced colors ────────────────────────────────────────────────────── */
+@media (forced-colors: active) {
+  .diario-foto-btn,
+  .diario-pdf-btn,
+  .diario-share-btn,
+  .diario-hashtag-chip,
+  .diario-suggest-chip {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+    color: ButtonText;
+    background: ButtonFace;
+  }
+
+  .diario-week-pill--selected {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .diario-taco-option:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .diario-lightbox {
+    background: Canvas;
+  }
+}
