@@ -1712,3 +1712,672 @@ function v5IntlFormat() {
     }).observe(grid, { childList: true });
   }
 }
+
+// ═══ POLIMENTO V6 ═══
+// 16 melhorias UX clínicas
+// V6: sparklines mini (1), anotações inline (2), timeline visual (3),
+//     comparação de períodos (4), botão print/PDF (5), padrão por dia da semana (6),
+//     lacunas no período (7), indicador de última entrada (8),
+//     busca nas observações (9), resumo prontuário (10),
+//     modo compacto (11), regressão linear (12), highlight células extremas (13),
+//     navegação rápida (14), score por semana (15), atalhos E/C/R (16)
+
+window._adminCheckinsExtras.version = 6;
+
+const _NOTES_KEY   = 'erg_acheckins_notes';
+const _COMPACT_KEY = 'erg_acheckins_compact';
+
+document.addEventListener('DOMContentLoaded', () => {
+  v6ModoCompacto();     // 11
+  v6AtalhosPatch();     // 16
+  v6NavigacaoRapida();  // 14
+  v6PrintButton();      //  5
+});
+
+// Observa o grid para disparar features V6 após carga de dados
+(function v6Watch() {
+  const attach = () => {
+    const grid = document.getElementById('resumo-grid');
+    if (!grid) { setTimeout(attach, 300); return; }
+    let _last6 = '';
+    new MutationObserver(() => {
+      if (grid.children.length > 0 && grid.innerHTML !== _last6) {
+        _last6 = grid.innerHTML;
+        clearTimeout(window._aciV6Timer);
+        window._aciV6Timer = setTimeout(onV6ContentReady, 450);
+      }
+    }).observe(grid, { childList: true });
+  };
+  attach();
+})();
+
+function onV6ContentReady() {
+  document.querySelectorAll(
+    '.aci-sparkline-cell, .aci-nota-th, .aci-nota-cell, .aci-timeline-v6, ' +
+    '.aci-comp-periodo, .aci-dayofweek, .aci-lacunas-badge, ' +
+    '.aci-ultima-entrada, .aci-busca-obs, .aci-prontuario-btn, ' +
+    '.aci-regressao-insight, .aci-score-semana'
+  ).forEach(el => el.remove());
+
+  const rows = Array.from(document.querySelectorAll('#tabela-checkins tbody tr'));
+  if (!rows.length) return;
+  const data = parseTableRows(rows);
+
+  v6SparklinesMini(data);            //  1
+  v6AnotacoesInline(rows, data);     //  2
+  v6TimelineVisual(data);            //  3
+  v6ComparacaoPeriodo(data);         //  4
+  v6PadraoDiaSemana(data);           //  6
+  v6LacunasPeriodo(data);            //  7
+  v6UltimaEntrada(data);             //  8
+  v6BuscaObservacoes(rows);          //  9
+  v6ResumoProntuario(data);          // 10
+  v6RegressaoLinear(data);           // 12
+  v6HighlightCelulasExtremas(rows);  // 13
+  v6ScorePorSemana(data);            // 15
+}
+
+// ── V6-1. Sparklines mini de energia e humor ─────────────────────────────
+function v6SparklinesMini(data) {
+  if (data.length < 4) return;
+  const section = document.getElementById('resumo-grid')?.closest('.section');
+  if (!section) return;
+
+  const POINTS = Math.min(data.length, 14);
+  const asc    = data.slice(0, POINTS).reverse();
+
+  const drawSparkline = (values, color, label) => {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 110;
+    canvas.height = 30;
+    canvas.setAttribute('aria-hidden', 'true');
+    const ctx   = canvas.getContext('2d');
+    const valid = values.filter(v => v !== null);
+    if (valid.length < 2) return null;
+
+    const min   = Math.min(...valid);
+    const max   = Math.max(...valid);
+    const range = max - min || 1;
+    const pad   = 3;
+    const w = canvas.width - pad * 2;
+    const h = canvas.height - pad * 2;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 1.5;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+
+    const pts = values
+      .map((v, i) => v !== null ? {
+        x: pad + (i / Math.max(values.length - 1, 1)) * w,
+        y: pad + (1 - (v - min) / range) * h,
+      } : null)
+      .filter(Boolean);
+
+    if (pts.length < 2) return null;
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+
+    const last = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    const div = document.createElement('div');
+    div.className = 'aci-spark-item';
+    const lbl = document.createElement('span');
+    lbl.className = 'aci-spark-label';
+    lbl.textContent = label;
+    div.appendChild(lbl);
+    div.appendChild(canvas);
+    return div;
+  };
+
+  const eItem = drawSparkline(asc.map(d => d.energia), '#4CB8A0', 'Energia');
+  const hItem = drawSparkline(asc.map(d => d.humor),   '#C9A84C', 'Humor');
+  const sItem = drawSparkline(asc.map(d => d.sono),    '#2D6A56', 'Sono');
+  if (!eItem && !hItem && !sItem) return;
+
+  const wrap  = document.createElement('div');
+  wrap.className = 'aci-sparkline-cell';
+  wrap.setAttribute('aria-label', 'Mini sparklines de tendência do período');
+  const inner = document.createElement('div');
+  inner.className = 'aci-spark-inner';
+  [eItem, hItem, sItem].forEach(it => { if (it) inner.appendChild(it); });
+  wrap.appendChild(inner);
+  section.querySelector('.section-title')?.after(wrap);
+}
+
+// ── V6-2. Anotações inline da nutricionista ──────────────────────────────
+function v6AnotacoesInline(rows, data) {
+  const notes = JSON.parse(localStorage.getItem(_NOTES_KEY) || '{}');
+  const year  = new Date().getFullYear();
+
+  // Cabeçalho da coluna (uma vez)
+  const table = document.querySelector('#tabela-checkins table');
+  const thead = table?.querySelector('thead tr');
+  if (thead && !thead.querySelector('.aci-nota-th')) {
+    const th = document.createElement('th');
+    th.className = 'aci-nota-th';
+    th.textContent = 'Nota';
+    th.setAttribute('scope', 'col');
+    thead.appendChild(th);
+  }
+
+  rows.forEach((row, i) => {
+    const d = data[i];
+    if (!d) return;
+    const key = `${year}:${d.data}`;
+    const td  = document.createElement('td');
+    td.className = 'aci-nota-cell';
+
+    const existing = notes[key];
+    const btn = document.createElement('button');
+    btn.className = 'aci-nota-btn' + (existing ? ' has-note' : '');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', existing ? `Nota: ${existing}` : 'Adicionar anotação');
+    btn.setAttribute('data-key', key);
+    btn.textContent = existing ? '📝' : '＋';
+
+    btn.addEventListener('click', () => {
+      const cur     = JSON.parse(localStorage.getItem(_NOTES_KEY) || '{}');
+      const current = cur[key] || '';
+      const nova    = prompt(`Anotação clínica — ${d.data}:\n(vazio para remover)`, current);
+      if (nova === null) return;
+      if (nova.trim()) {
+        cur[key] = nova.trim();
+        btn.textContent = '📝';
+        btn.classList.add('has-note');
+        btn.setAttribute('aria-label', `Nota: ${nova.trim()}`);
+        showToast('Anotação salva', 'success', 2000);
+      } else {
+        delete cur[key];
+        btn.textContent = '＋';
+        btn.classList.remove('has-note');
+        btn.setAttribute('aria-label', 'Adicionar anotação');
+        showToast('Anotação removida', 'info', 2000);
+      }
+      localStorage.setItem(_NOTES_KEY, JSON.stringify(cur));
+    });
+
+    td.appendChild(btn);
+    row.appendChild(td);
+  });
+}
+
+// ── V6-3. Timeline visual horizontal de check-ins ────────────────────────
+function v6TimelineVisual(data) {
+  if (data.length < 3) return;
+  const section = document.querySelector('#tabela-checkins')?.closest('.section');
+  if (!section) return;
+
+  const asc = [...data].reverse();
+  const wrap = document.createElement('div');
+  wrap.className = 'aci-timeline-v6';
+  wrap.setAttribute('aria-label', 'Timeline visual dos check-ins do período');
+
+  const track = document.createElement('div');
+  track.className = 'aci-tl-track';
+  track.setAttribute('aria-hidden', 'true');
+
+  asc.forEach((d, i) => {
+    const vals  = [d.energia, d.humor].filter(v => v !== null);
+    const score = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    const cls   = score >= 4 ? 'tl-ex' : score >= 2.5 ? 'tl-ok' : score > 0 ? 'tl-poor' : 'tl-empty';
+    const dot   = document.createElement('div');
+    dot.className = `aci-tl-dot ${cls}`;
+    dot.title = `${d.data}${score ? ' — ' + score.toFixed(1) + '/5' : ' — sem métricas'}`;
+    if (i === asc.length - 1) dot.classList.add('tl-today');
+    track.appendChild(dot);
+  });
+
+  const lbl = document.createElement('div');
+  lbl.className = 'aci-tl-labels';
+  lbl.innerHTML = `<span>${asc[0]?.data || ''}</span><span class="aci-tl-title">Timeline</span><span>${asc[asc.length - 1]?.data || ''}</span>`;
+
+  wrap.appendChild(track);
+  wrap.appendChild(lbl);
+  section.querySelector('.section-title')?.after(wrap);
+}
+
+// ── V6-4. Comparação 1ª vs 2ª metade do período ──────────────────────────
+function v6ComparacaoPeriodo(data) {
+  if (data.length < 6) return;
+  const half   = Math.floor(data.length / 2);
+  const recent = data.slice(0, half);
+  const older  = data.slice(half);
+
+  const avg = (arr, field) => {
+    const vals = arr.map(d => d[field]).filter(v => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+
+  const items = [
+    { field: 'energia', label: 'Energia', unit: '' },
+    { field: 'humor',   label: 'Humor',   unit: '' },
+    { field: 'sono',    label: 'Sono',    unit: 'h' },
+    { field: 'agua',    label: 'Água',    unit: 'L' },
+  ].map(m => {
+    const r = avg(recent, m.field);
+    const o = avg(older,  m.field);
+    if (r === null || o === null) return null;
+    return { label: m.label, unit: m.unit, diff: r - o };
+  }).filter(Boolean);
+
+  if (!items.length) return;
+
+  const box = document.createElement('div');
+  box.className = 'aci-comp-periodo';
+  box.setAttribute('role', 'note');
+  box.innerHTML = `
+    <p class="aci-cp-title">Comparação — 1ª vs 2ª metade do período</p>
+    <div class="aci-cp-grid">
+      ${items.map(it => {
+        const up   = it.diff > 0.05;
+        const down = it.diff < -0.05;
+        const sign = up ? '+' : '';
+        const cls  = up ? 'cp-up' : down ? 'cp-down' : 'cp-flat';
+        const val  = Math.abs(it.diff) < 0.05 ? '≈0' : sign + it.diff.toFixed(1) + it.unit;
+        return `<div class="aci-cp-item ${cls}"><span class="aci-cp-label">${it.label}</span><span class="aci-cp-val">${val}</span></div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('resumo-grid')?.closest('.section')?.after(box);
+}
+
+// ── V6-5. Botão Print / PDF ───────────────────────────────────────────────
+function v6PrintButton() {
+  const section = document.querySelector('#tabela-checkins')?.closest('.section');
+  if (!section || document.querySelector('.aci-print-btn-v6')) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'aci-export-btn aci-print-btn-v6';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Imprimir / Exportar PDF');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir`;
+
+  const attach = () => {
+    const ref = section.querySelector('.aci-export-btn:not(.aci-print-btn-v6)');
+    if (ref) ref.after(btn);
+    else section.querySelector('.section-title')?.after(btn);
+  };
+
+  if (document.querySelector('.aci-export-btn')) attach();
+  else setTimeout(attach, 700);
+
+  btn.addEventListener('click', () => {
+    showToast('Abrindo impressão…', 'info', 2000);
+    setTimeout(() => window.print(), 350);
+  });
+}
+
+// ── V6-6. Padrão por dia da semana ───────────────────────────────────────
+function v6PadraoDiaSemana(data) {
+  if (data.length < 7) return;
+  const DAYS   = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const today  = new Date();
+  const bkts   = Array.from({ length: 7 }, () => ({ sum: 0, cnt: 0 }));
+
+  data.forEach(d => {
+    const m = d.data.match(/(\d{2})\/(\d{2})/);
+    if (!m) return;
+    const c = new Date(today.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    if (c > today) c.setFullYear(today.getFullYear() - 1);
+    const vals = [d.energia, d.humor].filter(v => v !== null);
+    if (!vals.length) return;
+    const wd = c.getDay();
+    bkts[wd].sum += vals.reduce((a, b) => a + b, 0) / vals.length;
+    bkts[wd].cnt += 1;
+  });
+
+  const avgs = bkts.map((b, i) => ({ day: DAYS[i], avg: b.cnt ? b.sum / b.cnt : null }))
+    .filter(b => b.avg !== null);
+  if (avgs.length < 3) return;
+
+  const best  = avgs.reduce((a, b) => b.avg > a.avg ? b : a);
+  const worst = avgs.reduce((a, b) => b.avg < a.avg ? b : a);
+
+  const section = document.getElementById('resumo-grid')?.closest('.section');
+  if (!section) return;
+
+  const div = document.createElement('div');
+  div.className = 'aci-dayofweek';
+  div.setAttribute('role', 'note');
+  div.innerHTML = `
+    <p class="aci-dow-title">Padrão por dia da semana</p>
+    <div class="aci-dow-grid">
+      ${avgs.map(a => {
+        const pct = Math.round((a.avg / 5) * 100);
+        const isBest  = a.day === best.day;
+        const isWorst = a.day === worst.day;
+        return `<div class="aci-dow-col${isBest ? ' dow-best' : isWorst ? ' dow-worst' : ''}" title="${a.day}: ${a.avg.toFixed(1)}/5">
+          <div class="aci-dow-bar-wrap"><div class="aci-dow-bar" style="height:${pct}%"></div></div>
+          <span class="aci-dow-label">${a.day}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <p class="aci-dow-caption">Melhor: <strong>${best.day}</strong> (${best.avg.toFixed(1)}) &nbsp;·&nbsp; Atenção: <strong>${worst.day}</strong> (${worst.avg.toFixed(1)})</p>`;
+
+  const hm = document.querySelector('.aci-heatmap');
+  if (hm) hm.after(div);
+  else section.querySelector('.section-title')?.after(div);
+}
+
+// ── V6-7. Lacunas no período ──────────────────────────────────────────────
+function v6LacunasPeriodo(data) {
+  const period  = getPeriodDays();
+  const today   = new Date();
+  const present = new Set();
+
+  data.forEach(d => {
+    const m = d.data.match(/(\d{2})\/(\d{2})/);
+    if (!m) return;
+    const c = new Date(today.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    if (c > today) c.setFullYear(today.getFullYear() - 1);
+    present.add(c.toISOString().split('T')[0]);
+  });
+
+  let gaps = 0;
+  for (let i = 0; i < period; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (!present.has(d.toISOString().split('T')[0])) gaps++;
+  }
+  if (!gaps) return;
+
+  const header = document.querySelector('#ci-content .page-header');
+  if (!header || header.querySelector('.aci-lacunas-badge')) return;
+
+  const badge = document.createElement('div');
+  badge.className = 'aci-lacunas-badge';
+  badge.setAttribute('role', 'status');
+  badge.setAttribute('aria-label', `${gaps} dias sem check-in no período`);
+  badge.innerHTML = `<span class="aci-lac-icon" aria-hidden="true">📅</span><span class="aci-lac-text">${gaps} dia${gaps !== 1 ? 's' : ''} sem check-in no período</span>`;
+  header.appendChild(badge);
+}
+
+// ── V6-8. Indicador de última entrada ────────────────────────────────────
+function v6UltimaEntrada(data) {
+  if (!data.length) return;
+  const m = data[0].data.match(/(\d{2})\/(\d{2})/);
+  if (!m) return;
+  const today = new Date();
+  const c = new Date(today.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+  if (c > today) c.setFullYear(today.getFullYear() - 1);
+  const diff = Math.round((today - c) / 86400000);
+
+  const header = document.querySelector('#ci-content .page-header');
+  if (!header || header.querySelector('.aci-ultima-entrada')) return;
+
+  const span = document.createElement('span');
+  span.className = 'aci-ultima-entrada'
+    + (diff > 7 ? ' aci-ue-late' : diff > 3 ? ' aci-ue-warn' : '');
+  span.setAttribute('role', 'status');
+  span.textContent = `Último check-in: ${diff === 0 ? 'hoje' : diff === 1 ? 'ontem' : `há ${diff} dias`}`;
+  header.appendChild(span);
+}
+
+// ── V6-9. Busca nas observações da tabela de check-ins ────────────────────
+function v6BuscaObservacoes(rows) {
+  const section = document.querySelector('#tabela-checkins')?.closest('.section');
+  if (!section || section.querySelector('.aci-busca-obs')) return;
+
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.className = 'aci-busca-obs';
+  input.placeholder = 'Buscar na tabela de check-ins…';
+  input.setAttribute('aria-label', 'Filtrar linhas da tabela de check-ins por texto');
+
+  let _t = null;
+  input.addEventListener('input', () => {
+    clearTimeout(_t);
+    _t = setTimeout(() => {
+      const q = input.value.toLowerCase().trim();
+      let vis = 0;
+      rows.forEach(row => {
+        const show = !q || row.textContent.toLowerCase().includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) vis++;
+      });
+      if (q) showToast(`${vis} linha${vis !== 1 ? 's' : ''} encontrada${vis !== 1 ? 's' : ''}`, 'info', 1800);
+      else rows.forEach(r => { r.style.display = ''; });
+    }, 220);
+  });
+
+  const pills = section.querySelector('.aci-filter-pills');
+  if (pills) pills.after(input);
+  else section.querySelector('.section-title')?.after(input);
+}
+
+// ── V6-10. Resumo de prontuário formatado ─────────────────────────────────
+function v6ResumoProntuario(data) {
+  const section = document.querySelector('#tabela-checkins')?.closest('.section');
+  if (!section || section.querySelector('.aci-prontuario-btn')) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'aci-export-btn aci-prontuario-btn';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Gerar e copiar resumo para prontuário');
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Prontuário`;
+
+  const attachPront = () => {
+    const ref = section.querySelector('.aci-print-btn-v6') || section.querySelector('.aci-export-btn');
+    if (ref && ref !== btn) ref.after(btn);
+    else if (!section.contains(btn)) section.querySelector('.section-title')?.after(btn);
+  };
+  setTimeout(attachPront, 800);
+
+  btn.addEventListener('click', async () => {
+    if (!data.length) { showToast('Sem dados', 'warning'); return; }
+    const avg = f => {
+      const vals = data.map(d => d[f]).filter(v => v !== null);
+      return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : 'N/D';
+    };
+    const treinos = data.filter(d => d.treinou).length;
+    const nome    = document.getElementById('ci-patient-title')?.textContent.trim() || 'Paciente';
+    const alerts  = Array.from(document.querySelectorAll('.aci-sa-item .aci-sa-item-label')).map(e => e.textContent.trim());
+    const hoje    = new Date().toLocaleDateString('pt-BR');
+    const period  = getPeriodDays();
+
+    const texto = [
+      `ACOMPANHAMENTO NUTRICIONAL — ${nome}`,
+      `Período: últimos ${period} dias  |  Data: ${hoje}`,
+      '─────────────────────────────────────',
+      `• Energia média: ${avg('energia')}/5`,
+      `• Humor médio: ${avg('humor')}/5`,
+      `• Sono médio: ${avg('sono')}h`,
+      `• Hidratação média: ${avg('agua')}L`,
+      `• Treinos registrados: ${treinos}/${data.length} dias`,
+      alerts.length ? `\nALERTAS:\n${alerts.map(a => `  ⚠ ${a}`).join('\n')}` : '',
+    ].filter(Boolean).join('\n');
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      showToast('Resumo copiado para área de transferência!', 'success', 3000);
+    } catch (_) {
+      const ta = Object.assign(document.createElement('textarea'), {
+        value: texto, style: 'position:fixed;left:-9999px;top:0;',
+      });
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast('Resumo copiado!', 'success', 3000); } catch (_e) {}
+      document.body.removeChild(ta);
+    }
+  });
+}
+
+// ── V6-11. Modo compacto da tabela ────────────────────────────────────────
+function v6ModoCompacto() {
+  if (localStorage.getItem(_COMPACT_KEY) === '1') document.body.classList.add('aci-compact');
+}
+function toggleModoCompacto() {
+  const on = document.body.classList.toggle('aci-compact');
+  localStorage.setItem(_COMPACT_KEY, on ? '1' : '0');
+  showToast(on ? 'Modo compacto ativado' : 'Modo normal restaurado', 'info', 2000);
+}
+
+// ── V6-12. Regressão linear — tendência do período ───────────────────────
+function v6RegressaoLinear(data) {
+  const defs = [
+    { field: 'energia', label: 'Energia' },
+    { field: 'humor',   label: 'Humor' },
+    { field: 'sono',    label: 'Sono' },
+  ];
+
+  const trends = [];
+  defs.forEach(({ field, label }) => {
+    const pts = data
+      .map((d, i) => d[field] !== null ? { x: i, y: d[field] } : null)
+      .filter(Boolean);
+    if (pts.length < 5) return;
+
+    const n   = pts.length;
+    const sx  = pts.reduce((s, p) => s + p.x, 0);
+    const sy  = pts.reduce((s, p) => s + p.y, 0);
+    const sxy = pts.reduce((s, p) => s + p.x * p.y, 0);
+    const sx2 = pts.reduce((s, p) => s + p.x ** 2, 0);
+    const den = n * sx2 - sx ** 2;
+    if (!den) return;
+
+    const slope = (n * sxy - sx * sy) / den;
+    if (Math.abs(slope) < 0.02) return;
+    // data[0] = mais recente → slope negativo = dados menores no passado = crescendo
+    trends.push({ label, dir: slope < 0 ? 'crescendo' : 'caindo', rate: Math.abs(slope * 7).toFixed(1) });
+  });
+
+  if (!trends.length) return;
+
+  const box = document.createElement('div');
+  box.className = 'aci-regressao-insight';
+  box.setAttribute('role', 'note');
+  box.innerHTML = `
+    <span class="aci-insight-icon" aria-hidden="true">📈</span>
+    <div>
+      <p class="aci-insight-label">Tendência linear do período</p>
+      <p class="aci-insight-text">${trends.map(t =>
+        `<strong>${t.label}</strong>: ${t.dir} ~${t.rate} pt/semana`
+      ).join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</p>
+    </div>`;
+
+  const ref = document.querySelector('.aci-insight-card');
+  if (ref) ref.after(box);
+  else document.getElementById('resumo-grid')?.closest('.section')?.after(box);
+}
+
+// ── V6-13. Highlight de células com valores extremos ─────────────────────
+function v6HighlightCelulasExtremas(rows) {
+  rows.forEach(row => {
+    row.querySelectorAll('td').forEach((cell, i) => {
+      if (![1, 2, 3, 4].includes(i)) return;
+      const v = parseFloat(cell.textContent.trim());
+      if (isNaN(v)) return;
+      cell.classList.remove('aci-cell-top', 'aci-cell-low');
+      if (v >= 4.5)      cell.classList.add('aci-cell-top');
+      else if (v <= 1.5) cell.classList.add('aci-cell-low');
+    });
+  });
+}
+
+// ── V6-14. Navegação rápida por seções ───────────────────────────────────
+function v6NavigacaoRapida() {
+  if (document.querySelector('.aci-nav-rapida')) return;
+  const nav = document.createElement('nav');
+  nav.className = 'aci-nav-rapida';
+  nav.setAttribute('aria-label', 'Navegação rápida por seções da página');
+
+  [
+    { href: '#smet-section',    label: 'Score' },
+    { href: '#resumo-grid',     label: 'Resumo' },
+    { href: '#intestino-grid',  label: 'Intestinal' },
+    { href: '#tabela-checkins', label: 'Check-ins' },
+    { href: '#tabela-diario',   label: 'Diário' },
+  ].forEach(it => {
+    const a = document.createElement('a');
+    a.href = it.href;
+    a.className = 'aci-nav-r-item';
+    a.textContent = it.label;
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(it.href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    nav.appendChild(a);
+  });
+
+  document.getElementById('ci-main')?.prepend(nav);
+}
+
+// ── V6-15. Score por semana ───────────────────────────────────────────────
+function v6ScorePorSemana(data) {
+  if (data.length < 8) return;
+
+  const weeks = [];
+  for (let i = 0; i < data.length; i += 7) weeks.push(data.slice(i, i + 7));
+  if (weeks.length < 2) return;
+
+  const weekScore = wk => {
+    const vals = wk.flatMap(d => [d.energia, d.humor].filter(v => v !== null));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+
+  const box = document.createElement('div');
+  box.className = 'aci-score-semana';
+  box.setAttribute('role', 'note');
+  box.innerHTML = `
+    <p class="aci-ss-title">Score por semana</p>
+    <div class="aci-ss-grid">
+      ${weeks.map((wk, i) => {
+        const s = weekScore(wk);
+        if (s === null) return '';
+        const cls   = s >= 4 ? 'ss-ex' : s >= 2.5 ? 'ss-ok' : 'ss-poor';
+        const wlbl  = i === 0 ? 'Atual' : `Sem. -${i}`;
+        return `<div class="aci-ss-item ${cls}" title="${wlbl}: ${s.toFixed(1)}/5">
+          <span class="aci-ss-val">${s.toFixed(1)}</span>
+          <span class="aci-ss-week">${wlbl}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  const ref = document.querySelector('.aci-comp-periodo');
+  if (ref) ref.after(box);
+  else document.getElementById('resumo-grid')?.closest('.section')?.after(box);
+}
+
+// ── V6-16. Novos atalhos de teclado (E, C, R) e patch no painel ──────────
+function v6AtalhosPatch() {
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea, select, [contenteditable]')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    switch (e.key) {
+      case 'e': case 'E':
+        document.querySelector('.aci-export-btn:not(.aci-print-btn-v6):not(.aci-prontuario-btn)')?.click();
+        break;
+      case 'c': case 'C':
+        toggleModoCompacto();
+        break;
+      case 'r': case 'R':
+        document.querySelector('.aci-prontuario-btn')?.click();
+        break;
+    }
+  });
+
+  // Adiciona novos atalhos no painel de atalhos existente
+  const inject = () => {
+    const body = document.querySelector('.aci-atalhos-body');
+    if (!body) { setTimeout(inject, 600); return; }
+    if (body.querySelector('[data-v6]')) return;
+    [
+      { key: 'E', desc: 'Exportar CSV' },
+      { key: 'C', desc: 'Modo compacto' },
+      { key: 'R', desc: 'Copiar resumo' },
+    ].forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'aci-atalho';
+      div.dataset.v6 = '1';
+      div.innerHTML = `<kbd>${s.key}</kbd><span>${s.desc}</span>`;
+      body.appendChild(div);
+    });
+  };
+  setTimeout(inject, 900);
+}

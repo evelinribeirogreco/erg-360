@@ -1074,3 +1074,493 @@ body.aci-battery-saver .aci-section-pre        { opacity: 1 !important; transfor
 body.aci-reduced-motion .aci-notif-prompt,
 body.aci-reduced-motion .aci-offline-banner { transition-duration: 0.01ms !important; }
 body.aci-battery-saver  .aci-offline-banner { transition: none !important; }
+
+/* ═══ POLIMENTO V6 ═══ */
+/* 16 melhorias UX clínicas                                                   */
+/* V6: sparklines mini, anotações inline, timeline, comparação períodos,       */
+/*     print/PDF, dia semana, lacunas, última entrada, busca obs,              */
+/*     prontuário, modo compacto, regressão, highlight extremos,               */
+/*     navegação rápida, score semana, atalhos E/C/R                           */
+
+/* V6-1. Sparklines mini ─────────────────────────────────────────────────── */
+.aci-sparkline-cell {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.aci-spark-inner {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.aci-spark-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aci-spark-label {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+.aci-spark-item canvas {
+  display: block;
+  border-radius: 2px;
+}
+
+/* V6-2. Anotações inline ────────────────────────────────────────────────── */
+.aci-nota-th {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aci-nota-cell {
+  text-align: center;
+  padding: 6px 10px !important;
+}
+.aci-nota-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.aci-nota-btn:hover {
+  border-color: var(--detail);
+  color: var(--text);
+  background: var(--accent-dim);
+}
+.aci-nota-btn.has-note {
+  border-color: rgba(201, 168, 76, 0.45);
+  background: rgba(201, 168, 76, 0.07);
+}
+.aci-nota-btn:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* V6-3. Timeline visual ─────────────────────────────────────────────────── */
+.aci-timeline-v6 {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.aci-tl-track {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.aci-tl-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  cursor: default;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.aci-tl-dot:hover {
+  transform: scale(1.5);
+}
+.tl-ex    { background: #2D6A56; }
+.tl-ok    { background: #4CB8A0; }
+.tl-poor  { background: rgba(201, 168, 76, 0.7); }
+.tl-empty { background: var(--bg-secondary); border: 1px solid var(--border); }
+.tl-today { box-shadow: 0 0 0 2px var(--detail), 0 0 0 4px rgba(76, 184, 160, 0.2); }
+.aci-tl-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  color: var(--text-light);
+}
+.aci-tl-title {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* V6-4. Comparação de períodos ──────────────────────────────────────────── */
+.aci-comp-periodo {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--detail);
+  margin-bottom: 1.25rem;
+}
+.aci-cp-title {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.aci-cp-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.aci-cp-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  min-width: 72px;
+}
+.aci-cp-label {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+.aci-cp-val {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.cp-up   .aci-cp-val { color: #2D6A56; }
+.cp-down .aci-cp-val { color: var(--error); }
+.cp-flat .aci-cp-val { color: var(--text-light); }
+
+/* V6-6. Padrão por dia da semana ────────────────────────────────────────── */
+.aci-dayofweek {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+.aci-dow-title {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.aci-dow-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 56px;
+  margin-bottom: 8px;
+}
+.aci-dow-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+.aci-dow-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.aci-dow-bar {
+  width: 100%;
+  background: var(--detail);
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  transition: height 0.5s ease;
+}
+.dow-best  .aci-dow-bar { background: #2D6A56; }
+.dow-worst .aci-dow-bar { background: rgba(224, 82, 82, 0.6); }
+.aci-dow-label {
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.aci-dow-caption {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--text-light);
+  margin: 0;
+}
+.aci-dow-caption strong {
+  color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .aci-dow-bar { transition-duration: 0.01ms !important; }
+}
+body.aci-reduced-motion .aci-dow-bar { transition-duration: 0.01ms !important; }
+
+/* V6-7. Lacunas badge ───────────────────────────────────────────────────── */
+.aci-lacunas-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--text-light);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+.aci-lac-icon { font-size: 0.85rem; }
+
+/* V6-8. Última entrada ──────────────────────────────────────────────────── */
+.aci-ultima-entrada {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+.aci-ultima-entrada.aci-ue-warn { color: #7a5c00; }
+.aci-ultima-entrada.aci-ue-late { color: var(--error); font-weight: 600; }
+
+/* V6-9. Busca nas observações ───────────────────────────────────────────── */
+.aci-busca-obs {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  outline: none;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.aci-busca-obs:focus {
+  border-color: var(--detail);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.aci-busca-obs::placeholder {
+  color: var(--text-light);
+  font-style: italic;
+}
+
+/* V6-10. Prontuário button ──────────────────────────────────────────────── */
+.aci-prontuario-btn {
+  margin-left: 6px;
+}
+
+/* V6-11. Modo compacto ──────────────────────────────────────────────────── */
+body.aci-compact #tabela-checkins td,
+body.aci-compact #tabela-checkins th {
+  padding: 4px 8px !important;
+  font-size: 0.72rem !important;
+}
+body.aci-compact #tabela-diario > div {
+  padding: 10px !important;
+}
+
+/* V6-12. Regressão linear insight ───────────────────────────────────────── */
+.aci-regressao-insight {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(201, 168, 76, 0.04);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-left: 3px solid var(--gold);
+  margin: 0 0 1.25rem;
+}
+
+/* V6-13. Highlight células extremas ─────────────────────────────────────── */
+#tabela-checkins td.aci-cell-top {
+  background: rgba(45, 106, 86, 0.09) !important;
+  color: #2D6A56;
+  font-weight: 600;
+}
+#tabela-checkins td.aci-cell-low {
+  background: rgba(224, 82, 82, 0.07) !important;
+  color: var(--error);
+}
+
+/* V6-14. Navegação rápida por seções ────────────────────────────────────── */
+.aci-nav-rapida {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 0 4px;
+  margin-bottom: 8px;
+}
+.aci-nav-r-item {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-light);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 11px;
+  text-decoration: none;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  cursor: pointer;
+}
+.aci-nav-r-item:hover {
+  color: var(--accent);
+  border-color: var(--detail);
+  background: var(--accent-dim);
+}
+.aci-nav-r-item:focus-visible {
+  outline: 2px solid var(--detail);
+  outline-offset: 2px;
+}
+
+/* V6-15. Score por semana ───────────────────────────────────────────────── */
+.aci-score-semana {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+}
+.aci-ss-title {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.aci-ss-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aci-ss-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  min-width: 80px;
+  cursor: default;
+  transition: transform 0.15s;
+}
+.aci-ss-item:hover {
+  transform: translateY(-2px);
+}
+.ss-ex   { border-color: rgba(45, 106, 86, 0.3); background: rgba(45, 106, 86, 0.06); }
+.ss-ok   { border-color: rgba(76, 184, 160, 0.25); background: rgba(76, 184, 160, 0.05); }
+.ss-poor { border-color: rgba(224, 82, 82, 0.2); background: rgba(224, 82, 82, 0.04); }
+.aci-ss-val {
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.ss-ex   .aci-ss-val { color: #2D6A56; }
+.ss-poor .aci-ss-val { color: var(--error); }
+.aci-ss-week {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  color: var(--text-light);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aci-tl-dot,
+  .aci-ss-item { transition-duration: 0.01ms !important; }
+}
+body.aci-reduced-motion .aci-tl-dot,
+body.aci-reduced-motion .aci-ss-item { transition-duration: 0.01ms !important; }
+
+/* V6 — @media print ─────────────────────────────────────────────────────── */
+@media print {
+  .sidebar,
+  .mobile-header,
+  .sidebar-overlay,
+  .aci-back-top,
+  .aci-scroll-progress,
+  .aci-toast-wrap,
+  .aci-atalhos-overlay,
+  .aci-notif-prompt,
+  .aci-offline-banner,
+  .aci-export-btn,
+  .aci-filter-pills,
+  .aci-busca-diario,
+  .aci-busca-obs,
+  .aci-nav-rapida,
+  .admin-back-bottom,
+  .aci-skip-link { display: none !important; }
+
+  body,
+  html { background: #fff !important; color: #000 !important; font-size: 11pt; }
+
+  .main-content { margin: 0 !important; padding: 16pt 0 !important; }
+
+  .section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #ccc !important;
+    margin-bottom: 16pt !important;
+    box-shadow: none !important;
+  }
+
+  .page-title { font-size: 18pt !important; }
+
+  #tabela-checkins table,
+  #tabela-diario  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  #tabela-checkins th,
+  #tabela-checkins td,
+  #tabela-diario  th,
+  #tabela-diario  td {
+    border: 1px solid #ddd !important;
+    padding: 5pt 6pt !important;
+    font-size: 8pt !important;
+  }
+
+  canvas { max-width: 100% !important; }
+}
+
+/* V6 — dark mode patches ────────────────────────────────────────────────── */
+body.aci-dark .aci-sparkline-cell,
+body.aci-dark .aci-timeline-v6,
+body.aci-dark .aci-comp-periodo,
+body.aci-dark .aci-dayofweek,
+body.aci-dark .aci-score-semana {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+body.aci-dark .aci-cp-item,
+body.aci-dark .aci-ss-item { background: var(--bg-secondary); }
+body.aci-dark .aci-regressao-insight { background: rgba(201, 168, 76, 0.06); }
